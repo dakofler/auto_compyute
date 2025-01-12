@@ -1,8 +1,8 @@
 from typing import Any
 
+from .autograd import Node, apply_function
 from .backends import Array
 from .functions import Maximum
-from .node import Node, apply_function
 
 __all__ = ["maximum"]
 

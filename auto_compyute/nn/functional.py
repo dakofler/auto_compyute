@@ -1,7 +1,7 @@
 """Activation functions"""
 
 from .. import ops
-from ..node import Node
+from ..autograd import Node
 
 
 def mse_loss(logits: Node, targets: Node):

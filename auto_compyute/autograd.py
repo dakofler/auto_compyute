@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from typing import Any, Optional
 
 from .backends import Array, Backend, Shape, get_array_backend, select_backend
@@ -22,7 +23,24 @@ from .functions import (
     Transpose,
 )
 
-__all__ = ["node", "Node", "ones", "zeros", "randn", "randu"]
+__all__ = ["no_grad", "Node", "node", "ones", "zeros", "randn", "randu"]
+
+
+autograd_active = True
+
+
+def set_autograd(active: bool) -> None:
+    global autograd_active
+    autograd_active = active
+
+
+@contextmanager
+def no_grad() -> Generator:
+    set_autograd(False)
+    try:
+        yield
+    finally:
+        set_autograd(True)
 
 
 class Node:
@@ -91,7 +109,7 @@ class Node:
 
     def backward(self, output_grad: Optional[Array] = None):
         if not self.requires_grad:
-            return
+            raise ValueError("Node does not require gradients.")
         if self.grad is None:
             self.grad = self.b.m.ones(self.shape, dtype=self.dtype)
         if output_grad is not None:
@@ -106,16 +124,16 @@ class Node:
     # MAGIC METHODS
     # ----------------------------------------------------------------------------------
 
-    def __add__(self, x: Node) -> Node:
+    def __add__(self, x: Node | int | float) -> Node:
         return apply_function(Add, self, x)
 
-    def __sub__(self, x: Node) -> Node:
+    def __sub__(self, x: Node | int | float) -> Node:
         return apply_function(Subtract, self, x)
 
-    def __mul__(self, x: Node) -> Node:
+    def __mul__(self, x: Node | int | float) -> Node:
         return apply_function(Multiply, self, x)
 
-    def __truediv__(self, x: Node) -> Node:
+    def __truediv__(self, x: Node | int | float) -> Node:
         return apply_function(Divide, self, x)
 
     def __pow__(self, x: int) -> Node:
@@ -148,18 +166,22 @@ class Node:
 def apply_function(function: type[Function], *args: Any) -> Node:
     ctx = Context()
     function_args = tuple(a.data if isinstance(a, Node) else a for a in args)
-    node_args = tuple(a for a in args if isinstance(a, Node))
     y_data = function.forward(ctx, *function_args)
 
-    def grad_fn(output_grad) -> None:
-        grads = function.backward(ctx, output_grad)
-        for n, grad in zip(node_args, grads):
-            if not n.requires_grad:
-                continue
-            n.apply_grad(grad)
+    if autograd_active:
+        node_args = tuple(a for a in args if isinstance(a, Node))
 
-    grad_fn_name = function.__name__ + "Backward"
-    return Node(y_data, grad_fn, grad_fn_name, node_args, True)
+        def grad_fn(output_grad) -> None:
+            grads = function.backward(ctx, output_grad)
+            for n, grad in zip(node_args, grads):
+                if not n.requires_grad:
+                    continue
+                n.apply_grad(grad)
+
+        grad_fn_name = function.__name__ + "Backward"
+        return Node(y_data, grad_fn, grad_fn_name, node_args, True)
+
+    return Node(y_data)
 
 
 def toposort(n: Node, nodes: list[Node], visited_node_ids: set) -> list[Node]:

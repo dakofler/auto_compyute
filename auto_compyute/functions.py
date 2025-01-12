@@ -56,37 +56,41 @@ class Context:
 
 class Add(Function):
     @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array) -> Array:
+    def forward(ctx: Context, x1: Array, x2: Array | int | float) -> Array:
         y = x1 + x2
-        ctx.save(x1.shape, x2.shape)
+        ctx.save(x1.shape, x2.shape if isinstance(x2, Array) else None)
         return y
 
     @staticmethod
     def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
         x1_shape, x2_shape = ctx.get()
         dx1 = unbroadcast(output_grad, x1_shape)
-        dx2 = unbroadcast(output_grad, x2_shape)
-        return dx1, dx2
+        if x2_shape is not None:
+            dx2 = unbroadcast(output_grad, x2_shape)
+            return dx1, dx2
+        return (dx1,)
 
 
 class Subtract(Function):
     @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array) -> Array:
+    def forward(ctx: Context, x1: Array, x2: Array | int | float) -> Array:
         y = x1 - x2
-        ctx.save(x1.shape, x2.shape)
+        ctx.save(x1.shape, x2.shape if isinstance(x2, Array) else None)
         return y
 
     @staticmethod
     def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
         x1_shape, x2_shape = ctx.get()
         dx1 = unbroadcast(output_grad, x1_shape)
-        dx2 = unbroadcast(output_grad, x2_shape)
-        return dx1, -dx2
+        if x2_shape is not None:
+            dx2 = unbroadcast(output_grad, x2_shape)
+            return dx1, -dx2
+        return (dx1,)
 
 
 class Multiply(Function):
     @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array) -> Array:
+    def forward(ctx: Context, x1: Array, x2: Array | int | float) -> Array:
         y = x1 * x2
         ctx.save(x1, x2)
         return y
@@ -101,7 +105,7 @@ class Multiply(Function):
 
 class Divide(Function):
     @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array) -> Array:
+    def forward(ctx: Context, x1: Array, x2: Array | int | float) -> Array:
         y = x1 / x2
         ctx.save(x1, x2)
         return y
@@ -145,17 +149,21 @@ class Matmul(Function):
 
 class Maximum(Function):
     @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Any) -> Array:
+    def forward(ctx: Context, x1: Array, x2: Array | int | float) -> Array:
         b = get_array_backend(x1).m
         y = b.maximum(x1, x2)
-        ctx.save(y > 0.0)
+        ctx.save(y == x1, isinstance(x2, Array))
         return y
 
     @staticmethod
     def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        mask = ctx.get()
-        dx = output_grad * mask
-        return (dx,)
+        mask, x2_is_array = ctx.get()
+        m = get_array_backend(output_grad).m
+        dx1 = output_grad * mask
+        if x2_is_array:
+            dx2 = output_grad * m.invert(mask)
+            return dx1, dx2
+        return (dx1,)
 
 
 class Transpose(Function):

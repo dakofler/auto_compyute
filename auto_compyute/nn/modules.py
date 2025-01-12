@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Any, OrderedDict
 
-from ..node import Node, randu
+from ..autograd import Node, randu
 from .functional import linear
 
 __all__ = ["Parameter", "Module", "Linear"]
