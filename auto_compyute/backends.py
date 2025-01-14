@@ -9,7 +9,9 @@ import numpy as np
 __all__ = ["cpu", "cuda"]
 
 Array: TypeAlias = cp.ndarray | np.ndarray
+Scalar: TypeAlias = int | float
 Shape = tuple[int, ...]
+Dim = int | tuple[int, ...]
 
 
 class Backend:

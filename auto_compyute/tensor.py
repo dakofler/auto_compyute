@@ -1,4 +1,4 @@
-"""Autograd node"""
+"""Tensor class"""
 
 from __future__ import annotations
 
@@ -6,50 +6,32 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .backends import Array, Backend, Shape, get_array_backend, select_backend
-from .dtypes import DType, select_dtype
-from .functions import (
-    Add,
-    Context,
-    Divide,
-    Function,
-    Matmul,
-    Mean,
-    Multiply,
-    Pow,
-    Subtract,
-    Sum,
-    Tanh,
-    Transpose,
+from .backends import (
+    Array,
+    Backend,
+    Dim,
+    Scalar,
+    Shape,
+    get_array_backend,
+    select_backend,
 )
+from .dtypes import DType, select_dtype
+from .funcs.function import Context, Function
+from .funcs.multiary_funcs import Add, Div, Matmul, Maximum, Mul, Pow, Sub
+from .funcs.reduce_funcs import Mean, Std, Sum, Var
+from .funcs.shape_funcs import Select
+from .funcs.unary_funcs import Tanh, Transpose
 
-__all__ = ["no_grad", "Node", "node", "ones", "zeros", "randn", "randu"]
-
-
-autograd_active = True
-
-
-def set_autograd(active: bool) -> None:
-    global autograd_active
-    autograd_active = active
+__all__ = ["Tensor", "tensor", "ones", "zeros", "randn", "randu"]
 
 
-@contextmanager
-def no_grad() -> Generator:
-    set_autograd(False)
-    try:
-        yield
-    finally:
-        set_autograd(True)
-
-
-class Node:
+class Tensor:
     def __init__(
         self,
         data: Array,
         grad_fn: Optional[Callable] = None,
         grad_fn_name: str = "",
-        child_nodes: Optional[tuple[Node, ...]] = None,
+        child_nodes: Optional[tuple[Tensor, ...]] = None,
         requires_grad: bool = False,
     ) -> None:
         self.data = data
@@ -97,7 +79,7 @@ class Node:
         return self.data.shape
 
     @property
-    def T(self) -> Node:
+    def T(self) -> Tensor:
         return self.transpose(-2, -1)
 
     # ----------------------------------------------------------------------------------
@@ -114,62 +96,98 @@ class Node:
             self.grad = self.b.m.ones(self.shape, dtype=self.dtype)
         if output_grad is not None:
             self.grad *= output_grad
-        nodes: list[Node] = []
+        nodes: list[Tensor] = []
         visited_ids: set[int] = set()
         nodes = toposort(self, nodes, visited_ids)
         for n in reversed(nodes):
             n.grad_fn(n.grad)
 
-    # ----------------------------------------------------------------------------------
-    # MAGIC METHODS
-    # ----------------------------------------------------------------------------------
-
-    def __add__(self, x: Node | int | float) -> Node:
-        return apply_function(Add, self, x)
-
-    def __sub__(self, x: Node | int | float) -> Node:
-        return apply_function(Subtract, self, x)
-
-    def __mul__(self, x: Node | int | float) -> Node:
-        return apply_function(Multiply, self, x)
-
-    def __truediv__(self, x: Node | int | float) -> Node:
-        return apply_function(Divide, self, x)
-
-    def __pow__(self, x: int) -> Node:
-        return apply_function(Pow, self, x)
-
-    def __matmul__(self, x: Node) -> Node:
-        return apply_function(Matmul, self, x)
+    def __getitem__(self, key) -> Tensor:
+        return apply_function(Select, self, key)
 
     # ----------------------------------------------------------------------------------
-    # OPS
+    # UNARY OPS
     # ----------------------------------------------------------------------------------
 
-    def transpose(self, *dims: int) -> Node:
-        return apply_function(Transpose, self, dims)
-
-    def sum(
-        self, dims: Optional[int | tuple[int, ...]] = None, keepdims: bool = False
-    ) -> Node:
-        return apply_function(Sum, self, dims, keepdims)
-
-    def mean(
-        self, dims: Optional[int | tuple[int, ...]] = None, keepdims: bool = False
-    ) -> Node:
-        return apply_function(Mean, self, dims, keepdims)
-
-    def tanh(self) -> Node:
+    def tanh(self) -> Tensor:
         return apply_function(Tanh, self)
 
+    def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
+        return apply_function(Transpose, self, dim1, dim2)
 
-def apply_function(function: type[Function], *args: Any) -> Node:
+    # ----------------------------------------------------------------------------------
+    # MULTIARY OPS
+    # ----------------------------------------------------------------------------------
+
+    def add(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Add, self, x)
+
+    def sub(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Sub, self, x)
+
+    def mul(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Mul, self, x)
+
+    def truediv(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Div, self, x)
+
+    def pow(self, x: int) -> Tensor:
+        return apply_function(Pow, self, x)
+
+    def matmul(self, x: Tensor) -> Tensor:
+        return apply_function(Matmul, self, x)
+
+    def maximum(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Maximum, self, x)
+
+    # ----------------------------------------------------------------------------------
+    # REDUCE OPS
+    # ----------------------------------------------------------------------------------
+
+    def sum(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return apply_function(Sum, self, dims, keepdims)
+
+    def mean(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return apply_function(Mean, self, dims, keepdims)
+
+    def var(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return apply_function(Var, self, dims, keepdims)
+
+    def std(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return apply_function(Std, self, dims, keepdims)
+
+    # ----------------------------------------------------------------------------------
+    # SHAPE OPS
+    # ----------------------------------------------------------------------------------
+
+    def select(self, slc: Any) -> Tensor:
+        return apply_function(Select, self, slc)
+
+
+autograd_active = True
+
+
+def set_autograd(active: bool) -> None:
+    global autograd_active
+    autograd_active = active
+
+
+@contextmanager
+def no_grad() -> Generator:
+    set_autograd(False)
+    try:
+        yield
+    finally:
+        set_autograd(True)
+
+
+def apply_function(function: type[Function], *args: Any) -> Tensor:
     ctx = Context()
-    function_args = tuple(a.data if isinstance(a, Node) else a for a in args)
+    function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
     y_data = function.forward(ctx, *function_args)
 
     if autograd_active:
-        node_args = tuple(a for a in args if isinstance(a, Node))
+        node_args = tuple(a for a in args if isinstance(a, Tensor))
 
         def grad_fn(output_grad) -> None:
             grads = function.backward(ctx, output_grad)
@@ -179,12 +197,12 @@ def apply_function(function: type[Function], *args: Any) -> Node:
                 n.apply_grad(grad)
 
         grad_fn_name = function.__name__ + "Backward"
-        return Node(y_data, grad_fn, grad_fn_name, node_args, True)
+        return Tensor(y_data, grad_fn, grad_fn_name, node_args, True)
 
-    return Node(y_data)
+    return Tensor(y_data)
 
 
-def toposort(n: Node, nodes: list[Node], visited_node_ids: set) -> list[Node]:
+def toposort(n: Tensor, nodes: list[Tensor], visited_node_ids: set) -> list[Tensor]:
     if id(n) not in visited_node_ids:
         visited_node_ids.add(id(n))
         if not n.child_nodes:
@@ -204,31 +222,31 @@ def get_factory_kwargs(kwargs) -> tuple[Backend, DType, bool]:
     return backend, dtype, requires_grad
 
 
-def node(data: Any, **factory_kwargs) -> Node:
+def tensor(data: Any, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.array(data, dtype)
-    return Node(data, requires_grad=requires_grad)
+    return Tensor(data, requires_grad=requires_grad)
 
 
-def ones(shape: Shape, **factory_kwargs) -> Node:
+def ones(shape: Shape, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.ones(shape, dtype)
-    return Node(data, requires_grad=requires_grad)
+    return Tensor(data, requires_grad=requires_grad)
 
 
-def zeros(shape: Shape, **factory_kwargs) -> Node:
+def zeros(shape: Shape, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.zeros(shape, dtype)
-    return Node(data, requires_grad=requires_grad)
+    return Tensor(data, requires_grad=requires_grad)
 
 
-def randn(shape: Shape, mean: float = 0, var: float = 1, **factory_kwargs) -> Node:
+def randn(shape: Shape, mean: float = 0, var: float = 1, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.random.normal(mean, var, shape).astype(dtype)
-    return Node(data, requires_grad=requires_grad)
+    return Tensor(data, requires_grad=requires_grad)
 
 
-def randu(shape: Shape, low: float = -1, high: float = 1, **factory_kwargs) -> Node:
+def randu(shape: Shape, low: float = -1, high: float = 1, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.random.uniform(low, high, shape).astype(dtype)
-    return Node(data, requires_grad=requires_grad)
+    return Tensor(data, requires_grad=requires_grad)

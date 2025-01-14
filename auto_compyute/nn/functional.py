@@ -1,20 +1,19 @@
-"""Activation functions"""
+"""Neural network functions"""
 
-from .. import ops
-from ..autograd import Node
-
-
-def mse_loss(logits: Node, targets: Node):
-    return ((logits - targets) ** 2).mean()
+from ..tensor import Tensor
 
 
-def linear(x: Node, w: Node, b: Node) -> Node:
-    return x @ w.T + b
+def mse_loss(logits: Tensor, targets: Tensor):
+    return logits.sub(targets).pow(2).mean()
 
 
-def relu(x: Node) -> Node:
-    return ops.maximum(x, 0.0)
+def linear(x: Tensor, w: Tensor, b: Tensor) -> Tensor:
+    return x.matmul(w.transpose()).add(b)
 
 
-def tanh(x: Node) -> Node:
+def relu(x: Tensor) -> Tensor:
+    return x.maximum(0.0)
+
+
+def tanh(x: Tensor) -> Tensor:
     return x.tanh()

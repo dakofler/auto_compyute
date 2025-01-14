@@ -5,14 +5,14 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Any, OrderedDict
 
-from ..autograd import Node, randu
+from ..tensor import Tensor, randu
 from .functional import linear
 
 __all__ = ["Parameter", "Module", "Linear"]
 
 
-class Parameter(Node):
-    def __init__(self, data: Node) -> None:
+class Parameter(Tensor):
+    def __init__(self, data: Tensor) -> None:
         super().__init__(data.data, requires_grad=True)
 
 
@@ -21,11 +21,11 @@ class Module(ABC):
         self._parameters: OrderedDict[str, Parameter] = OrderedDict()
         self._modules: OrderedDict[str, Module] = OrderedDict()
 
-    def __call__(self, x: Node) -> Node:
+    def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
 
     @abstractmethod
-    def forward(self, x: Node) -> Node: ...
+    def forward(self, x: Tensor) -> Tensor: ...
 
     def __setattr__(self, name: str, value: Any) -> None:
         if isinstance(value, Parameter):
@@ -52,8 +52,8 @@ class Linear(Module):
     def __init__(self, in_dim: int, out_dim: int) -> None:
         super().__init__()
         k = 1 / math.sqrt(in_dim)
-        self.weight = Parameter(randu((out_dim, in_dim), -k, k))
-        self.bias = Parameter(randu((out_dim,), -k, k))
+        self.w = Parameter(randu((out_dim, in_dim), -k, k))
+        self.b = Parameter(randu((out_dim,), -k, k))
 
-    def forward(self, x: Node) -> Node:
-        return linear(x, self.weight, self.bias)
+    def forward(self, x: Tensor) -> Tensor:
+        return linear(x, self.w, self.b)

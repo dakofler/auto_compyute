@@ -1,7 +1,6 @@
 """auto compyute"""
 
 from . import nn
-from .autograd import *
 from .backends import *
 from .dtypes import *
-from .ops import *
+from .tensor import *
