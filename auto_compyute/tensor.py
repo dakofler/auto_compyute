@@ -15,14 +15,14 @@ from .backends import (
     get_array_backend,
     select_backend,
 )
-from .dtypes import DType, select_dtype
+from .dtypes import DType, float32, int64, select_dtype
+from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Pow, Sub
 from .funcs.function import Context, Function
-from .funcs.multiary_funcs import Add, Div, Matmul, Maximum, Mul, Pow, Sub
 from .funcs.reduce_funcs import Mean, Std, Sum, Var
-from .funcs.shape_funcs import Select
-from .funcs.unary_funcs import Tanh, Transpose
+from .funcs.shape_funcs import Select, Transpose
+from .funcs.unary_funcs import Tanh
 
-__all__ = ["Tensor", "tensor", "ones", "zeros", "randn", "randu"]
+__all__ = ["Tensor", "tensor", "ones", "zeros", "randi", "randn", "randu"]
 
 
 class Tensor:
@@ -83,6 +83,22 @@ class Tensor:
         return self.transpose(-2, -1)
 
     # ----------------------------------------------------------------------------------
+    # OTHER METHODS
+    # ----------------------------------------------------------------------------------
+
+    def as_type(self, dtype: DType) -> Tensor:
+        new_tensor = Tensor(
+            self.data.astype(dtype),
+            self.grad_fn,
+            self.grad_fn_name,
+            self.child_nodes,
+            self.requires_grad,
+        )
+        if self.grad is not None:
+            new_tensor.grad = self.grad
+        return new_tensor
+
+    # ----------------------------------------------------------------------------------
     # AUTOGRAD
     # ----------------------------------------------------------------------------------
 
@@ -93,7 +109,7 @@ class Tensor:
         if not self.requires_grad:
             raise ValueError("Node does not require gradients.")
         if self.grad is None:
-            self.grad = self.b.m.ones(self.shape, dtype=self.dtype)
+            self.grad = self.b.m.ones(self.shape, dtype=float32)
         if output_grad is not None:
             self.grad *= output_grad
         nodes: list[Tensor] = []
@@ -106,17 +122,39 @@ class Tensor:
         return apply_function(Select, self, key)
 
     # ----------------------------------------------------------------------------------
+    # MAGIC METHODS
+    # ----------------------------------------------------------------------------------
+
+    def __add__(self, x: Tensor | Scalar) -> Tensor:
+        return self.add(x)
+
+    def __sub__(self, x: Tensor | Scalar) -> Tensor:
+        return self.sub(x)
+
+    def __mul__(self, x: Tensor | Scalar) -> Tensor:
+        return self.mul(x)
+
+    def __truediv__(self, x: Tensor | Scalar) -> Tensor:
+        return self.truediv(x)
+
+    def __matmul__(self, x: Tensor) -> Tensor:
+        return self.matmul(x)
+
+    def __pow__(self, x: Tensor | Scalar) -> Tensor:
+        return self.pow(x)
+
+    def __neg__(self) -> Tensor:
+        return self.mul(-1)
+
+    # ----------------------------------------------------------------------------------
     # UNARY OPS
     # ----------------------------------------------------------------------------------
 
     def tanh(self) -> Tensor:
         return apply_function(Tanh, self)
 
-    def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
-        return apply_function(Transpose, self, dim1, dim2)
-
     # ----------------------------------------------------------------------------------
-    # MULTIARY OPS
+    # BINARY OPS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
@@ -131,14 +169,17 @@ class Tensor:
     def truediv(self, x: Tensor | Scalar) -> Tensor:
         return apply_function(Div, self, x)
 
-    def pow(self, x: int) -> Tensor:
-        return apply_function(Pow, self, x)
-
     def matmul(self, x: Tensor) -> Tensor:
         return apply_function(Matmul, self, x)
 
+    def pow(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Pow, self, x)
+
     def maximum(self, x: Tensor | Scalar) -> Tensor:
         return apply_function(Maximum, self, x)
+
+    def minimum(self, x: Tensor | Scalar) -> Tensor:
+        return apply_function(Minimum, self, x)
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -162,6 +203,9 @@ class Tensor:
 
     def select(self, slc: Any) -> Tensor:
         return apply_function(Select, self, slc)
+
+    def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
+        return apply_function(Transpose, self, dim1, dim2)
 
 
 autograd_active = True
@@ -189,15 +233,17 @@ def apply_function(function: type[Function], *args: Any) -> Tensor:
     if autograd_active:
         node_args = tuple(a for a in args if isinstance(a, Tensor))
 
-        def grad_fn(output_grad) -> None:
-            grads = function.backward(ctx, output_grad)
-            for n, grad in zip(node_args, grads):
-                if not n.requires_grad:
-                    continue
-                n.apply_grad(grad)
+        if any(n.requires_grad for n in node_args):
 
-        grad_fn_name = function.__name__ + "Backward"
-        return Tensor(y_data, grad_fn, grad_fn_name, node_args, True)
+            def grad_fn(output_grad) -> None:
+                grads = function.backward(ctx, output_grad)
+                for n, grad in zip(node_args, grads):
+                    if not n.requires_grad:
+                        continue
+                    n.apply_grad(grad)
+
+            grad_fn_name = function.__name__ + "Backward"
+            return Tensor(y_data, grad_fn, grad_fn_name, node_args, True)
 
     return Tensor(y_data)
 
@@ -223,7 +269,9 @@ def get_factory_kwargs(kwargs) -> tuple[Backend, DType, bool]:
 
 
 def tensor(data: Any, **factory_kwargs) -> Tensor:
-    backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
+    backend = select_backend(factory_kwargs.get("backend", None))
+    dtype = factory_kwargs.get("dtype", None)
+    requires_grad = factory_kwargs.get("requires_grad", False)
     data = backend.m.array(data, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
@@ -237,6 +285,14 @@ def ones(shape: Shape, **factory_kwargs) -> Tensor:
 def zeros(shape: Shape, **factory_kwargs) -> Tensor:
     backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = backend.m.zeros(shape, dtype)
+    return Tensor(data, requires_grad=requires_grad)
+
+
+def randi(shape: Shape, low: int, high: int, **factory_kwargs) -> Tensor:
+    backend = select_backend(factory_kwargs.get("backend", None))
+    dtype = factory_kwargs.get("dtype", int64)
+    requires_grad = factory_kwargs.get("requires_grad", False)
+    data = backend.m.random.randint(low, high, shape, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
