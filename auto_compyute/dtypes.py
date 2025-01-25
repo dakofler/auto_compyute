@@ -51,3 +51,7 @@ complex128 = np.complex128
 
 def select_dtype(device: Optional[DType]) -> DType:
     return device if device is not None else float32
+
+
+def is_float(dtype: DType) -> bool:
+    return dtype in {float16, float32, float64}

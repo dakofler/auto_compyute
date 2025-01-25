@@ -3,68 +3,46 @@
 from typing import Optional
 
 from ..backends import Array, get_array_backend
-from .function import Context, Function
+from .function import Function
 
 
 class Sum(Function):
-    @staticmethod
     def forward(
-        ctx: Context, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
+        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> Array:
-        y = x.sum(dim, keepdims=keepdims)
-        ctx.save(x.shape)
-        return y
+        self.ctx.shape = x.shape
+        return x.sum(dim, keepdims=keepdims)
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x_shape = ctx.get()
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
         b = get_array_backend(output_grad).m
-        dx = b.broadcast_to(output_grad, x_shape)
+        dx = b.broadcast_to(output_grad, self.ctx.shape)
         return (dx,)
 
 
 class Mean(Function):
-    @staticmethod
     def forward(
-        ctx: Context, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
+        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> Array:
-        y = x.mean(dim, keepdims=keepdims)
-        ctx.save(x.shape)
-        return y
+        self.ctx.shape = x.shape
+        return x.mean(dim, keepdims=keepdims)
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x_shape = ctx.get()
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
         b = get_array_backend(output_grad).m
-        dx = b.broadcast_to(output_grad / b.prod(x_shape), x_shape)
+        dx = b.broadcast_to(output_grad / b.prod(self.ctx.shape), self.ctx.shape)
         return (dx,)
 
 
 class Var(Function):
-    @staticmethod
-    def forward(ctx: Context, x: Array) -> Array:
-        b = get_array_backend(x).m
+    def forward(self, x: Array) -> Array:
         raise NotImplementedError()
-        ctx.save(y)
-        return y
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        y = ctx.get()
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
         raise NotImplementedError()
-        return (dx,)
 
 
 class Std(Function):
-    @staticmethod
-    def forward(ctx: Context, x: Array) -> Array:
-        b = get_array_backend(x).m
+    def forward(self, x: Array) -> Array:
         raise NotImplementedError()
-        ctx.save(y)
-        return y
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        y = ctx.get()
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
         raise NotImplementedError()
-        return (dx,)

@@ -1,6 +1,6 @@
 """Neural network functions"""
 
-from ..tensor import Tensor
+from ..autograd import Tensor
 
 
 def mse_loss(logits: Tensor, targets: Tensor):

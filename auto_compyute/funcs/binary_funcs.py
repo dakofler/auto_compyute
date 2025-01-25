@@ -1,167 +1,80 @@
-"""Multiary autograd functions"""
+"""Binary autograd functions"""
 
 from ..backends import Array, Scalar, get_array_backend
-from .function import Context, Function, unbroadcast
+from .function import Function
 
 
 class Add(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        y = x1 + x2
-        ctx.save(x1.shape, x2.shape if isinstance(x2, Array) else None)
-        return y
+    def forward(self, x1: Array, x2: Array) -> Array:
+        return x1 + x2
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1_shape, x2_shape = ctx.get()
-        dx1 = unbroadcast(output_grad, x1_shape)
-
-        if x2_shape is not None:
-            dx2 = unbroadcast(output_grad, x2_shape)
-            return dx1, dx2
-
-        return (dx1,)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        return output_grad, output_grad
 
 
 class Sub(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        y = x1 - x2
-        ctx.save(x1.shape, x2.shape if isinstance(x2, Array) else None)
-        return y
+    def forward(self, x1: Array, x2: Array) -> Array:
+        return x1 - x2
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1_shape, x2_shape = ctx.get()
-        dx1 = unbroadcast(output_grad, x1_shape)
-
-        if x2_shape is not None:
-            dx2 = unbroadcast(-output_grad, x2_shape)
-            return dx1, dx2
-
-        return (dx1,)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        return output_grad, -output_grad
 
 
 class Mul(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        y = x1 * x2
-        ctx.save(x1, x2)
-        return y
+    def forward(self, x1: Array, x2: Array) -> Array:
+        self.ctx.x1, self.ctx.x2 = x1, x2
+        return x1 * x2
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1, x2 = ctx.get()
-        dx1_raw = output_grad * x2
-        dx1 = unbroadcast(dx1_raw, x1.shape)
-
-        if isinstance(x2, Array):
-            dx2_raw = output_grad * x1
-            dx2 = unbroadcast(dx2_raw, x2.shape)
-            return dx1, dx2
-
-        return (dx1,)
-
-
-class Div(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        y = x1 / x2
-        ctx.save(x1, x2)
-        return y
-
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1, x2 = ctx.get()
-        dx1_raw = output_grad / x2
-        dx1 = unbroadcast(dx1_raw, x1.shape)
-
-        if isinstance(x2, Array):
-            dx2_raw = output_grad * x1 * -(x2**-2)
-            dx2 = unbroadcast(dx2_raw, x2.shape)
-            return dx1, dx2
-
-        return (dx1,)
-
-
-class Matmul(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array) -> Array:
-        y = x1 @ x2
-        ctx.save(x1, x2)
-        return y
-
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1, x2 = ctx.get()
-        dx1_raw = output_grad @ x2.swapaxes(-1, -2)
-        dx2_raw = x1.swapaxes(-1, -2) @ output_grad
-        dx1 = unbroadcast(dx1_raw, x1.shape)
-        dx2 = unbroadcast(dx2_raw, x2.shape)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dx1 = output_grad * self.ctx.x2
+        dx2 = output_grad * self.ctx.x1
         return dx1, dx2
 
 
-class Pow(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        y = x1**x2
-        ctx.save(x1, x2)
-        return y
+class Div(Function):
+    def forward(self, x1: Array, x2: Array) -> Array:
+        self.ctx.x1, self.ctx.x2 = x1, x2
+        return x1 / x2
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        x1, x2 = ctx.get()
-        dx1_raw = output_grad * x2 * x1 ** (x2 - 1)
-        dx1 = unbroadcast(dx1_raw, x1.shape)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        x1, x2 = self.ctx.x1, self.ctx.x2
+        dx1 = output_grad / x2
+        dx2 = output_grad * x1 * -(x2**-2)
+        return dx1, dx2
 
-        if isinstance(x2, Array):
-            b = get_array_backend(x2).m
-            dx2_raw = output_grad * b.log(x1) * x1**x2
-            dx2 = unbroadcast(dx2_raw, x2.shape)
-            return dx1, dx2
 
-        return (dx1,)
+class Matmul(Function):
+    def forward(self, x1: Array, x2: Array) -> Array:
+        self.ctx.x1, self.ctx.x2 = x1, x2
+        return x1 @ x2
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dx1 = output_grad @ self.ctx.x2.swapaxes(-1, -2)
+        dx2 = self.ctx.x1.swapaxes(-1, -2) @ output_grad
+        return dx1, dx2
 
 
 class Maximum(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        b = get_array_backend(x1).m
-        y = b.maximum(x1, x2)
-        ctx.save(y == x1, x1.shape, x2.shape if isinstance(x2, Array) else None)
+    def forward(self, x1: Array, x2: Array | Scalar) -> Array:
+        y = get_array_backend(x1).m.maximum(x1, x2)
+        self.ctx.mask = y == x1
         return y
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        mask, x1_shape, x2_shape = ctx.get()
-        dx1_raw = output_grad * mask
-        dx1 = unbroadcast(dx1_raw, x1_shape)
-
-        if x2_shape is not None:
-            m = get_array_backend(output_grad).m
-            dx2_raw = output_grad * m.invert(mask)
-            dx2 = unbroadcast(dx2_raw, x2_shape)
-            return dx1, dx2
-        return (dx1,)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dx1 = output_grad * self.ctx.mask
+        m = get_array_backend(output_grad).m
+        dx2 = output_grad * m.invert(self.ctx.mask)
+        return dx1, dx2
 
 
 class Minimum(Function):
-    @staticmethod
-    def forward(ctx: Context, x1: Array, x2: Array | Scalar) -> Array:
-        b = get_array_backend(x1).m
-        y = b.minimum(x1, x2)
-        ctx.save(y == x1, x1.shape, x2.shape if isinstance(x2, Array) else None)
+    def forward(self, x1: Array, x2: Array | Scalar) -> Array:
+        y = get_array_backend(x1).m.minimum(x1, x2)
+        self.ctx.mask = y == x1
         return y
 
-    @staticmethod
-    def backward(ctx: Context, output_grad: Array) -> tuple[Array, ...]:
-        mask, x1_shape, x2_shape = ctx.get()
-        dx1_raw = output_grad * mask
-        dx1 = unbroadcast(dx1_raw, x1_shape)
-
-        if x2_shape is not None:
-            m = get_array_backend(output_grad).m
-            dx2_raw = output_grad * m.invert(mask)
-            dx2 = unbroadcast(dx2_raw, x2_shape)
-            return dx1, dx2
-        return (dx1,)
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dx1 = output_grad * self.ctx.mask
+        m = get_array_backend(output_grad).m
+        dx2 = output_grad * m.invert(self.ctx.mask)
+        return dx1, dx2

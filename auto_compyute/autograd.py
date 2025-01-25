@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
@@ -15,12 +15,12 @@ from .backends import (
     get_array_backend,
     select_backend,
 )
-from .dtypes import DType, float32, int64, select_dtype
-from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Pow, Sub
+from .dtypes import DType, float32, int64, is_float, select_dtype
+from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Mean, Std, Sum, Var
 from .funcs.shape_funcs import Select, Transpose
-from .funcs.unary_funcs import Tanh
+from .funcs.unary_funcs import Pow, Tanh
 
 __all__ = ["Tensor", "tensor", "ones", "zeros", "randi", "randn", "randu"]
 
@@ -29,22 +29,19 @@ class Tensor:
     def __init__(
         self,
         data: Array,
-        grad_fn: Optional[Callable] = None,
-        grad_fn_name: str = "",
-        child_nodes: Optional[tuple[Tensor, ...]] = None,
+        ctx: Optional[Function] = None,
+        parents: Optional[tuple[Tensor, ...]] = None,
         requires_grad: bool = False,
     ) -> None:
         self.data = data
-        self.grad_fn = grad_fn if grad_fn is not None else lambda _: None
-        self.grad_fn_name = grad_fn_name
-        self.child_nodes = child_nodes if child_nodes is not None else tuple()
+        self.ctx = ctx
+        self.parents = parents
         self.requires_grad = requires_grad
-
         self.grad: Optional[Array] = None
 
     def __repr__(self) -> str:
         prefix = f"{self.__class__.__name__}("
-        suffix = f", grad_fn={self.grad_fn_name})" if self.grad_fn_name else ")"
+        suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
         return (
             prefix
             + self.b.m.array2string(
@@ -87,16 +84,15 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def as_type(self, dtype: DType) -> Tensor:
-        new_tensor = Tensor(
-            self.data.astype(dtype),
-            self.grad_fn,
-            self.grad_fn_name,
-            self.child_nodes,
-            self.requires_grad,
-        )
-        if self.grad is not None:
-            new_tensor.grad = self.grad
-        return new_tensor
+        if self.dtype == dtype:
+            return self
+        data = self.data.astype(dtype)
+        if is_float(dtype) and self.requires_grad:
+            new_tensor = Tensor(data, self.ctx, self.requires_grad)
+            if self.grad is not None:
+                new_tensor.grad = self.grad.astype(dtype)
+            return new_tensor
+        return Tensor(self.data.astype(dtype))
 
     # ----------------------------------------------------------------------------------
     # AUTOGRAD
@@ -107,19 +103,27 @@ class Tensor:
 
     def backward(self, output_grad: Optional[Array] = None):
         if not self.requires_grad:
-            raise ValueError("Node does not require gradients.")
+            raise ValueError("Tensor does not require gradients.")
         if self.grad is None:
             self.grad = self.b.m.ones(self.shape, dtype=float32)
         if output_grad is not None:
             self.grad *= output_grad
-        nodes: list[Tensor] = []
+        tensors: list[Tensor] = []
         visited_ids: set[int] = set()
-        nodes = toposort(self, nodes, visited_ids)
-        for n in reversed(nodes):
-            n.grad_fn(n.grad)
+        tensors = topological_sort(self, tensors, visited_ids)
 
-    def __getitem__(self, key) -> Tensor:
-        return apply_function(Select, self, key)
+        for t in reversed(tensors):
+            assert t.ctx is not None
+            assert t.parents is not None
+            grads = t.ctx.backward(t.grad)
+            for t, grad in zip(t.parents, grads):
+                if not t.requires_grad:
+                    continue
+                grad = unbroadcast(grad, t.shape)
+                t.apply_grad(grad)
+
+    def __getitem__(self, key: Any) -> Tensor:
+        return self.select(key)
 
     # ----------------------------------------------------------------------------------
     # MAGIC METHODS
@@ -151,61 +155,94 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def tanh(self) -> Tensor:
-        return apply_function(Tanh, self)
+        return apply_func(Tanh, self)
 
     # ----------------------------------------------------------------------------------
     # BINARY OPS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Add, self, x)
+        return apply_func(Add, self, tensor(x, backend=self.b))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Sub, self, x)
+        return apply_func(Sub, self, tensor(x, backend=self.b))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Mul, self, x)
+        return apply_func(Mul, self, tensor(x, backend=self.b))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Div, self, x)
+        return apply_func(Div, self, tensor(x, backend=self.b))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_function(Matmul, self, x)
+        return apply_func(Matmul, self, tensor(x, backend=self.b))
 
     def pow(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Pow, self, x)
+        return apply_func(Pow, self, tensor(x, backend=self.b))
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Maximum, self, x)
+        return apply_func(Maximum, self, tensor(x, backend=self.b))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_function(Minimum, self, x)
+        return apply_func(Minimum, self, tensor(x, backend=self.b))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
     # ----------------------------------------------------------------------------------
 
     def sum(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_function(Sum, self, dims, keepdims)
+        return apply_func(Sum, self, dims=dims, keepdims=keepdims)
 
     def mean(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_function(Mean, self, dims, keepdims)
+        return apply_func(Mean, self, dims=dims, keepdims=keepdims)
 
     def var(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_function(Var, self, dims, keepdims)
+        return apply_func(Var, self, dims=dims, keepdims=keepdims)
 
     def std(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_function(Std, self, dims, keepdims)
+        return apply_func(Std, self, dims=dims, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
     # SHAPE OPS
     # ----------------------------------------------------------------------------------
 
-    def select(self, slc: Any) -> Tensor:
-        return apply_function(Select, self, slc)
+    def select(self, key: Any) -> Tensor:
+        if isinstance(key, Tensor):
+            key = key.data
+        return apply_func(Select, self, key=key)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
-        return apply_function(Transpose, self, dim1, dim2)
+        return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
+
+
+def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
+    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
+
+
+def unbroadcast(grad: Array, target_shape: Shape) -> Array:
+    if grad.shape == target_shape:
+        return grad
+    target_ndim = len(target_shape)
+
+    if grad.ndim == target_ndim:
+        axis = get_shape_diff(grad.shape, target_shape)
+        grad = grad.sum(axis, keepdims=True)
+    else:
+        data_shape = (1,) * (grad.ndim - target_ndim) + target_shape
+        axis = get_shape_diff(grad.shape, data_shape)
+        grad = grad.sum(axis=axis)
+
+    return grad.reshape(target_shape)
+
+
+def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
+    f = func()
+    requires_grad = any(t.requires_grad for t in tensors)
+    if requires_grad:
+        f.ctx = Context()
+    data = f.forward(*[t.data for t in tensors], **kwargs)
+    if autograd_active and requires_grad:
+        return Tensor(data, f, tensors, True)
+    return Tensor(data)
 
 
 autograd_active = True
@@ -225,39 +262,18 @@ def no_grad() -> Generator:
         set_autograd(True)
 
 
-def apply_function(function: type[Function], *args: Any) -> Tensor:
-    ctx = Context()
-    function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
-    y_data = function.forward(ctx, *function_args)
-
-    if autograd_active:
-        node_args = tuple(a for a in args if isinstance(a, Tensor))
-
-        if any(n.requires_grad for n in node_args):
-
-            def grad_fn(output_grad) -> None:
-                grads = function.backward(ctx, output_grad)
-                for n, grad in zip(node_args, grads):
-                    if not n.requires_grad:
-                        continue
-                    n.apply_grad(grad)
-
-            grad_fn_name = function.__name__ + "Backward"
-            return Tensor(y_data, grad_fn, grad_fn_name, node_args, True)
-
-    return Tensor(y_data)
-
-
-def toposort(n: Tensor, nodes: list[Tensor], visited_node_ids: set) -> list[Tensor]:
-    if id(n) not in visited_node_ids:
-        visited_node_ids.add(id(n))
-        if not n.child_nodes:
+def topological_sort(
+    t: Tensor, nodes: list[Tensor], visited_node_ids: set
+) -> list[Tensor]:
+    if id(t) not in visited_node_ids:
+        visited_node_ids.add(id(t))
+        if not t.parents:
             return
-        for c in n.child_nodes:
-            if c.requires_grad is False:
+        for p in t.parents:
+            if p.requires_grad is False:
                 continue
-            toposort(c, nodes, visited_node_ids)
-        nodes.append(n)
+            topological_sort(p, nodes, visited_node_ids)
+        nodes.append(t)
     return nodes
 
 
@@ -269,6 +285,8 @@ def get_factory_kwargs(kwargs) -> tuple[Backend, DType, bool]:
 
 
 def tensor(data: Any, **factory_kwargs) -> Tensor:
+    if isinstance(data, Tensor):
+        return data
     backend = select_backend(factory_kwargs.get("backend", None))
     dtype = factory_kwargs.get("dtype", None)
     requires_grad = factory_kwargs.get("requires_grad", False)

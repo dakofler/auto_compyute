@@ -1,4 +1,4 @@
-"""Tests for binary functions"""
+"""Tests for shape functions"""
 
 from typing import Any
 
@@ -21,7 +21,7 @@ def _unary_function_verify(x, torch_x, y, torch_y):
 ac_x1, torch_x1 = get_data((10, 20))
 ac_x2, torch_x2 = get_data((10, 20, 30))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))
-keys = ()
+keys = (1, [1, 1, 2], ac.tensor([1, 2]))
 
 
 @pytest.mark.parametrize("x", xs)
@@ -30,5 +30,5 @@ def test_select(x: tuple[ac.Tensor, torch.Tensor], key: Any):
     """Selection function test"""
     ac_x, torch_x = x
     ac_y = ac_x[key]
-    torch_y = torch_x[key]
+    torch_y = torch_x[torch.tensor(key.data) if isinstance(key, ac.Tensor) else key]
     _unary_function_verify(ac_x, torch_x, ac_y, torch_y)

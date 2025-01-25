@@ -1,54 +1,36 @@
-"""Autograd functions"""
+"""Autograd function"""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
-from ..backends import Array, Shape
+from ..backends import Array
 
 
-class Function:
-    @staticmethod
-    @abstractmethod
-    def forward(ctx, *args, **kwargs) -> Array:
+class Context(dict):
+    __getattr__ = dict.get
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+    def __delattr__(self, name: str) -> None:
+        del self[name]
+
+
+class PseudoContext(Context):
+    def __setattr__(self, name: str, value: Any) -> None:
         pass
 
-    @staticmethod
-    @abstractmethod
-    def backward(ctx, output_grad) -> tuple[Array, ...]:
-        pass
 
-
-class Context:
+class Function(ABC):
     def __init__(self) -> None:
-        self.elements: list[Any] = []
+        self.ctx: Context = PseudoContext()
 
-    def save(self, *elements):
-        self.elements.append(elements)
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
 
-    def get(self):
-        try:
-            elements = self.elements.pop()
-        except RuntimeError as e:
-            raise RuntimeError("Ran backward multiple times.") from e
-        return elements if len(elements) > 1 else elements[0]
+    @abstractmethod
+    def forward(self, *args, **kwargs) -> Array: ...
 
-
-def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
-    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
-
-
-def unbroadcast(grad: Array, target_shape: Shape) -> Array:
-    if grad.shape != target_shape:
-        target_ndim = len(target_shape)
-
-        if grad.ndim == target_ndim:
-            axis = get_shape_diff(grad.shape, target_shape)
-            grad = grad.sum(axis, keepdims=True)
-        else:
-            data_shape = (1,) * (grad.ndim - target_ndim) + target_shape
-            axis = get_shape_diff(grad.shape, data_shape)
-            grad = grad.sum(axis=axis)
-
-        grad = grad.reshape(target_shape)
-
-    return grad
+    @abstractmethod
+    def backward(self, output_grad) -> tuple[Array, ...]: ...
