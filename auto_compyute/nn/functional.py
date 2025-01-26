@@ -1,14 +1,19 @@
 """Neural network functions"""
 
+from typing import Optional
+
 from ..autograd import Tensor
 
 
 def mse_loss(logits: Tensor, targets: Tensor):
-    return logits.sub(targets).pow(2).mean()
+    return ((logits - targets) ** 2).mean()
 
 
-def linear(x: Tensor, w: Tensor, b: Tensor) -> Tensor:
-    return x.matmul(w.transpose()).add(b)
+def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
+    y = x @ w.T
+    if b is not None:
+        return y + b
+    return y
 
 
 def relu(x: Tensor) -> Tensor:

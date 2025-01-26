@@ -3,8 +3,6 @@
 import pytest
 import torch
 
-import auto_compyute as ac
-
 from .utils import close, get_data
 
 
@@ -29,9 +27,7 @@ x2s = ((ac_x21, torch_x21), (ac_x22, torch_x22), (ac_x23, torch_x23))
 
 @pytest.mark.parametrize("x1", x1s)
 @pytest.mark.parametrize("x2", x2s)
-def test_add(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_add(x1, x2):
     """Addition function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -42,9 +38,7 @@ def test_add(
 
 @pytest.mark.parametrize("x1", x1s)
 @pytest.mark.parametrize("x2", x2s)
-def test_sub(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_sub(x1, x2):
     """Subtraction function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -55,9 +49,7 @@ def test_sub(
 
 @pytest.mark.parametrize("x1", x1s)
 @pytest.mark.parametrize("x2", x2s)
-def test_mul(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_mul(x1, x2):
     """Multiplication function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -68,9 +60,7 @@ def test_mul(
 
 @pytest.mark.parametrize("x1", x1s)
 @pytest.mark.parametrize("x2", x2s)
-def test_truediv(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_truediv(x1, x2):
     """Division function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -89,9 +79,7 @@ mm_x2s = ((pow_ac_x21, pow_torch_x22),)
 
 @pytest.mark.parametrize("x1", mm_x1s)
 @pytest.mark.parametrize("x2", mm_x2s)
-def test_matmul(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_matmul(x1, x2):
     """Matrix multiplication function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -113,9 +101,7 @@ pow_x2s = ((pow_ac_x21, pow_torch_x21),)
 
 @pytest.mark.parametrize("x1", pow_x1s)
 @pytest.mark.parametrize("x2", pow_x2s)
-def test_pow(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_pow(x1, x2):
     """Power function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -143,9 +129,7 @@ min_x2s = (
 
 @pytest.mark.parametrize("x1", min_x1s)
 @pytest.mark.parametrize("x2", min_x2s)
-def test_minimum(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_minimum(x1, x2):
     """Minimum function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2
@@ -156,9 +140,7 @@ def test_minimum(
 
 @pytest.mark.parametrize("x1", min_x1s)
 @pytest.mark.parametrize("x2", min_x2s)
-def test_maximum(
-    x1: tuple[ac.Tensor, torch.Tensor], x2: tuple[ac.Tensor, torch.Tensor | float]
-):
+def test_maximum(x1, x2):
     """Maximum function test"""
     ac_x1, torch_x1 = x1
     ac_x2, torch_x2 = x2

@@ -5,10 +5,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Any, OrderedDict
 
-from ..autograd import Tensor, randu
+from ..autograd import Tensor
+from ..tensors import randu
 from .functional import linear
 
-__all__ = ["Parameter", "Module", "Linear"]
+__all__ = ["Parameter", "Module", "Linear", "Sequential"]
 
 
 class Parameter(Tensor):
@@ -24,15 +25,15 @@ class Module(ABC):
     def __call__(self, x: Tensor) -> Tensor:
         return self.forward(x)
 
-    @abstractmethod
-    def forward(self, x: Tensor) -> Tensor: ...
-
     def __setattr__(self, name: str, value: Any) -> None:
         if isinstance(value, Parameter):
             self._parameters[name] = value
         elif isinstance(value, Module):
             self._modules[name] = value
         return super().__setattr__(name, value)
+
+    @abstractmethod
+    def forward(self, x: Tensor) -> Tensor: ...
 
     def parameters(self, recursive: bool = True) -> Iterator[Parameter]:
         for p in self._parameters.values():
@@ -57,3 +58,14 @@ class Linear(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return linear(x, self.w, self.b)
+
+
+class Sequential(Module):
+    def __init__(self, *layers: Module) -> None:
+        super().__init__()
+        self.layers = layers
+
+    def forward(self, x: Tensor) -> Tensor:
+        for layer in self.layers:
+            x = layer(x)
+        return x

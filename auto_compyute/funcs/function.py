@@ -1,28 +1,33 @@
 """Autograd function"""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
-from ..backends import Array
+from ..backends import Array, Backend
 
 
-class Context(dict):
-    __getattr__ = dict.get
+class Context:
+    def __init__(self):
+        self.cache: Optional[tuple[Any, ...]] = None
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        self[name] = value
+    def set(self, *args: Any) -> None:
+        self.cache = args
 
-    def __delattr__(self, name: str) -> None:
-        del self[name]
+    def get(self) -> Any | tuple[Any, ...]:
+        assert self.cache is not None
+        values = self.cache[0] if len(self.cache) == 1 else self.cache
+        self.cache = None
+        return values
 
 
 class PseudoContext(Context):
-    def __setattr__(self, name: str, value: Any) -> None:
+    def set(self, *args: Any) -> None:
         pass
 
 
 class Function(ABC):
-    def __init__(self) -> None:
+    def __init__(self, backend: Backend) -> None:
+        self.m = backend.m
         self.ctx: Context = PseudoContext()
 
     @property

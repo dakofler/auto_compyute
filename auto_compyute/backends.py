@@ -8,6 +8,9 @@ import numpy as np
 
 __all__ = ["cpu", "cuda"]
 
+np.set_printoptions(precision=4, linewidth=80, floatmode="maxprec_equal")
+cp.set_printoptions(precision=4, linewidth=80, floatmode="maxprec_equal")
+
 Array: TypeAlias = cp.ndarray | np.ndarray
 Scalar: TypeAlias = int | float
 Shape = tuple[int, ...]

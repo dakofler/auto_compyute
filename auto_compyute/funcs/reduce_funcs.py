@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ..backends import Array, get_array_backend
+from ..backends import Array
 from .function import Function
 
 
@@ -10,12 +10,12 @@ class Sum(Function):
     def forward(
         self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> Array:
-        self.ctx.shape = x.shape
+        self.ctx.set(x.shape)
         return x.sum(dim, keepdims=keepdims)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        b = get_array_backend(output_grad).m
-        dx = b.broadcast_to(output_grad, self.ctx.shape)
+        shape = self.ctx.get()
+        dx = self.m.broadcast_to(output_grad, shape)
         return (dx,)
 
 
@@ -23,26 +23,42 @@ class Mean(Function):
     def forward(
         self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> Array:
-        self.ctx.shape = x.shape
-        return x.mean(dim, keepdims=keepdims)
+        y = x.mean(dim, keepdims=keepdims)
+        self.ctx.set(x.shape, x.size / y.size)
+        return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        b = get_array_backend(output_grad).m
-        dx = b.broadcast_to(output_grad / b.prod(self.ctx.shape), self.ctx.shape)
+        x_shape, size = self.ctx.get()
+        dx = self.m.broadcast_to(output_grad / size, x_shape)
         return (dx,)
 
 
 class Var(Function):
-    def forward(self, x: Array) -> Array:
-        raise NotImplementedError()
+    def forward(
+        self, x: Array, dim: Optional[int | tuple[int, ...]], ddof: int, keepdims: bool
+    ) -> Array:
+        y = x.var(dim, ddof=ddof, keepdims=keepdims)
+        self.ctx.set(x, dim, x.size / y.size - ddof)
+        return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        raise NotImplementedError()
+        x, dim, size = self.ctx.get()
+        mean = x.mean(dim)
+        dx = output_grad * (2 / size) * (x - mean)
+        return (dx,)
 
 
 class Std(Function):
-    def forward(self, x: Array) -> Array:
-        raise NotImplementedError()
+    def forward(
+        self, x: Array, dim: Optional[int | tuple[int, ...]], ddof: int, keepdims: bool
+    ) -> Array:
+        y = x.std(dim, ddof=ddof, keepdims=keepdims)
+        self.ctx.set(x, dim, ddof, y)
+        return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        raise NotImplementedError()
+        x, dim, ddof, y = self.ctx.get()
+        mean = x.mean(dim)
+        size = x.size / y.size - ddof
+        dx = output_grad * (x - mean) / (size * y)
+        return (dx,)

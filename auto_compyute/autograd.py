@@ -15,14 +15,24 @@ from .backends import (
     get_array_backend,
     select_backend,
 )
-from .dtypes import DType, float32, int64, is_float, select_dtype
+from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Mean, Std, Sum, Var
 from .funcs.shape_funcs import Select, Transpose
 from .funcs.unary_funcs import Pow, Tanh
 
-__all__ = ["Tensor", "tensor", "ones", "zeros", "randi", "randn", "randu"]
+__all__ = ["Tensor", "tensor", "no_grad"]
+
+
+def tensor(data: Any, **factory_kwargs) -> Tensor:
+    if isinstance(data, Tensor):
+        return data
+    backend = select_backend(factory_kwargs.get("backend", None))
+    dtype = factory_kwargs.get("dtype", None)
+    requires_grad = factory_kwargs.get("requires_grad", False)
+    data = backend.m.array(data, dtype)
+    return Tensor(data, requires_grad=requires_grad)
 
 
 class Tensor:
@@ -65,7 +75,7 @@ class Tensor:
 
     @property
     def dtype(self) -> DType:
-        return DType(self.data.dtype)
+        return self.data.dtype
 
     @property
     def ndim(self) -> int:
@@ -94,9 +104,24 @@ class Tensor:
             return new_tensor
         return Tensor(self.data.astype(dtype))
 
+    def item(self) -> Scalar:
+        return self.data.item()
+
     # ----------------------------------------------------------------------------------
     # AUTOGRAD
     # ----------------------------------------------------------------------------------
+
+    def apply_func(
+        self, func: type[Function], *tensors: Tensor, **kwargs: Any
+    ) -> Tensor:
+        f = func(self.b)
+        requires_grad = any(t.requires_grad for t in tensors)
+        if autograd_active and requires_grad:
+            f.ctx = Context()
+            data = f.forward(*[t.data for t in tensors], **kwargs)
+            return Tensor(data, f, tensors, True)
+        data = f.forward(*[t.data for t in tensors], **kwargs)
+        return Tensor(data)
 
     def apply_grad(self, grad: Array) -> None:
         self.grad = grad if self.grad is None else self.grad + grad
@@ -107,6 +132,7 @@ class Tensor:
         if self.grad is None:
             self.grad = self.b.m.ones(self.shape, dtype=float32)
         if output_grad is not None:
+            assert isinstance(output_grad, Array)
             self.grad *= output_grad
         tensors: list[Tensor] = []
         visited_ids: set[int] = set()
@@ -132,14 +158,26 @@ class Tensor:
     def __add__(self, x: Tensor | Scalar) -> Tensor:
         return self.add(x)
 
+    def __radd__(self, x: Scalar) -> Tensor:
+        return self.add(x)
+
     def __sub__(self, x: Tensor | Scalar) -> Tensor:
         return self.sub(x)
+
+    def __rsub__(self, x: Scalar) -> Tensor:
+        return self.sub(x, reverse=True)
 
     def __mul__(self, x: Tensor | Scalar) -> Tensor:
         return self.mul(x)
 
+    def __rmul__(self, x: Scalar) -> Tensor:
+        return self.mul(x)
+
     def __truediv__(self, x: Tensor | Scalar) -> Tensor:
         return self.truediv(x)
+
+    def __rtruediv__(self, x: Scalar) -> Tensor:
+        return self.truediv(x, reverse=True)
 
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.matmul(x)
@@ -155,51 +193,59 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def tanh(self) -> Tensor:
-        return apply_func(Tanh, self)
+        return self.apply_func(Tanh, self)
 
     # ----------------------------------------------------------------------------------
     # BINARY OPS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, tensor(x, backend=self.b))
+        return self.apply_func(Add, self, tensor(x, backend=self.b))
 
-    def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Sub, self, tensor(x, backend=self.b))
+    def sub(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
+        if reverse:
+            return self.apply_func(Sub, tensor(x, backend=self.b), self)
+        return self.apply_func(Sub, self, tensor(x, backend=self.b))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, tensor(x, backend=self.b))
+        return self.apply_func(Mul, self, tensor(x, backend=self.b))
 
-    def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Div, self, tensor(x, backend=self.b))
+    def truediv(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
+        if reverse:
+            return self.apply_func(Div, tensor(x, backend=self.b), self)
+        return self.apply_func(Div, self, tensor(x, backend=self.b))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, tensor(x, backend=self.b))
+        return self.apply_func(Matmul, self, tensor(x, backend=self.b))
 
     def pow(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Pow, self, tensor(x, backend=self.b))
+        return self.apply_func(Pow, self, tensor(x, backend=self.b))
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, tensor(x, backend=self.b))
+        return self.apply_func(Maximum, self, tensor(x, backend=self.b))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, tensor(x, backend=self.b))
+        return self.apply_func(Minimum, self, tensor(x, backend=self.b))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
     # ----------------------------------------------------------------------------------
 
-    def sum(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_func(Sum, self, dims=dims, keepdims=keepdims)
+    def sum(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return self.apply_func(Sum, self, dim=dim, keepdims=keepdims)
 
-    def mean(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_func(Mean, self, dims=dims, keepdims=keepdims)
+    def mean(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return self.apply_func(Mean, self, dim=dim, keepdims=keepdims)
 
-    def var(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_func(Var, self, dims=dims, keepdims=keepdims)
+    def var(
+        self, dim: Optional[Dim] = None, ddof: int = 1, keepdims: bool = False
+    ) -> Tensor:
+        return self.apply_func(Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
-    def std(self, dims: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
-        return apply_func(Std, self, dims=dims, keepdims=keepdims)
+    def std(
+        self, dim: Optional[Dim] = None, ddof: int = 1, keepdims: bool = False
+    ) -> Tensor:
+        return self.apply_func(Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
     # SHAPE OPS
@@ -208,10 +254,10 @@ class Tensor:
     def select(self, key: Any) -> Tensor:
         if isinstance(key, Tensor):
             key = key.data
-        return apply_func(Select, self, key=key)
+        return self.apply_func(Select, self, key=key)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
-        return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
+        return self.apply_func(Transpose, self, dim1=dim1, dim2=dim2)
 
 
 def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
@@ -234,15 +280,19 @@ def unbroadcast(grad: Array, target_shape: Shape) -> Array:
     return grad.reshape(target_shape)
 
 
-def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
-    f = func()
-    requires_grad = any(t.requires_grad for t in tensors)
-    if requires_grad:
-        f.ctx = Context()
-    data = f.forward(*[t.data for t in tensors], **kwargs)
-    if autograd_active and requires_grad:
-        return Tensor(data, f, tensors, True)
-    return Tensor(data)
+def topological_sort(
+    t: Tensor, nodes: list[Tensor], visited_node_ids: set
+) -> list[Tensor]:
+    if id(t) not in visited_node_ids:
+        visited_node_ids.add(id(t))
+        if not t.parents:
+            return
+        for p in t.parents:
+            if p.requires_grad is False:
+                continue
+            topological_sort(p, nodes, visited_node_ids)
+        nodes.append(t)
+    return nodes
 
 
 autograd_active = True
@@ -260,67 +310,3 @@ def no_grad() -> Generator:
         yield
     finally:
         set_autograd(True)
-
-
-def topological_sort(
-    t: Tensor, nodes: list[Tensor], visited_node_ids: set
-) -> list[Tensor]:
-    if id(t) not in visited_node_ids:
-        visited_node_ids.add(id(t))
-        if not t.parents:
-            return
-        for p in t.parents:
-            if p.requires_grad is False:
-                continue
-            topological_sort(p, nodes, visited_node_ids)
-        nodes.append(t)
-    return nodes
-
-
-def get_factory_kwargs(kwargs) -> tuple[Backend, DType, bool]:
-    backend = select_backend(kwargs.get("backend", None))
-    dtype = select_dtype(kwargs.get("dtype", None))
-    requires_grad = kwargs.get("requires_grad", False)
-    return backend, dtype, requires_grad
-
-
-def tensor(data: Any, **factory_kwargs) -> Tensor:
-    if isinstance(data, Tensor):
-        return data
-    backend = select_backend(factory_kwargs.get("backend", None))
-    dtype = factory_kwargs.get("dtype", None)
-    requires_grad = factory_kwargs.get("requires_grad", False)
-    data = backend.m.array(data, dtype)
-    return Tensor(data, requires_grad=requires_grad)
-
-
-def ones(shape: Shape, **factory_kwargs) -> Tensor:
-    backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
-    data = backend.m.ones(shape, dtype)
-    return Tensor(data, requires_grad=requires_grad)
-
-
-def zeros(shape: Shape, **factory_kwargs) -> Tensor:
-    backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
-    data = backend.m.zeros(shape, dtype)
-    return Tensor(data, requires_grad=requires_grad)
-
-
-def randi(shape: Shape, low: int, high: int, **factory_kwargs) -> Tensor:
-    backend = select_backend(factory_kwargs.get("backend", None))
-    dtype = factory_kwargs.get("dtype", int64)
-    requires_grad = factory_kwargs.get("requires_grad", False)
-    data = backend.m.random.randint(low, high, shape, dtype)
-    return Tensor(data, requires_grad=requires_grad)
-
-
-def randn(shape: Shape, mean: float = 0, var: float = 1, **factory_kwargs) -> Tensor:
-    backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
-    data = backend.m.random.normal(mean, var, shape).astype(dtype)
-    return Tensor(data, requires_grad=requires_grad)
-
-
-def randu(shape: Shape, low: float = -1, high: float = 1, **factory_kwargs) -> Tensor:
-    backend, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
-    data = backend.m.random.uniform(low, high, shape).astype(dtype)
-    return Tensor(data, requires_grad=requires_grad)

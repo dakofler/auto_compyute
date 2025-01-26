@@ -1,7 +1,5 @@
 """Tests for shape functions"""
 
-from typing import Any
-
 import pytest
 import torch
 
@@ -10,7 +8,7 @@ import auto_compyute as ac
 from .utils import close, get_data
 
 
-def _unary_function_verify(x, torch_x, y, torch_y):
+def _shape_function_verify(x, torch_x, y, torch_y):
     assert close(y.data, torch_y)
     dy, torch_dy = get_data(y.shape, False)
     y.backward(dy.data)
@@ -26,9 +24,9 @@ keys = (1, [1, 1, 2], ac.tensor([1, 2]))
 
 @pytest.mark.parametrize("x", xs)
 @pytest.mark.parametrize("key", keys)
-def test_select(x: tuple[ac.Tensor, torch.Tensor], key: Any):
+def test_select(x, key):
     """Selection function test"""
     ac_x, torch_x = x
     ac_y = ac_x[key]
     torch_y = torch_x[torch.tensor(key.data) if isinstance(key, ac.Tensor) else key]
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+    _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
