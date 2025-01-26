@@ -19,7 +19,7 @@ from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
-from .funcs.shape_funcs import Select, Transpose
+from .funcs.shape_funcs import Select, Transpose, View
 from .funcs.unary_funcs import Exp, Pow, Tanh
 
 __all__ = ["Tensor", "tensor", "no_grad"]
@@ -269,6 +269,9 @@ class Tensor:
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
         return self.apply_func(Transpose, self, dim1=dim1, dim2=dim2)
+
+    def view(self, shape) -> Tensor:
+        return self.apply_func(View, self, shape=shape)
 
 
 def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:

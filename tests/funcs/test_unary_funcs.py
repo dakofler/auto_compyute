@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from .utils import close, get_data
+from ..utils import close, get_data
 
 
 def _unary_function_verify(x, torch_x, y, torch_y):

@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from .utils import close, get_data
+from ..utils import close, get_data
 
 
 def _binary_function_verify(x1, torch_x1, x2, torch_x2, y, torch_y):

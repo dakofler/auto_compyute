@@ -2,7 +2,7 @@
 
 import pytest
 
-from .utils import close, get_data
+from ..utils import close, get_data
 
 
 def _reduce_function_verify(x, torch_x, y, torch_y):

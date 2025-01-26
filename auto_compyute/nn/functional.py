@@ -3,6 +3,7 @@
 from typing import Optional
 
 from ..autograd import Tensor
+from .funcs.activation_funcs import Softmax
 
 
 def mse_loss(logits: Tensor, targets: Tensor):
@@ -18,6 +19,10 @@ def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
 
 def relu(x: Tensor) -> Tensor:
     return x.maximum(0.0)
+
+
+def softmax(x: Tensor, dim: int = -1) -> Tensor:
+    return x.apply_func(Softmax, x, dim=dim)
 
 
 def tanh(x: Tensor) -> Tensor:
