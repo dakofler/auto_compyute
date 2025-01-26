@@ -18,9 +18,9 @@ from .backends import (
 from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
-from .funcs.reduce_funcs import Mean, Std, Sum, Var
+from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Transpose
-from .funcs.unary_funcs import Pow, Tanh
+from .funcs.unary_funcs import Exp, Pow, Tanh
 
 __all__ = ["Tensor", "tensor", "no_grad"]
 
@@ -182,7 +182,7 @@ class Tensor:
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.matmul(x)
 
-    def __pow__(self, x: Tensor | Scalar) -> Tensor:
+    def __pow__(self, x: Scalar) -> Tensor:
         return self.pow(x)
 
     def __neg__(self) -> Tensor:
@@ -191,6 +191,12 @@ class Tensor:
     # ----------------------------------------------------------------------------------
     # UNARY OPS
     # ----------------------------------------------------------------------------------
+
+    def exp(self) -> Tensor:
+        return self.apply_func(Exp, self)
+
+    def pow(self, x: Scalar) -> Tensor:
+        return self.apply_func(Pow, self, tensor(x, backend=self.b))
 
     def tanh(self) -> Tensor:
         return self.apply_func(Tanh, self)
@@ -218,9 +224,6 @@ class Tensor:
     def matmul(self, x: Tensor) -> Tensor:
         return self.apply_func(Matmul, self, tensor(x, backend=self.b))
 
-    def pow(self, x: Tensor | Scalar) -> Tensor:
-        return self.apply_func(Pow, self, tensor(x, backend=self.b))
-
     def maximum(self, x: Tensor | Scalar) -> Tensor:
         return self.apply_func(Maximum, self, tensor(x, backend=self.b))
 
@@ -246,6 +249,12 @@ class Tensor:
         self, dim: Optional[Dim] = None, ddof: int = 1, keepdims: bool = False
     ) -> Tensor:
         return self.apply_func(Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
+
+    def max(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return self.apply_func(Max, self, dim=dim, keepdims=keepdims)
+
+    def min(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+        return self.apply_func(Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
     # SHAPE OPS

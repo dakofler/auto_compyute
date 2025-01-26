@@ -4,24 +4,36 @@ from ..backends import Array, Scalar, get_array_backend
 from .function import Function
 
 
+class Exp(Function):
+    def forward(self, x: Array) -> Array:
+        y = self.m.exp(x)
+        self.ctx.save_for_backward(y)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        y = self.ctx.get_saved_vals()
+        dx = output_grad * y
+        return (dx,)
+
+
 class Pow(Function):
     def forward(self, x: Array, exp: Scalar) -> Array:
-        self.ctx.x, self.ctx.exp = x, exp
+        self.ctx.save_for_backward(x, exp)
         return x**exp
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, exp = self.ctx.x, self.ctx.exp
+        x, exp = self.ctx.get_saved_vals()
         dx = output_grad * exp * x ** (exp - 1)
         return (dx,)
 
 
 class Tanh(Function):
     def forward(self, x: Array) -> Array:
-        b = get_array_backend(x).m
-        y = b.tanh(x)
-        self.ctx.y = y
+        y = self.m.tanh(x)
+        self.ctx.save_for_backward(y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dx = output_grad * (1 - self.ctx.y**2)
+        y = self.ctx.get_saved_vals()
+        dx = output_grad * (1 - y**2)
         return (dx,)
