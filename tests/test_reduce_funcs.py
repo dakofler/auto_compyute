@@ -16,7 +16,7 @@ def _reduce_function_verify(x, torch_x, y, torch_y):
 ac_x1, torch_x1 = get_data((10, 20))
 ac_x2, torch_x2 = get_data((10, 20, 30))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))
-dims = (None, (0), (0, 1))
+dims = (None, 0, (0, 1))
 keepdimses = (False, True)
 
 
@@ -65,4 +65,39 @@ def test_std(x, dim, keepdims):
     ac_x, torch_x = x
     ac_y = ac_x.std(dim, keepdims=keepdims)
     torch_y = torch_x.std(dim, keepdims=keepdims)
+    _reduce_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+min_max_dims = (None, 0, 1)
+
+
+@pytest.mark.parametrize("x", xs)
+@pytest.mark.parametrize("dim", min_max_dims)
+@pytest.mark.parametrize("keepdims", keepdimses)
+def test_max(x, dim, keepdims):
+    """Max function test"""
+    ac_x, torch_x = x
+    ac_y = ac_x.max(dim, keepdims=keepdims)
+    if dim is None and not keepdims:
+        torch_y = torch_x.max()
+    elif dim is None:
+        return
+    else:
+        torch_y = torch_x.max(dim, keepdims=keepdims)[0]
+    _reduce_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+@pytest.mark.parametrize("x", xs)
+@pytest.mark.parametrize("dim", min_max_dims)
+@pytest.mark.parametrize("keepdims", keepdimses)
+def test_min(x, dim, keepdims):
+    """Min function test"""
+    ac_x, torch_x = x
+    ac_y = ac_x.min(dim, keepdims=keepdims)
+    if dim is None and not keepdims:
+        torch_y = torch_x.min()
+    elif dim is None:
+        return
+    else:
+        torch_y = torch_x.min(dim, keepdims=keepdims)[0]
     _reduce_function_verify(ac_x, torch_x, ac_y, torch_y)

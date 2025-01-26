@@ -149,6 +149,8 @@ class Tensor:
                 t.apply_grad(grad)
 
     def __getitem__(self, key: Any) -> Tensor:
+        if isinstance(key, tuple):
+            key = tuple(k.data if isinstance(k, Tensor) else k for k in key)
         return self.select(key)
 
     # ----------------------------------------------------------------------------------
@@ -250,10 +252,10 @@ class Tensor:
     ) -> Tensor:
         return self.apply_func(Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
-    def max(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+    def max(self, dim: Optional[int] = None, keepdims: bool = False) -> Tensor:
         return self.apply_func(Max, self, dim=dim, keepdims=keepdims)
 
-    def min(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+    def min(self, dim: Optional[int] = None, keepdims: bool = False) -> Tensor:
         return self.apply_func(Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------

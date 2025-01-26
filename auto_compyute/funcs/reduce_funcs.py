@@ -65,24 +65,28 @@ class Std(Function):
 
 
 class Max(Function):
-    def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
-    ) -> Array:
-        y = x.max(dim, keepdims=keepdims)
-        self.ctx.save_for_backward(dim, x == y)
-        return y
+    def forward(self, x: Array, dim: Optional[int], keepdims: bool) -> Array:
+        y = x.max(dim, keepdims=True)
+        self.ctx.save_for_backward(dim, keepdims, x == y)
+        return y if keepdims else y.squeeze()
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dim, mask = self.ctx.get_saved_vals()
+        dim, keepdims, mask = self.ctx.get_saved_vals()
+        if not keepdims and dim is not None:
+            output_grad = self.m.expand_dims(output_grad, dim)
         dx = mask * output_grad / mask.sum(dim, keepdims=True)
         return (dx,)
 
 
 class Min(Function):
-    def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
-    ) -> Array:
-        raise NotImplementedError()
+    def forward(self, x: Array, dim: Optional[int], keepdims: bool) -> Array:
+        y = x.min(dim, keepdims=True)
+        self.ctx.save_for_backward(dim, keepdims, x == y)
+        return y if keepdims else y.squeeze()
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        raise NotImplementedError()
+        dim, keepdims, mask = self.ctx.get_saved_vals()
+        if not keepdims and dim is not None:
+            output_grad = self.m.expand_dims(output_grad, dim)
+        dx = mask * output_grad / mask.sum(dim, keepdims=True)
+        return (dx,)
