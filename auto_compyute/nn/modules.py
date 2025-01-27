@@ -7,9 +7,9 @@ from typing import Any, OrderedDict
 
 from ..autograd import Tensor
 from ..tensors import randu
-from .functional import linear
+from . import functional as F
 
-__all__ = ["Parameter", "Module", "Linear", "Sequential"]
+__all__ = ["Parameter", "Module", "Linear", "Relu", "Sequential"]
 
 
 class Parameter(Tensor):
@@ -17,9 +17,15 @@ class Parameter(Tensor):
         super().__init__(data.data, requires_grad=True)
 
 
+class Buffer(Tensor):
+    def __init__(self, data: Tensor) -> None:
+        super().__init__(data.data)
+
+
 class Module(ABC):
     def __init__(self) -> None:
         self._parameters: OrderedDict[str, Parameter] = OrderedDict()
+        self._buffers: OrderedDict[str, Buffer] = OrderedDict()
         self._modules: OrderedDict[str, Module] = OrderedDict()
 
     def __call__(self, x: Tensor) -> Tensor:
@@ -57,7 +63,12 @@ class Linear(Module):
         self.b = Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
-        return linear(x, self.w, self.b)
+        return F.linear(x, self.w, self.b)
+
+
+class Relu(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return F.relu(x)
 
 
 class Sequential(Module):

@@ -57,3 +57,19 @@ def test_view(x, shape):
     ac_y = ac_x.view(shape)
     torch_y = torch_x.view(*shape)
     _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+split_sizes = (2, 5)
+split_dims = (0, 1, -1)
+
+
+@pytest.mark.parametrize("x", view_xs)
+@pytest.mark.parametrize("split_size", split_sizes)
+@pytest.mark.parametrize("dim", split_dims)
+def test_split(x, split_size, dim):
+    """Split function test"""
+    ac_x, torch_x = x
+    ac_ys = ac_x.split(split_size, dim)
+    torch_ys = torch_x.split(split_size, dim)
+    for ac_y, torch_y in zip(ac_ys, torch_ys):
+        _shape_function_verify(ac_x, torch_x, ac_y, torch_y)

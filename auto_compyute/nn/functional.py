@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ..autograd import Tensor
+from ..autograd import Tensor, apply_func
 from .funcs.activation_funcs import Softmax
 
 
@@ -22,7 +22,7 @@ def relu(x: Tensor) -> Tensor:
 
 
 def softmax(x: Tensor, dim: int = -1) -> Tensor:
-    return x.apply_func(Softmax, x, dim=dim)
+    return apply_func(Softmax, x, dim=dim)
 
 
 def tanh(x: Tensor) -> Tensor:
