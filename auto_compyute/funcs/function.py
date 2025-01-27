@@ -13,7 +13,7 @@ class Context:
     def save_for_backward(self, *args: Any) -> None:
         self.cache = args
 
-    def get_saved_vals(self) -> Any | tuple[Any, ...]:
+    def get_saved_vals(self) -> Any:
         assert self.cache is not None
         values = self.cache[0] if len(self.cache) == 1 else self.cache
         self.cache = None
