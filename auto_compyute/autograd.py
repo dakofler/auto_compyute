@@ -7,14 +7,15 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .backends import (
+from .devices import (
     Array,
-    Backend,
+    Device,
     Dim,
     Scalar,
     Shape,
-    get_array_backend,
-    select_backend,
+    get_array_device,
+    move_to_device,
+    select_device,
 )
 from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
@@ -29,10 +30,10 @@ __all__ = ["Tensor", "tensor", "no_grad"]
 def tensor(data: Any, **factory_kwargs) -> Tensor:
     if isinstance(data, Tensor):
         return data
-    backend = select_backend(factory_kwargs.get("backend", None))
+    device = select_device(factory_kwargs.get("device", None))
     dtype = factory_kwargs.get("dtype", None)
     requires_grad = factory_kwargs.get("requires_grad", False)
-    data = backend.m.array(data, dtype)
+    data = device.m.array(data, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -50,29 +51,9 @@ class Tensor:
         self.requires_grad = requires_grad
         self.grad: Optional[Array] = None
 
-    def __repr__(self) -> str:
-        prefix = f"{self.__class__.__name__}("
-        suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
-        return (
-            prefix
-            + self.b.m.array2string(
-                self.data,
-                max_line_width=80,
-                precision=4,
-                separator=", ",
-                prefix=prefix,
-                floatmode="maxprec_equal",
-            )
-            + suffix
-        )
-
-    # ----------------------------------------------------------------------------------
-    # PROPERTIES
-    # ----------------------------------------------------------------------------------
-
     @property
-    def b(self) -> Backend:
-        return get_array_backend(self.data)
+    def device(self) -> Device:
+        return get_array_device(self.data)
 
     @property
     def dtype(self) -> DType:
@@ -89,51 +70,6 @@ class Tensor:
     @property
     def T(self) -> Tensor:
         return self.transpose(-2, -1)
-
-    # ----------------------------------------------------------------------------------
-    # OTHER METHODS
-    # ----------------------------------------------------------------------------------
-
-    def as_type(self, dtype: DType) -> Tensor:
-        if self.dtype == dtype:
-            return self
-        data = self.data.astype(dtype)
-        if is_float(dtype) and self.requires_grad:
-            new_tensor = Tensor(data, self.ctx, self.requires_grad)
-            if self.grad is not None:
-                new_tensor.grad = self.grad.astype(dtype)
-            return new_tensor
-        return Tensor(self.data.astype(dtype))
-
-    def item(self) -> Scalar:
-        return self.data.item()
-
-    # ----------------------------------------------------------------------------------
-    # AUTOGRAD
-    # ----------------------------------------------------------------------------------
-
-    def apply_grad(self, grad: Array) -> None:
-        self.grad = grad if self.grad is None else self.grad + grad
-
-    def backward(self, output_grad: Optional[Array] = None):
-        if not self.requires_grad:
-            raise ValueError("Tensor does not require gradients.")
-        if self.grad is None:
-            self.grad = self.b.m.ones(self.shape, dtype=float32)
-        if output_grad is not None:
-            assert isinstance(output_grad, Array)
-            self.grad *= output_grad
-        tensors = deepwalk(self, [], set())
-
-        for t in reversed(tensors):
-            assert t.ctx is not None
-            assert t.parents is not None
-            grads = t.ctx.backward(t.grad)
-            for t, grad in zip(t.parents, grads):
-                if not t.requires_grad:
-                    continue
-                grad = undo_broadcast(grad, t.shape)
-                t.apply_grad(grad)
 
     # ----------------------------------------------------------------------------------
     # MAGIC METHODS
@@ -177,6 +113,49 @@ class Tensor:
             key = tuple(k.data if isinstance(k, Tensor) else k for k in key)
         return self.select(key)
 
+    def __repr__(self) -> str:
+        prefix = "array("
+        suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
+        return (
+            prefix
+            + self.device.m.array2string(
+                self.data,
+                max_line_width=80,
+                precision=4,
+                separator=", ",
+                prefix=prefix,
+                floatmode="maxprec_equal",
+            )
+            + suffix
+        )
+
+    # ----------------------------------------------------------------------------------
+    # AUTOGRAD
+    # ----------------------------------------------------------------------------------
+
+    def apply_grad(self, grad: Array) -> None:
+        self.grad = grad if self.grad is None else self.grad + grad
+
+    def backward(self, output_grad: Optional[Array] = None):
+        if not self.requires_grad:
+            raise ValueError("Tensor does not require gradients.")
+        if self.grad is None:
+            self.grad = self.device.m.ones(self.shape, dtype=float32)
+        if output_grad is not None:
+            assert isinstance(output_grad, Array)
+            self.grad *= output_grad
+        tensors = deepwalk(self, [], set())
+
+        for t in reversed(tensors):
+            assert t.ctx is not None
+            assert t.parents is not None
+            grads = t.ctx.backward(t.grad)
+            for t, grad in zip(t.parents, grads):
+                if not t.requires_grad:
+                    continue
+                grad = undo_broadcast(grad, t.shape)
+                t.apply_grad(grad)
+
     # ----------------------------------------------------------------------------------
     # UNARY OPS
     # ----------------------------------------------------------------------------------
@@ -185,7 +164,7 @@ class Tensor:
         return apply_func(Exp, self)
 
     def pow(self, x: Scalar) -> Tensor:
-        return apply_func(Pow, self, tensor(x, backend=self.b))
+        return apply_func(Pow, self, tensor(x, device=self.device))
 
     def tanh(self) -> Tensor:
         return apply_func(Tanh, self)
@@ -195,29 +174,29 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, tensor(x, backend=self.b))
+        return apply_func(Add, self, tensor(x, device=self.device))
 
     def sub(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
         if reverse:
-            return apply_func(Sub, tensor(x, backend=self.b), self)
-        return apply_func(Sub, self, tensor(x, backend=self.b))
+            return apply_func(Sub, tensor(x, device=self.device), self)
+        return apply_func(Sub, self, tensor(x, device=self.device))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, tensor(x, backend=self.b))
+        return apply_func(Mul, self, tensor(x, device=self.device))
 
     def truediv(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
         if reverse:
-            return apply_func(Div, tensor(x, backend=self.b), self)
-        return apply_func(Div, self, tensor(x, backend=self.b))
+            return apply_func(Div, tensor(x, device=self.device), self)
+        return apply_func(Div, self, tensor(x, device=self.device))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, tensor(x, backend=self.b))
+        return apply_func(Matmul, self, tensor(x, device=self.device))
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, tensor(x, backend=self.b))
+        return apply_func(Maximum, self, tensor(x, device=self.device))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, tensor(x, backend=self.b))
+        return apply_func(Minimum, self, tensor(x, device=self.device))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -272,6 +251,40 @@ class Tensor:
     def view(self, shape) -> Tensor:
         return apply_func(View, self, shape=shape)
 
+    # ----------------------------------------------------------------------------------
+    # OTHER METHODS
+    # ----------------------------------------------------------------------------------
+
+    def as_type(self, dtype: DType) -> Tensor:
+        if self.dtype == dtype:
+            return self
+        data = self.data.astype(dtype)
+        if is_float(dtype) and self.requires_grad:
+            new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
+            if self.grad is not None:
+                new_tensor.grad = self.grad.astype(dtype)
+            return new_tensor
+        return Tensor(self.data.astype(dtype))
+
+    def to(self, device: Device) -> Tensor:
+        data = self.data if self.device == device else move_to_device(self.data, device)
+        if self.requires_grad:
+            new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
+            if self.grad is not None:
+                new_tensor.grad = move_to_device(self.grad, device)
+            return new_tensor
+        return Tensor(data)
+
+    def ito(self, device: Device) -> None:
+        if self.device == device:
+            return
+        self.data = move_to_device(self.data, device)
+        if self.grad is not None:
+            self.grad = move_to_device(self.grad, device)
+
+    def item(self) -> Scalar:
+        return self.data.item()
+
 
 def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
     return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
@@ -307,7 +320,7 @@ def deepwalk(t: Tensor, nodes: list[Tensor], visited_node_ids: set) -> list[Tens
 
 
 def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
-    f = func(tensors[0].b)
+    f = func(tensors[0].device)
     requires_grad = any(t.requires_grad for t in tensors)
     if autograd_active and requires_grad:
         f.ctx = Context()

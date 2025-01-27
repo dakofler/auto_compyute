@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from ..backends import Array
+from ..devices import Array
 from .function import Function
 
 

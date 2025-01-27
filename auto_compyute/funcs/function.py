@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from ..backends import Array, Backend
+from ..devices import Array, Device
 
 
 class Context:
@@ -26,8 +26,8 @@ class PseudoContext(Context):
 
 
 class Function(ABC):
-    def __init__(self, backend: Backend) -> None:
-        self.m = backend.m
+    def __init__(self, device: Device) -> None:
+        self.m = device.m
         self.ctx: Context = PseudoContext()
 
     @property

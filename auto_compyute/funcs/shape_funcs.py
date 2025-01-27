@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from ..backends import Array, Shape
+from ..devices import Array, Shape
 from .function import Function
 
 

@@ -1,6 +1,6 @@
 """Activation autograd functions"""
 
-from ...backends import Array
+from ...devices import Array
 from ...funcs.function import Function
 
 

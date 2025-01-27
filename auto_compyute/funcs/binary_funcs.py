@@ -1,6 +1,6 @@
 """Binary autograd functions"""
 
-from ..backends import Array
+from ..devices import Array
 from .function import Function
 
 
