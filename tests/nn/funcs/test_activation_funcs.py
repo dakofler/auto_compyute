@@ -1,4 +1,4 @@
-"""Tests for unary functions"""
+"""Tests for activation functions"""
 
 import pytest
 import torch.nn.functional as tF

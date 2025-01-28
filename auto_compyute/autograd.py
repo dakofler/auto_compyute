@@ -1,4 +1,4 @@
-"""Tensor class"""
+"""Autograd engine"""
 
 from __future__ import annotations
 
@@ -7,16 +7,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .devices import (
-    Array,
-    Device,
-    Dim,
-    Scalar,
-    Shape,
-    get_array_device,
-    move_to_device,
-    select_device,
-)
+from .devices import Array, Device, Dim, Scalar, Shape, get_array_device, move_to_device
 from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
@@ -24,17 +15,7 @@ from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Transpose, View
 from .funcs.unary_funcs import Exp, Pow, Tanh
 
-__all__ = ["Tensor", "tensor", "no_grad"]
-
-
-def tensor(data: Any, **factory_kwargs) -> Tensor:
-    if isinstance(data, Tensor):
-        return data
-    device = select_device(factory_kwargs.get("device", None))
-    dtype = factory_kwargs.get("dtype", None)
-    requires_grad = factory_kwargs.get("requires_grad", False)
-    data = device.m.array(data, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+__all__ = ["Tensor", "no_grad"]
 
 
 class Tensor:
@@ -164,7 +145,7 @@ class Tensor:
         return apply_func(Exp, self)
 
     def pow(self, x: Scalar) -> Tensor:
-        return apply_func(Pow, self, tensor(x, device=self.device))
+        return apply_func(Pow, self, self.self_like(x))
 
     def tanh(self) -> Tensor:
         return apply_func(Tanh, self)
@@ -174,29 +155,29 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, tensor(x, device=self.device))
+        return apply_func(Add, self, self.self_like(x))
 
     def sub(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
         if reverse:
-            return apply_func(Sub, tensor(x, device=self.device), self)
-        return apply_func(Sub, self, tensor(x, device=self.device))
+            return apply_func(Sub, self.self_like(x), self)
+        return apply_func(Sub, self, self.self_like(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, tensor(x, device=self.device))
+        return apply_func(Mul, self, self.self_like(x))
 
     def truediv(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
         if reverse:
-            return apply_func(Div, tensor(x, device=self.device), self)
-        return apply_func(Div, self, tensor(x, device=self.device))
+            return apply_func(Div, self.self_like(x), self)
+        return apply_func(Div, self, self.self_like(x))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, tensor(x, device=self.device))
+        return apply_func(Matmul, self, self.self_like(x))
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, tensor(x, device=self.device))
+        return apply_func(Maximum, self, self.self_like(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, tensor(x, device=self.device))
+        return apply_func(Minimum, self, self.self_like(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -234,15 +215,12 @@ class Tensor:
         return apply_func(Select, self, key=key)
 
     def split(self, split_size: int, dim: int = -1) -> list[Tensor]:
-        splits = self.shape[dim] // split_size
         dim = dim % self.ndim
+        before_slice = (slice(None),) * dim
+        after_slice = (slice(None),) * (self.ndim - dim - 1)
         return [
-            self[
-                (slice(None),) * dim
-                + (slice(i * split_size, (i + 1) * split_size),)
-                + (slice(None),) * (self.ndim - dim - 1)
-            ]
-            for i in range(splits)
+            self[before_slice + (slice(i, i + split_size),) + after_slice]
+            for i in range(0, self.shape[dim], split_size)
         ]
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
@@ -285,6 +263,11 @@ class Tensor:
     def item(self) -> Scalar:
         return self.data.item()
 
+    def self_like(self, x: Tensor | Scalar) -> Tensor:
+        if isinstance(x, Tensor):
+            return x.as_type(self.dtype)
+        return Tensor(self.device.m.asarray(x, dtype=self.dtype))
+
 
 def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
     return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
@@ -321,7 +304,7 @@ def deepwalk(t: Tensor, nodes: list[Tensor], visited_node_ids: set) -> list[Tens
 
 def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
     f = func(tensors[0].device)
-    requires_grad = any(t.requires_grad for t in tensors)
+    requires_grad = any(t.requires_grad for t in tensors if isinstance(t, Tensor))
     if autograd_active and requires_grad:
         f.ctx = Context()
         data = f.forward(*[t.data for t in tensors], **kwargs)
@@ -331,27 +314,37 @@ def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
 
 
 def draw_compute_graph(node: Tensor, html: bool = False) -> None:
+    assert node.requires_grad
     colors = {
         "const": ("#CAEDFB", "#4D93D9"),
         "leaf": ("#C6EFCE", "#4EA72E"),
         "func": ("#F2F2F2", "#808080"),
     }
 
-    def _node_label(node: Tensor) -> str:
-        desc = (
-            node.ctx.name
-            if node.ctx is not None
-            else str(node.shape)[1:-1] if node.shape else str(node.data.item())
-        )
+    def _node_label(n: Tensor) -> str:
 
-        if not node.requires_grad:
+        # constant
+        if not n.requires_grad:
+            node_name = "Const"
             fill_color, stroke_color = colors["const"]
-        elif node.ctx is None:
+
+        # leaf tensor
+        elif n.ctx is None:
+            node_name = n.__class__.__name__
             fill_color, stroke_color = colors["leaf"]
+
+        # function
         else:
+            node_name = n.ctx.name
             fill_color, stroke_color = colors["func"]
 
-        return f"{id(node)}({desc})\nstyle {str(id(node))} fill:{fill_color},stroke:{stroke_color}"
+        if len(n.shape) == 0:
+            node_info = str(round(n.item(), 4))
+        else:
+            node_info = str(n.shape)
+
+        label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
+        return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
 
     mermaid_script = f"graph LR\n{_node_label(node)}\n"
 
@@ -374,7 +367,7 @@ def draw_compute_graph(node: Tensor, html: bool = False) -> None:
     graphbytes = mermaid_script.encode("utf8")
     base64_bytes = base64.urlsafe_b64encode(graphbytes)
     base64_string = base64_bytes.decode("ascii")
-    svg_url = f"https://mermaid.ink/svg/{base64_string}?bgColor=FFFFFF"
+    svg_url = f"https://mermaid.ink/img/{base64_string}?type=jpg&bgcolor=FFFFFF"
 
     if html:
         html_content = f"""

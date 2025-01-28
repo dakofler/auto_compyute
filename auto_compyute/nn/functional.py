@@ -3,18 +3,38 @@
 from typing import Optional
 
 from ..autograd import Tensor, apply_func
-from .funcs import Conv2D, Dilate2D, Maxpool2D, Pad2D, Softmax
+from .funcs import Conv2D, Dilate2D, Linear, Maxpool2D, MSELoss, Pad2D, Softmax
+
+# -------------------------------------------------------------------------------------
+# ACTIVATION FUNCTIONS
+# -------------------------------------------------------------------------------------
 
 
-def mse_loss(logits: Tensor, targets: Tensor):
-    return ((logits - targets) ** 2).mean()
+def relu(x: Tensor) -> Tensor:
+    return x.maximum(0.0)
+
+
+def softmax(x: Tensor, dim: int = -1) -> Tensor:
+    return apply_func(Softmax, x, dim=dim)
+
+
+def tanh(x: Tensor) -> Tensor:
+    return x.tanh()
+
+
+# -------------------------------------------------------------------------------------
+# LINEAR FUNCTIONS
+# -------------------------------------------------------------------------------------
 
 
 def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
-    y = x @ w.T
-    if b is not None:
-        return y + b
-    return y
+    b = b if b is not None else x.self_like(0)
+    return apply_func(Linear, x, w, b)
+
+
+# -------------------------------------------------------------------------------------
+# CONVOLUTION FUNCTIONS
+# -------------------------------------------------------------------------------------
 
 
 def conv2d(
@@ -39,13 +59,10 @@ def maxpool2d(x: Tensor, window_size: int) -> Tensor:
     return apply_func(Maxpool2D, x, window_size=window_size)
 
 
-def relu(x: Tensor) -> Tensor:
-    return x.maximum(0.0)
+# -------------------------------------------------------------------------------------
+# LOSS FUNCTIONS
+# -------------------------------------------------------------------------------------
 
 
-def softmax(x: Tensor, dim: int = -1) -> Tensor:
-    return apply_func(Softmax, x, dim=dim)
-
-
-def tanh(x: Tensor) -> Tensor:
-    return x.tanh()
+def mse_loss(logits: Tensor, targets: Tensor):
+    return apply_func(MSELoss, logits, targets)

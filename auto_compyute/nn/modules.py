@@ -11,7 +11,7 @@ from ..dtypes import DType
 from ..tensors import randu
 from . import functional as F
 
-__all__ = ["Parameter", "Module", "Linear", "Relu", "Sequential"]
+__all__ = ["Parameter", "Module", "Relu", "Linear", "Conv2D"]
 
 
 class Parameter(Tensor):
@@ -115,6 +115,22 @@ class ModuleList(list):
         super().__init__(modules)
 
 
+class Sequential(Module):
+    def __init__(self, *layers: Module) -> None:
+        super().__init__()
+        self.layers = ModuleList(layers)
+
+    def forward(self, x: Tensor) -> Tensor:
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+class Relu(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return F.relu(x)
+
+
 class Linear(Module):
     def __init__(self, in_dim: int, out_dim: int) -> None:
         super().__init__()
@@ -126,17 +142,23 @@ class Linear(Module):
         return F.linear(x, self.w, self.b)
 
 
-class Relu(Module):
-    def forward(self, x: Tensor) -> Tensor:
-        return F.relu(x)
-
-
-class Sequential(Module):
-    def __init__(self, *layers: Module) -> None:
+class Conv2D(Module):
+    def __init__(
+        self,
+        in_dim: int,
+        out_dim: int,
+        kernel_size: int = 3,
+        padding: int = 0,
+        stride: int = 1,
+        dilation: int = 1,
+    ) -> None:
         super().__init__()
-        self.layers = ModuleList(layers)
+        self.padding = padding
+        self.strid = stride
+        self.dilation = dilation
+        k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
+        self.w = Parameter(randu((out_dim, in_dim, kernel_size, kernel_size), -k, k))
+        self.b = Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
-        for layer in self.layers:
-            x = layer(x)
-        return x
+        return F.conv2d(x, self.w, self.b, self.padding, self.strid, self.dilation)
