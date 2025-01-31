@@ -5,12 +5,12 @@ import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
 
-from ...utils import close, get_data
+from ...utils import close, get_random_floats
 
 
 def _conv_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
     assert close(y.data, torch_y)
-    dy, torch_dy = get_data(y.shape, False)
+    dy, torch_dy = get_random_floats(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
     assert close(x.grad, torch_x.grad, tol=1e-3)
@@ -20,15 +20,15 @@ def _conv_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
 
 def _pool_function_verify(x, torch_x, y, torch_y):
     assert close(y.data, torch_y)
-    dy, torch_dy = get_data(y.shape, False)
+    dy, torch_dy = get_random_floats(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
     assert close(x.grad, torch_x.grad, tol=1e-3)
 
 
-ac_x1, torch_x1 = get_data((16, 3, 28, 28))
-ac_w1, torch_w1 = get_data((32, 3, 5, 5))
-ac_b1, torch_b1 = get_data((32,))
+ac_x1, torch_x1 = get_random_floats((16, 3, 28, 28))
+ac_w1, torch_w1 = get_random_floats((32, 3, 5, 5))
+ac_b1, torch_b1 = get_random_floats((32,))
 xs = ((ac_x1, torch_x1),)
 ws = ((ac_w1, torch_w1),)
 bs = ((ac_b1, torch_b1),)

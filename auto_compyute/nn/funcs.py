@@ -159,6 +159,124 @@ class Maxpool2D(Function):
 
 
 # -------------------------------------------------------------------------------------
+# NORMALIZATION FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+class Batchnorm1D(Function):
+    def forward(
+        self,
+        x: Array,
+        rmean: Array,
+        rvar: Array,
+        w: Array,
+        b: Array,
+        m: float,
+        eps: float,
+        training: bool,
+    ) -> Array:
+        batch_dims: tuple[int, ...] = (0,) if x.ndim == 2 else (0, 2)
+
+        if training:
+            # compute mean and variance from x
+            mean = x.mean(batch_dims, keepdims=True)
+            std = self.m.sqrt(x.var(batch_dims, keepdims=True) + eps)
+            x_norm = (x - mean) / std
+
+            # keep running stats
+            rmean = rmean * (1 - m) + mean.squeeze() * m
+            rvar = rvar * (1 - m) + x.var(batch_dims, ddof=1) * m
+        else:
+            # use running mean and variance
+            var = rvar if (x.ndim == 2) else rvar.reshape((*rvar.shape, 1))
+            mean = rmean if (x.ndim == 2) else rmean.reshape((*rmean.shape, 1))
+            std = self.m.sqrt(var + eps)
+            x_norm = (x - mean) / std
+
+        w = w if (x.ndim == 2) else w.reshape((*w.shape, 1))
+        b = b if (x.ndim == 2) else b.reshape((*b.shape, 1))
+        y = w * x_norm + b
+
+        self.ctx.save(w, batch_dims, std, x_norm)
+        return y, rmean, rvar
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        w, batch_dims, std, x_norm = self.ctx.retrieve()
+        n = float(output_grad.size / output_grad.shape[1])
+
+        # input grads
+        output_grad_s = output_grad.sum(batch_dims, keepdims=True)
+        output_grad_xns = (output_grad * x_norm).sum(batch_dims, keepdims=True)
+        dx = (
+            w / (std * n) * (n * output_grad - output_grad_s - x_norm * output_grad_xns)
+        )
+
+        # gamma grads
+        dw = output_grad_xns.squeeze()
+
+        # beta grads
+        db = output_grad_s.squeeze()
+
+        return dx, dw, db
+
+
+class Batchnorm2D(Function):
+    def forward(
+        self,
+        x: Array,
+        rmean: Array,
+        rvar: Array,
+        w: Array,
+        b: Array,
+        m: float,
+        eps: float,
+        training: bool,
+    ) -> Array:
+        batch_dims = (0, 2, 3)
+
+        if training:
+            # compute mean and variance from x
+            mean = x.mean(batch_dims, keepdims=True)
+            std = self.m.sqrt(x.var(batch_dims, keepdims=True) + eps)
+            x_norm = (x - mean) / std
+
+            # keep running stats
+            rmean = rmean * (1 - m) + mean.squeeze() * m
+            rvar = rvar * (1 - m) + x.var(batch_dims, ddof=1) * m
+        else:
+            # use running mean and variance
+            mean = rmean.view((*rmean.shape, 1, 1))
+            std = self.m.sqrt(rvar.reshape((*rvar.shape, 1, 1)) + eps)
+            x_norm = (x - mean) / std
+
+        w = w.view((*w.shape, 1, 1))
+        b = b.view((*b.shape, 1, 1))
+        y = w * x_norm + b
+
+        self.ctx.save(w, batch_dims, std, x_norm)
+        return y, rmean, rvar
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        w, batch_dims, std, x_norm = self.ctx.retrieve()
+        n = float(output_grad.size / output_grad.shape[1])
+
+        # input grads
+        output_grad_s = output_grad.sum(batch_dims, keepdims=True)
+        output_grad_xns = (output_grad * x_norm).sum(batch_dims, keepdims=True)
+        dx = (
+            w / (std * n) * (n * output_grad - output_grad_s - x_norm * output_grad_xns)
+        )
+
+        # gamma grads
+        dw = output_grad_xns.squeeze()
+
+        # beta grads
+        db = output_grad_s.squeeze()
+
+        return dx, dw, db
+
+
+# -------------------------------------------------------------------------------------
 # REGULARIZATION FUNCTIONS
 # -------------------------------------------------------------------------------------
 

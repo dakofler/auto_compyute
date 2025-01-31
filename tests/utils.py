@@ -11,12 +11,22 @@ np.random.seed(0)
 
 
 def close(ac_in: Array, torch_in: Tensor, tol: float = 1e-5):
-    """Checks wheter an array and a PyTorch tensor are close."""
     return np.allclose(ac_in, torch_in.detach().numpy(), atol=tol, rtol=tol)
 
 
-def get_data(shape: Shape, requires_grad: bool = True):
-    """Returns randomly initialized data as tensors"""
+def get_random_floats(shape: Shape, requires_grad: bool = True):
     x = ac.randn(shape, requires_grad=requires_grad)
+    torch_x = torch.tensor(x.data, requires_grad=requires_grad)
+    return x, torch_x
+
+
+def get_ones(shape: Shape, requires_grad: bool = False):
+    x = ac.ones(shape, requires_grad=requires_grad)
+    torch_x = torch.tensor(x.data, requires_grad=requires_grad)
+    return x, torch_x
+
+
+def get_zeros(shape: Shape, requires_grad: bool = False):
+    x = ac.zeros(shape, requires_grad=requires_grad)
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)
     return x, torch_x

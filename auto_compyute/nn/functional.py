@@ -4,7 +4,18 @@ import math
 from typing import Optional
 
 from ..autograd import Tensor, apply_func
-from .funcs import Conv2D, Dilate2D, Dropout, Linear, Maxpool2D, MSELoss, Pad2D, Softmax
+from .funcs import (
+    Batchnorm1D,
+    Batchnorm2D,
+    Conv2D,
+    Dilate2D,
+    Dropout,
+    Linear,
+    Maxpool2D,
+    MSELoss,
+    Pad2D,
+    Softmax,
+)
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTIONS
@@ -72,6 +83,41 @@ def sdpa(q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None) -> Tens
         attn = attn + mask[:S, :S]
     attn = softmax(attn)
     return attn @ v
+
+
+# -------------------------------------------------------------------------------------
+# NORMALIZATION FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+def batchnorm1d(
+    x: Tensor,
+    rmean: Tensor,
+    rvar: Tensor,
+    w: Tensor,
+    b: Tensor,
+    m: float = 0.1,
+    eps: float = 1e-5,
+    training: bool = False,
+):
+    return apply_func(
+        Batchnorm1D, x, rmean, rvar, w, b, m=m, eps=eps, training=training
+    )
+
+
+def batchnorm2d(
+    x: Tensor,
+    rmean: Tensor,
+    rvar: Tensor,
+    w: Tensor,
+    b: Tensor,
+    m: float = 0.1,
+    eps: float = 1e-5,
+    training: bool = False,
+):
+    return apply_func(
+        Batchnorm2D, x, rmean, rvar, w, b, m=m, eps=eps, training=training
+    )
 
 
 # -------------------------------------------------------------------------------------

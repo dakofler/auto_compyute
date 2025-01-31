@@ -8,7 +8,7 @@ from typing import Any, Optional, OrderedDict
 from ..autograd import Tensor
 from ..backends import Device
 from ..dtypes import DType
-from ..tensors import randu
+from ..tensors import ones, randu, zeros
 from . import functional as F
 
 __all__ = [
@@ -205,6 +205,18 @@ class MHSA(Module):
         attn = F.sdpa(q, k, v, self.mask)
         attn = attn.transpose(1, 2).view((B, S, D))
         return self.out(attn)
+
+
+class Batchnorm1D(Module):
+    def __init__(self, in_dim: int, m: float = 0.1, eps: float = 1e-5) -> None:
+        super().__init__()
+        self.w = Parameter(ones((in_dim,)))
+        self.b = Parameter(zeros((in_dim,)))
+        self.rmean = Buffer(zeros((in_dim,)))
+        self.rvar = Buffer(ones((in_dim,)))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.batchnorm1d(x, self.dropout, self.training)
 
 
 class Dropout(Module):

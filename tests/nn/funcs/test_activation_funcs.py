@@ -5,18 +5,18 @@ import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
 
-from ...utils import close, get_data
+from ...utils import close, get_random_floats
 
 
 def _unary_function_verify(x, torch_x, y, torch_y):
     assert close(y.data, torch_y)
-    dy, torch_dy = get_data(y.shape, False)
+    dy, torch_dy = get_random_floats(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
     assert close(x.grad, torch_x.grad)
 
 
-ac_x1, torch_x1 = get_data((10, 20))
+ac_x1, torch_x1 = get_random_floats((10, 20))
 xs = ((ac_x1, torch_x1),)
 dims = (0, 1)
 

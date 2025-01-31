@@ -3,19 +3,19 @@
 import pytest
 import torch
 
-from ..utils import close, get_data
+from ..utils import close, get_random_floats
 
 
 def _unary_function_verify(x, torch_x, y, torch_y):
     assert close(y.data, torch_y)
-    dy, torch_dy = get_data(y.shape, False)
+    dy, torch_dy = get_random_floats(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
     assert close(x.grad, torch_x.grad)
 
 
-ac_x1, torch_x1 = get_data((10, 20))
-ac_x2, torch_x2 = get_data((10, 20, 30))
+ac_x1, torch_x1 = get_random_floats((10, 20))
+ac_x2, torch_x2 = get_random_floats((10, 20, 30))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))
 
 
