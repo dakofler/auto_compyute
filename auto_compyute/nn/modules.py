@@ -11,7 +11,16 @@ from ..dtypes import DType
 from ..tensors import randu
 from . import functional as F
 
-__all__ = ["Parameter", "Module", "Relu", "Linear", "Conv2D", "MHSA"]
+__all__ = [
+    "Parameter",
+    "Module",
+    "Sequential",
+    "Relu",
+    "Linear",
+    "Conv2D",
+    "MaxPooling2D",
+    "MHSA",
+]
 
 
 class Parameter(Tensor):
@@ -132,11 +141,11 @@ class Relu(Module):
 
 
 class Linear(Module):
-    def __init__(self, in_dim: int, out_dim: int) -> None:
+    def __init__(self, in_dim: int, out_dim: int, bias: bool = True) -> None:
         super().__init__()
         k = 1 / math.sqrt(in_dim)
         self.w = Parameter(randu((out_dim, in_dim), -k, k))
-        self.b = Parameter(randu((out_dim,), -k, k))
+        self.b = None if not bias else Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.linear(x, self.w, self.b)
@@ -151,6 +160,7 @@ class Conv2D(Module):
         padding: int = 0,
         stride: int = 1,
         dilation: int = 1,
+        bias: bool = True,
     ) -> None:
         super().__init__()
         self.padding = padding
@@ -158,10 +168,19 @@ class Conv2D(Module):
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(randu((out_dim, in_dim, kernel_size, kernel_size), -k, k))
-        self.b = Parameter(randu((out_dim,), -k, k))
+        self.b = None if not bias else Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.conv2d(x, self.w, self.b, self.padding, self.stride, self.dilation)
+
+
+class MaxPooling2D(Module):
+    def __init__(self, window_size: int = 2) -> None:
+        super().__init__()
+        self.window_size = window_size
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.maxpool2d(x, self.window_size)
 
 
 class MHSA(Module):

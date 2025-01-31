@@ -6,7 +6,7 @@ from .autograd import Tensor
 from .devices import Device, Shape, select_device
 from .dtypes import DType, float32, int64, select_dtype
 
-__all__ = ["tensor", "arange", "ones", "zeros", "randi", "randn", "randu"]
+__all__ = ["tensor", "arange", "ones", "zeros", "randi", "randn", "randu", "randperm"]
 
 
 def get_factory_kwargs(kwargs) -> tuple[Device, DType, bool]:
@@ -58,4 +58,10 @@ def randn(shape: Shape, mean: float = 0, var: float = 1, **factory_kwargs) -> Te
 def randu(shape: Shape, low: float = -1, high: float = 1, **factory_kwargs) -> Tensor:
     device, dtype, requires_grad = get_factory_kwargs(factory_kwargs)
     data = device.m.random.uniform(low, high, shape).astype(dtype)
+    return Tensor(data, requires_grad=requires_grad)
+
+
+def randperm(n: int, **factory_kwargs):
+    device, _, requires_grad = get_factory_kwargs(factory_kwargs)
+    data = device.m.random.permutation(n)
     return Tensor(data, requires_grad=requires_grad)
