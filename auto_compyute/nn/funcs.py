@@ -101,10 +101,7 @@ class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
         self.ctx.save(x, w, stride)
         x_pooled = _pool2d(self.m, x, w.shape[-1], stride)
-        y = self.m.einsum(
-            "biyxjk,oijk->boyx", x_pooled, w, optimize=True, order="C", dtype=x.dtype
-        )
-        # y = self.m.ascontiguousarray(y)
+        y = self.m.einsum("biyxjk,oijk->boyx", x_pooled, w, order="C")
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
@@ -127,40 +124,38 @@ class Conv2D(Function):
         # input grads
         output_grad_pooled = _pool2d(self.m, output_grad, kernel_size)
         w = self.m.flip(w, (-2, -1))
-        dx = self.m.einsum(
-            "boyxjk,oijk->biyx",
-            output_grad_pooled,
-            w,
-            optimize=True,
-            order="C",
-            dtype=x.dtype,
-        )
-        # dx = self.m.ascontiguousarray(dx)
+        dx = self.m.einsum("boyxjk,oijk->biyx", output_grad_pooled, w, order="C")
 
         # filter grads
         output_grad_pooled = _pool2d(self.m, output_grad, input_size)
-        dw = self.m.einsum(
-            "bojkyx,biyx->oijk",
-            output_grad_pooled,
-            x,
-            optimize=True,
-            order="C",
-            dtype=x.dtype,
-        )
+        dw = self.m.einsum("bojkyx,biyx->oijk", output_grad_pooled, x, order="C")
         dw = self.m.flip(dw, (-2, -1))
-        # dw = self.m.ascontiguousarray(dw)
 
         return dx, dw
 
 
+def _repeat2d(m: ModuleType, x: Array, n_repeats: int, target_shape: Shape):
+    repeat_shape = (*x.shape[:-1], n_repeats, x.shape[-1], n_repeats)
+    repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
+    y = m.lib.stride_tricks.as_strided(x.data, repeat_shape, repeat_strides)
+    y = y.reshape((*y.shape[:-4], y.shape[-4] * n_repeats, y.shape[-2] * n_repeats))
+    if y.shape != target_shape:
+        y = _pad_to_shape(m, y, target_shape)
+    return y
+
+
 class Maxpool2D(Function):
     def forward(self, x: Array, window_size: int) -> Array:
-        x_windowed = _pool2d(self.m, x, window_size, window_size)
-        y = x_windowed.max((-2, -1))
+        y = _pool2d(self.m, x, window_size, window_size).max((-2, -1))
+        self.ctx.save(x, window_size, y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        raise NotImplementedError()
+        x, window_size, y = self.ctx.retrieve()
+        mask = _repeat2d(self.m, y, window_size, x.shape) == x
+        mask = mask.astype(output_grad.dtype)
+        dx = _repeat2d(self.m, output_grad, window_size, x.shape) * mask
+        return (dx,)
 
 
 # -------------------------------------------------------------------------------------

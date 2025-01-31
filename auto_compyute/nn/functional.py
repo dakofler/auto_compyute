@@ -56,7 +56,7 @@ def conv2d(
     return y
 
 
-def maxpool2d(x: Tensor, window_size: int) -> Tensor:
+def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
     return apply_func(Maxpool2D, x, window_size=window_size)
 
 

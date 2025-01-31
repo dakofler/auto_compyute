@@ -17,7 +17,7 @@ from .devices import (
     get_array_device,
     move_to_device,
 )
-from .dtypes import DType, float32, is_float
+from .dtypes import DType, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
@@ -114,24 +114,24 @@ class Tensor:
         self.grad = grad if self.grad is None else self.grad + grad
 
     def backward(self, output_grad: Optional[Array] = None):
-        if not self.requires_grad:
-            raise ValueError("Tensor does not require gradients.")
-        if self.grad is None:
-            self.grad = self.device.m.ones(self.shape, dtype=float32)
-        if output_grad is not None:
+        assert self.requires_grad
+        assert self.grad is None, "Cannot run backward multiple times."
+        if output_grad is None:
+            self.grad = self.device.m.ones(self.shape, dtype=self.dtype)
+        else:
             assert isinstance(output_grad, Array)
-            self.grad *= output_grad
-        tensors = _build_backward_queue(self, [], set())
+            self.grad = output_grad
 
-        for t in reversed(tensors):
-            assert t.ctx is not None
-            assert t.parents is not None
-            grads = t.ctx.backward(t.grad)
-            for t, grad in zip(t.parents, grads):
-                if not t.requires_grad:
+        node_queue = _build_backward_queue(self, [], set())
+        for node in reversed(node_queue):
+            assert node.ctx is not None
+            assert node.parents is not None
+            grads = node.ctx.backward(node.grad)
+            for node, grad in zip(node.parents, grads):
+                if not node.requires_grad:
                     continue
-                grad = _undo_broadcast(grad, t.shape)
-                t.apply_grad(grad)
+                grad = _undo_broadcast(grad, node.shape)
+                node.apply_grad(grad)
 
     # ----------------------------------------------------------------------------------
     # UNARY OPS
