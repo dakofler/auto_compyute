@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
-from typing import Any, OrderedDict
+from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
 from ..devices import Device
@@ -11,7 +11,7 @@ from ..dtypes import DType
 from ..tensors import randu
 from . import functional as F
 
-__all__ = ["Parameter", "Module", "Relu", "Linear", "Conv2D"]
+__all__ = ["Parameter", "Module", "Relu", "Linear", "Conv2D", "MHSA"]
 
 
 class Parameter(Tensor):
@@ -154,11 +154,33 @@ class Conv2D(Module):
     ) -> None:
         super().__init__()
         self.padding = padding
-        self.strid = stride
+        self.stride = stride
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(randu((out_dim, in_dim, kernel_size, kernel_size), -k, k))
         self.b = Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
-        return F.conv2d(x, self.w, self.b, self.padding, self.strid, self.dilation)
+        return F.conv2d(x, self.w, self.b, self.padding, self.stride, self.dilation)
+
+
+class MHSA(Module):
+    def __init__(
+        self, in_dim: int, n_heads: int, mask: Optional[Tensor] = None
+    ) -> None:
+        super().__init__()
+        self.n_heads = n_heads
+        self.mask = mask
+        self.qkv = Linear(in_dim, 3 * in_dim)
+        self.out = Linear(in_dim, in_dim)
+
+    def forward(self, x: Tensor) -> Tensor:
+        B, S, D = x.shape
+        qkv = self.qkv(x)
+        q, k, v = qkv.split(D)
+        q = q.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
+        k = k.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
+        v = v.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
+        attn = F.sdpa(q, k, v, self.mask)
+        attn = attn.transpose(1, 2).view((B, S, D))
+        return self.out(attn)

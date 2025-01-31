@@ -7,9 +7,17 @@ import cupy
 import numpy
 
 __all__ = ["cpu", "cuda"]
+MAX_LINE_WIDTH = 200
+PRECISION = 4
+FLOATMODE = "maxprec_equal"
 
-numpy.set_printoptions(precision=4, linewidth=80, floatmode="maxprec_equal")
-cupy.set_printoptions(precision=4, linewidth=80, floatmode="maxprec_equal")
+
+numpy.set_printoptions(
+    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+)
+cupy.set_printoptions(
+    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+)
 
 Array: TypeAlias = cupy.ndarray | numpy.ndarray
 Scalar: TypeAlias = int | float
@@ -48,3 +56,15 @@ def move_to_device(data: Array, device: Device) -> Array:
     if device == cpu:
         return cupy.asnumpy(data)
     return cupy.asarray(data)
+
+
+def array_to_string(data: Array, prefix: str) -> str:
+    device = get_array_device(data)
+    return device.m.array2string(
+        data,
+        max_line_width=MAX_LINE_WIDTH,
+        precision=PRECISION,
+        separator=", ",
+        prefix=prefix,
+        floatmode=FLOATMODE,
+    )

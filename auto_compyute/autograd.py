@@ -7,12 +7,21 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .devices import Array, Device, Dim, Scalar, Shape, get_array_device, move_to_device
+from .devices import (
+    Array,
+    Device,
+    Dim,
+    Scalar,
+    Shape,
+    array_to_string,
+    get_array_device,
+    move_to_device,
+)
 from .dtypes import DType, float32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
-from .funcs.shape_funcs import Select, Transpose, View
+from .funcs.shape_funcs import Select, Split, Transpose, View
 from .funcs.unary_funcs import Exp, Pow, Tanh
 
 __all__ = ["Tensor", "no_grad"]
@@ -90,28 +99,15 @@ class Tensor:
         return self.mul(-1)
 
     def __getitem__(self, key: Any) -> Tensor:
-        if isinstance(key, tuple):
-            key = tuple(k.data if isinstance(k, Tensor) else k for k in key)
         return self.select(key)
 
     def __repr__(self) -> str:
         prefix = "array("
         suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
-        return (
-            prefix
-            + self.device.m.array2string(
-                self.data,
-                max_line_width=80,
-                precision=4,
-                separator=", ",
-                prefix=prefix,
-                floatmode="maxprec_equal",
-            )
-            + suffix
-        )
+        return prefix + array_to_string(self.data, prefix) + suffix
 
     # ----------------------------------------------------------------------------------
-    # AUTOGRAD
+    # AUTOGRAD METHODS
     # ----------------------------------------------------------------------------------
 
     def apply_grad(self, grad: Array) -> None:
@@ -125,7 +121,7 @@ class Tensor:
         if output_grad is not None:
             assert isinstance(output_grad, Array)
             self.grad *= output_grad
-        tensors = deepwalk(self, [], set())
+        tensors = _build_backward_queue(self, [], set())
 
         for t in reversed(tensors):
             assert t.ctx is not None
@@ -134,7 +130,7 @@ class Tensor:
             for t, grad in zip(t.parents, grads):
                 if not t.requires_grad:
                     continue
-                grad = undo_broadcast(grad, t.shape)
+                grad = _undo_broadcast(grad, t.shape)
                 t.apply_grad(grad)
 
     # ----------------------------------------------------------------------------------
@@ -210,16 +206,19 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def select(self, key: Any) -> Tensor:
-        if isinstance(key, Tensor):
-            key = key.data
+        key = _parse_key(key)
         return apply_func(Select, self, key=key)
+
+    def _split(self, key: Any) -> Tensor:
+        key = _parse_key(key)
+        return apply_func(Split, self, key=key)
 
     def split(self, split_size: int, dim: int = -1) -> list[Tensor]:
         dim = dim % self.ndim
-        before_slice = (slice(None),) * dim
-        after_slice = (slice(None),) * (self.ndim - dim - 1)
+        pre_dim_slice = (slice(None),) * dim
+        post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
         return [
-            self[before_slice + (slice(i, i + split_size),) + after_slice]
+            self._split(pre_dim_slice + (slice(i, i + split_size),) + post_dim_slice)
             for i in range(0, self.shape[dim], split_size)
         ]
 
@@ -269,43 +268,44 @@ class Tensor:
         return Tensor(self.device.m.asarray(x, dtype=self.dtype))
 
 
-def get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
+def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
     return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
 
 
-def undo_broadcast(grad: Array, target_shape: Shape) -> Array:
+def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
     if grad.shape == target_shape:
         return grad
     target_ndim = len(target_shape)
 
     if grad.ndim == target_ndim:
-        axis = get_shape_diff(grad.shape, target_shape)
+        axis = _get_shape_diff(grad.shape, target_shape)
         grad = grad.sum(axis, keepdims=True)
     else:
         data_shape = (1,) * (grad.ndim - target_ndim) + target_shape
-        axis = get_shape_diff(grad.shape, data_shape)
+        axis = _get_shape_diff(grad.shape, data_shape)
         grad = grad.sum(axis=axis)
 
     return grad.reshape(target_shape)
 
 
-def deepwalk(t: Tensor, nodes: list[Tensor], visited_node_ids: set) -> list[Tensor]:
-    if id(t) not in visited_node_ids:
-        visited_node_ids.add(id(t))
-        if not t.parents:
-            return
-        for p in t.parents:
+def _build_backward_queue(
+    node: Tensor, queue: list[Tensor], visited_node_ids: set
+) -> list[Tensor]:
+    if id(node) not in visited_node_ids:
+        visited_node_ids.add(id(node))
+        if not node.parents:
+            return []
+        for p in node.parents:
             if p.requires_grad is False:
                 continue
-            deepwalk(p, nodes, visited_node_ids)
-        nodes.append(t)
-    return nodes
+            _ = _build_backward_queue(p, queue, visited_node_ids)
+        queue.append(node)
+    return queue
 
 
-def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
-    f = func(tensors[0].device)
-    requires_grad = any(t.requires_grad for t in tensors if isinstance(t, Tensor))
-    if autograd_active and requires_grad:
+def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
+    f = funcion(tensors[0].device)
+    if autograd_active and any(t.requires_grad for t in tensors):
         f.ctx = Context()
         data = f.forward(*[t.data for t in tensors], **kwargs)
         return Tensor(data, f, tensors, True)
@@ -313,15 +313,15 @@ def apply_func(func: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
     return Tensor(data)
 
 
-def draw_compute_graph(node: Tensor, html: bool = False) -> None:
-    assert node.requires_grad
+def draw_compute_graph(root_node: Tensor, html: bool = False) -> None:
+    assert root_node.requires_grad
     colors = {
         "const": ("#CAEDFB", "#4D93D9"),
         "leaf": ("#C6EFCE", "#4EA72E"),
         "func": ("#F2F2F2", "#808080"),
     }
 
-    def _node_label(n: Tensor) -> str:
+    def _get_mermaid_node_label(n: Tensor) -> str:
 
         # constant
         if not n.requires_grad:
@@ -346,23 +346,23 @@ def draw_compute_graph(node: Tensor, html: bool = False) -> None:
         label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
         return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
 
-    mermaid_script = f"graph LR\n{_node_label(node)}\n"
+    mermaid_script = f"graph LR\n{_get_mermaid_node_label(root_node)}\n"
 
-    def _deepwalk(node: Tensor, script: str) -> str:
+    def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
         if not node.parents:
             return ""
-        for p in node.parents:
-            p_label = _node_label(p)
-            if p_label not in script:
-                script += f"{p_label}\n"
-            edge = f"{str(id(p))}-->{str(id(node))}\n"
-            if edge not in script:
-                script += edge
-            if p.parents:
-                script = _deepwalk(p, script)
-        return script
+        for parent_node in node.parents:
+            parent_label = _get_mermaid_node_label(parent_node)
+            if parent_label not in mermaid_script:
+                mermaid_script += f"{parent_label}\n"
+            edge = f"{str(id(parent_node))}-->{str(id(node))}\n"
+            if edge not in mermaid_script:
+                mermaid_script += edge
+            if parent_node.parents:
+                mermaid_script = _build_mermaid_script(parent_node, mermaid_script)
+        return mermaid_script
 
-    mermaid_script = _deepwalk(node, mermaid_script)
+    mermaid_script = _build_mermaid_script(root_node, mermaid_script)
 
     graphbytes = mermaid_script.encode("utf8")
     base64_bytes = base64.urlsafe_b64encode(graphbytes)
@@ -390,18 +390,26 @@ def draw_compute_graph(node: Tensor, html: bool = False) -> None:
         display(Image(url=svg_url))
 
 
+def _parse_key(key: Any) -> Any:
+    if isinstance(key, tuple):
+        return tuple(k.data if isinstance(k, Tensor) else k for k in key)
+    if isinstance(key, Tensor):
+        return key.data
+    return key
+
+
 autograd_active = True
 
 
-def set_autograd(active: bool) -> None:
+def set_autograd_mode(active: bool) -> None:
     global autograd_active
     autograd_active = active
 
 
 @contextmanager
 def no_grad() -> Generator:
-    set_autograd(False)
+    set_autograd_mode(False)
     try:
         yield
     finally:
-        set_autograd(True)
+        set_autograd_mode(True)

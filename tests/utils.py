@@ -7,8 +7,7 @@ from torch import Tensor
 import auto_compyute as ac
 from auto_compyute.devices import Array, Shape
 
-torch.manual_seed(0)
-np.random.seed(0)
+np.random.seed(42)
 
 
 def close(ac_in: Array, torch_in: Tensor, tol: float = 1e-5):

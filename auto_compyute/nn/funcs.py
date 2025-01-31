@@ -14,11 +14,11 @@ class Softmax(Function):
     def forward(self, x: Array, dim: int) -> Array:
         x = self.m.exp(x - x.max(dim, keepdims=True))
         y = x / x.sum(dim, keepdims=True)
-        self.ctx.save_for_backward(dim, y)
+        self.ctx.save(dim, y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dim, y = self.ctx.get_saved_vals()
+        dim, y = self.ctx.retrieve()
         dx = y * (output_grad - (output_grad * y).sum(dim, keepdims=True))
         return (dx,)
 
@@ -31,11 +31,11 @@ class Softmax(Function):
 class Linear(Function):
     def forward(self, x: Array, w: Array, b: Array) -> Array:
         y = x @ w.swapaxes(-2, -1) + b
-        self.ctx.save_for_backward(x, w)
+        self.ctx.save(x, w)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, w = self.ctx.get_saved_vals()
+        x, w = self.ctx.retrieve()
         dx = output_grad @ w
         dw = (output_grad.swapaxes(-2, -1) @ x).sum(tuple(range(output_grad.ndim - 2)))
         db = output_grad.sum(tuple(range(output_grad.ndim - 1)))
@@ -55,11 +55,11 @@ def _pad2d_forward(m: ModuleType, x: Array, padding: int) -> Array:
 
 class Pad2D(Function):
     def forward(self, x: Array, padding: int) -> Array:
-        self.ctx.save_for_backward(padding)
+        self.ctx.save(padding)
         return _pad2d_forward(self.m, x, padding)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        padding = self.ctx.get_saved_vals()
+        padding = self.ctx.retrieve()
         dx = output_grad[..., padding:-padding, padding:-padding]
         dx = self.m.ascontiguousarray(dx)
         return (dx,)
@@ -75,11 +75,11 @@ def _dilate2d_forward(m: ModuleType, x: Array, dilation: int) -> Array:
 
 class Dilate2D(Function):
     def forward(self, x: Array, dilation: int) -> Array:
-        self.ctx.save_for_backward(dilation)
+        self.ctx.save(dilation)
         return _dilate2d_forward(self.m, x, dilation)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dilation = self.ctx.get_saved_vals()
+        dilation = self.ctx.retrieve()
         dx = output_grad[..., ::dilation, ::dilation]
         return (dx,)
 
@@ -99,14 +99,16 @@ def _pad_to_shape(m: ModuleType, x: Array, shape: Shape) -> Array:
 
 class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
-        self.ctx.save_for_backward(x, w, stride)
+        self.ctx.save(x, w, stride)
         x_pooled = _pool2d(self.m, x, w.shape[-1], stride)
-        y = self.m.einsum("biyxjk,oijk->boyx", x_pooled, w)
-        y = self.m.ascontiguousarray(y)
+        y = self.m.einsum(
+            "biyxjk,oijk->boyx", x_pooled, w, optimize=True, order="C", dtype=x.dtype
+        )
+        # y = self.m.ascontiguousarray(y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, w, stride = self.ctx.get_saved_vals()
+        x, w, stride = self.ctx.retrieve()
         *_, input_size = x.shape
         *_, kernel_size = w.shape
 
@@ -125,14 +127,28 @@ class Conv2D(Function):
         # input grads
         output_grad_pooled = _pool2d(self.m, output_grad, kernel_size)
         w = self.m.flip(w, (-2, -1))
-        dx = self.m.einsum("boyxjk,oijk->biyx", output_grad_pooled, w)
-        dx = self.m.ascontiguousarray(dx)
+        dx = self.m.einsum(
+            "boyxjk,oijk->biyx",
+            output_grad_pooled,
+            w,
+            optimize=True,
+            order="C",
+            dtype=x.dtype,
+        )
+        # dx = self.m.ascontiguousarray(dx)
 
         # filter grads
         output_grad_pooled = _pool2d(self.m, output_grad, input_size)
-        dw = self.m.einsum("bojkyx,biyx->oijk", output_grad_pooled, x)
+        dw = self.m.einsum(
+            "bojkyx,biyx->oijk",
+            output_grad_pooled,
+            x,
+            optimize=True,
+            order="C",
+            dtype=x.dtype,
+        )
         dw = self.m.flip(dw, (-2, -1))
-        dw = self.m.ascontiguousarray(dw)
+        # dw = self.m.ascontiguousarray(dw)
 
         return dx, dw
 
@@ -156,9 +172,9 @@ class MSELoss(Function):
     def forward(self, x: Array, y: Array) -> Array:
         diff = x - y
         loss = (diff * diff).mean()
-        self.ctx.save_for_backward(x.size, diff)
+        self.ctx.save(x.size, diff)
         return loss
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x_size, diff = self.ctx.get_saved_vals()
+        x_size, diff = self.ctx.retrieve()
         return output_grad * 2.0 * diff / float(x_size)

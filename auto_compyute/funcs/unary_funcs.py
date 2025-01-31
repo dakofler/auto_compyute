@@ -7,22 +7,22 @@ from .function import Function
 class Exp(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.exp(x)
-        self.ctx.save_for_backward(y)
+        self.ctx.save(y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        y = self.ctx.get_saved_vals()
+        y = self.ctx.retrieve()
         dx = output_grad * y
         return (dx,)
 
 
 class Pow(Function):
     def forward(self, x: Array, exp: Scalar) -> Array:
-        self.ctx.save_for_backward(x, exp)
+        self.ctx.save(x, exp)
         return x**exp
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, exp = self.ctx.get_saved_vals()
+        x, exp = self.ctx.retrieve()
         dx = output_grad * exp * x ** (exp - 1)
         return (dx,)
 
@@ -30,10 +30,10 @@ class Pow(Function):
 class Tanh(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.tanh(x)
-        self.ctx.save_for_backward(y)
+        self.ctx.save(y)
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        y = self.ctx.get_saved_vals()
+        y = self.ctx.retrieve()
         dx = output_grad * (1 - y**2)
         return (dx,)

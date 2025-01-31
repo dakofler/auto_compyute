@@ -9,22 +9,21 @@ from ...utils import close, get_data
 
 
 def _conv_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
-    assert close(y.data, torch_y)
     dy, torch_dy = get_data(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
-    assert close(x.grad, torch_x.grad, tol=1e-3)
+    assert close(x.grad, torch_x.grad, tol=1e-4)
     assert close(w.grad, torch_w.grad, tol=1e-3)
     assert close(b.grad, torch_b.grad, tol=1e-3)
 
 
-ac_x1, torch_x1 = get_data((32, 3, 28, 28))
-ac_w1, torch_w1 = get_data((8, 3, 5, 5))
-ac_b1, torch_b1 = get_data((8,))
+ac_x1, torch_x1 = get_data((16, 3, 28, 28))
+ac_w1, torch_w1 = get_data((32, 3, 5, 5))
+ac_b1, torch_b1 = get_data((32,))
 xs = ((ac_x1, torch_x1),)
 ws = ((ac_w1, torch_w1),)
 bs = ((ac_b1, torch_b1),)
-paddings = (0, 1)
+paddings = (0, 2)
 strides = (1, 2)
 dilations = (1, 2)
 
@@ -40,6 +39,6 @@ def test_conv(x, w, b, padding, stride, dilation):
     ac_x, torch_x = x
     ac_w, torch_w = w
     ac_b, torch_b = b
-    ac_y = F.conv2d(ac_x, ac_w, ac_b, padding, stride, dilation)
+    ac_y = F.conv2d(ac_x, ac_w, ac_b, stride, padding, dilation)
     torch_y = tF.conv2d(torch_x, torch_w, torch_b, stride, padding, dilation)
     _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)

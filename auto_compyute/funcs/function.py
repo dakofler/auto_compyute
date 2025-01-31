@@ -8,20 +8,20 @@ from ..devices import Array, Device
 
 class Context:
     def __init__(self):
-        self.cache: Optional[tuple[Any, ...]] = None
+        self.vals: Optional[tuple[Any, ...]] = None
 
-    def save_for_backward(self, *args: Any) -> None:
-        self.cache = args
+    def save(self, *args: Any) -> None:
+        self.vals = args
 
-    def get_saved_vals(self) -> Any:
-        assert self.cache is not None
-        values = self.cache[0] if len(self.cache) == 1 else self.cache
-        self.cache = None
+    def retrieve(self) -> Any:
+        assert self.vals is not None
+        values = self.vals[0] if len(self.vals) == 1 else self.vals
+        self.vals = None
         return values
 
 
 class PseudoContext(Context):
-    def save_for_backward(self, *args: Any) -> None:
+    def save(self, *args: Any) -> None:
         pass
 
 
