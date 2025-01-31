@@ -159,6 +159,25 @@ class Maxpool2D(Function):
 
 
 # -------------------------------------------------------------------------------------
+# REGULARIZATION FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+class Dropout(Function):
+    def forward(self, x: Array, p: float) -> Array:
+        p = 1.0 - p
+        dropout_mask = self.m.random.random(x.shape) < p
+        y = x * dropout_mask / p
+        self.ctx.save(p, dropout_mask)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        p, dropout_mask = self.ctx.retrieve()
+        dx = output_grad * dropout_mask / p
+        return (dx,)
+
+
+# -------------------------------------------------------------------------------------
 # LOSS FUNCTIONS
 # -------------------------------------------------------------------------------------
 
@@ -172,4 +191,5 @@ class MSELoss(Function):
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
         x_size, diff = self.ctx.retrieve()
-        return output_grad * 2.0 * diff / float(x_size)
+        dx = output_grad * 2.0 * diff / float(x_size)
+        return (dx,)

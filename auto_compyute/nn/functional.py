@@ -4,7 +4,7 @@ import math
 from typing import Optional
 
 from ..autograd import Tensor, apply_func
-from .funcs import Conv2D, Dilate2D, Linear, Maxpool2D, MSELoss, Pad2D, Softmax
+from .funcs import Conv2D, Dilate2D, Dropout, Linear, Maxpool2D, MSELoss, Pad2D, Softmax
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTIONS
@@ -72,6 +72,17 @@ def sdpa(q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None) -> Tens
         attn = attn + mask[:S, :S]
     attn = softmax(attn)
     return attn @ v
+
+
+# -------------------------------------------------------------------------------------
+# REGULARIZATION FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
+    if not training or p == 0:
+        return x
+    return apply_func(Dropout, x, p=p)
 
 
 # -------------------------------------------------------------------------------------
