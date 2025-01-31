@@ -6,7 +6,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
-from ..devices import Device
+from ..backends import Device
 from ..dtypes import DType
 from ..tensors import randu
 from . import functional as F
@@ -20,6 +20,8 @@ __all__ = [
     "Conv2D",
     "MaxPooling2D",
     "MHSA",
+    "Flatten",
+    "Dropout",
 ]
 
 
@@ -203,3 +205,17 @@ class MHSA(Module):
         attn = F.sdpa(q, k, v, self.mask)
         attn = attn.transpose(1, 2).view((B, S, D))
         return self.out(attn)
+
+
+class Dropout(Module):
+    def __init__(self, dropout: float = 0.5) -> None:
+        super().__init__()
+        self.dropout = dropout
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.dropout(x, self.dropout, self.training)
+
+
+class Flatten(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return x.view((x.shape[0], -1))

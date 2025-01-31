@@ -3,7 +3,7 @@
 from typing import Any
 
 from .autograd import Tensor
-from .devices import Device, Shape, select_device
+from .backends import Device, Shape, select_device
 from .dtypes import DType, float32, int64, select_dtype
 
 __all__ = ["tensor", "arange", "ones", "zeros", "randi", "randn", "randu", "randperm"]

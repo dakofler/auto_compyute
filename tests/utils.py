@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 
 import auto_compyute as ac
-from auto_compyute.devices import Array, Shape
+from auto_compyute.backends import Array, Shape
 
 np.random.seed(0)
 

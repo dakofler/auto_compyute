@@ -7,7 +7,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .devices import (
+from .backends import (
     Array,
     Device,
     Dim,

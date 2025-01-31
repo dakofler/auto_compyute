@@ -7,22 +7,33 @@ import cupy
 import numpy
 
 __all__ = ["cpu", "cuda"]
-MAX_LINE_WIDTH = 200
-PRECISION = 4
-FLOATMODE = "maxprec_equal"
-
-
-numpy.set_printoptions(
-    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-)
-cupy.set_printoptions(
-    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-)
 
 Array: TypeAlias = cupy.ndarray | numpy.ndarray
 Scalar: TypeAlias = int | float
 Shape = tuple[int, ...]
 Dim = int | tuple[int, ...]
+
+MAX_LINE_WIDTH = 200
+PRECISION = 4
+FLOATMODE = "maxprec_equal"
+
+numpy.set_printoptions(
+    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+)
+
+cupy.set_printoptions(
+    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+)
+
+
+def gpu_available():
+    return cupy.cuda.is_available()
+
+
+def set_random_seed(seed: int):
+    numpy.random.seed(seed)
+    if gpu_available():
+        cupy.random.seed(seed)
 
 
 class Device:

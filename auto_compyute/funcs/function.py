@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from ..devices import Array, Device
+from ..backends import Array, Device
 
 
 class Context:

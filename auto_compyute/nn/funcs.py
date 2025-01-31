@@ -2,7 +2,7 @@
 
 from types import ModuleType
 
-from ..devices import Array, Shape
+from ..backends import Array, Shape
 from ..funcs.function import Function
 
 # -------------------------------------------------------------------------------------

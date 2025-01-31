@@ -1,6 +1,6 @@
 """Multiary autograd functions"""
 
-from ..devices import Array, Scalar
+from ..backends import Array, Scalar
 from .function import Function
 
 
