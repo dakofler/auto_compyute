@@ -62,3 +62,27 @@ class Tanh(Function):
         y = self.ctx.retrieve()
         dx = output_grad * (1 - y**2)
         return (dx,)
+
+
+class Tril(Function):
+    def forward(self, x: Array, diag: int) -> Array:
+        y = self.m.tril(x, diag)
+        self.ctx.save(y == x)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        mask = self.ctx.retrieve()
+        dx = output_grad * mask
+        return (dx,)
+
+
+class Triu(Function):
+    def forward(self, x: Array, diag: int) -> Array:
+        y = self.m.triu(x, diag)
+        self.ctx.save(y == x)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        mask = self.ctx.retrieve()
+        dx = output_grad * mask
+        return (dx,)

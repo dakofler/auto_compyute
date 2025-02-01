@@ -58,3 +58,28 @@ def test_tanh(x):
     ac_y = ac_x.tanh()
     torch_y = torch.tanh(torch_x)
     _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+tri_ac_x1, tri_torch_x1 = get_random_floats((10, 10))
+tri_xs = ((tri_ac_x1, tri_torch_x1),)
+tri_diags = (0, 1, -1)
+
+
+@pytest.mark.parametrize("x", tri_xs)
+@pytest.mark.parametrize("diag", tri_diags)
+def test_tril(x, diag):
+    """Tril function test"""
+    ac_x, torch_x = x
+    ac_y = ac_x.tril(diag)
+    torch_y = torch.tril(torch_x, diag)
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+@pytest.mark.parametrize("x", tri_xs)
+@pytest.mark.parametrize("diag", tri_diags)
+def test_triu(x, diag):
+    """Triu function test"""
+    ac_x, torch_x = x
+    ac_y = ac_x.triu(diag)
+    torch_y = torch.triu(torch_x, diag)
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)

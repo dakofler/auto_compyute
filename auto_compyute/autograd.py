@@ -16,12 +16,12 @@ from .backends import (
     get_array_device,
     move_to_device,
 )
-from .dtypes import DType, is_float
+from .dtypes import DType, float32, int32, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Split, Transpose, View
-from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh
+from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
 
 __all__ = ["Tensor", "no_grad"]
 
@@ -153,6 +153,12 @@ class Tensor:
     def tanh(self) -> Tensor:
         return apply_func(Tanh, self)
 
+    def tril(self, diag: int = 0) -> Tensor:
+        return apply_func(Tril, self, diag=diag)
+
+    def triu(self, diag: int = 0) -> Tensor:
+        return apply_func(Triu, self, diag=diag)
+
     # ----------------------------------------------------------------------------------
     # BINARY OPS
     # ----------------------------------------------------------------------------------
@@ -255,6 +261,12 @@ class Tensor:
                 new_tensor.grad = self.grad.astype(dtype)
             return new_tensor
         return Tensor(self.data.astype(dtype))
+
+    def int(self) -> Tensor:
+        return self.as_type(int32)
+
+    def float(self) -> Tensor:
+        return self.as_type(float32)
 
     def to(self, device: Device) -> Tensor:
         data = self.data if self.device == device else move_to_device(self.data, device)

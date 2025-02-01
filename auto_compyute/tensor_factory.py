@@ -3,10 +3,20 @@
 from typing import Any
 
 from .autograd import Tensor
-from .backends import Device, Shape, select_device
+from .backends import Device, Scalar, Shape, select_device
 from .dtypes import DType, float32, int64, select_dtype
 
-__all__ = ["tensor", "arange", "ones", "zeros", "randi", "randn", "randu", "randperm"]
+__all__ = [
+    "tensor",
+    "arange",
+    "ones",
+    "zeros",
+    "full",
+    "randi",
+    "randn",
+    "randu",
+    "randperm",
+]
 
 
 def _unpack_factory_kwargs(kwargs) -> tuple[Device, DType, bool]:
@@ -39,6 +49,12 @@ def ones(shape: Shape, **factory_kwargs) -> Tensor:
 def zeros(shape: Shape, **factory_kwargs) -> Tensor:
     device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
     data = device.m.zeros(shape, dtype)
+    return Tensor(data, requires_grad=requires_grad)
+
+
+def full(shape: Shape, value: Scalar, **factory_kwargs) -> Tensor:
+    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
+    data = device.m.full(shape, value, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 

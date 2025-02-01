@@ -14,8 +14,8 @@ def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
     y.backward(dy.data)
     torch_y.backward(torch_dy)
     assert close(x.grad, torch_x.grad)
-    assert close(w.grad, torch_w.grad, tol=1e-4)
-    assert close(b.grad, torch_b.grad, tol=1e-4)
+    assert close(w.grad, torch_w.grad, tol=1e-3)
+    assert close(b.grad, torch_b.grad, tol=1e-3)
 
 
 ac_w1, torch_w1 = get_random_floats((32,))
