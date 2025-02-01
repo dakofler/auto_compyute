@@ -99,12 +99,23 @@ def batchnorm(
     m: float = 0.1,
     eps: float = 1e-5,
     training: bool = False,
-):
-    # batch_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
-    # if training:
-    #     mean = x.mean(batch_dims, keepdims=True)
-    #     std = (x.var(batch_dims, keepdims=True) + eps).sqrt()
-    pass
+) -> tuple[Tensor, Tensor, Tensor]:
+    batch_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
+    ext_shape = (1,) * (x.ndim - 2)
+
+    if training:
+        mean = x.mean(batch_dims, keepdims=True)
+        std = (x.var(batch_dims, ddof=0, keepdims=True) + eps).sqrt()
+        rmean = rmean * (1 - m) + mean.squeeze() * m
+        rvar = rvar * (1 - m) + x.var(batch_dims) * m
+    else:
+        mean = rmean.view((*rmean.shape, *ext_shape))
+        std = (rvar.view((*rvar.shape, *ext_shape)) + eps).sqrt()
+
+    w = w.view((*w.shape, *ext_shape))
+    b = b.view((*b.shape, *ext_shape))
+    y = (x - mean) / std * w + b
+    return y, rmean, rvar
 
 
 # -------------------------------------------------------------------------------------

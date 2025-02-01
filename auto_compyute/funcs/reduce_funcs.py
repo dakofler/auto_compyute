@@ -42,9 +42,8 @@ class Var(Function):
         return y
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, dim, size = self.ctx.retrieve()
-        mean = x.mean(dim)
-        dx = output_grad * (2 / size) * (x - mean)
+        x, dim, n = self.ctx.retrieve()
+        dx = output_grad * 2 * (x - x.mean(dim, keepdims=True)) / n
         return (dx,)
 
 
@@ -58,9 +57,8 @@ class Std(Function):
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
         x, dim, ddof, y = self.ctx.retrieve()
-        mean = x.mean(dim)
-        size = x.size / y.size - ddof
-        dx = output_grad * (x - mean) / (size * y)
+        n = x.size / y.size - ddof
+        dx = output_grad * (x - x.mean(dim, keepdims=True)) / (n * y)
         return (dx,)
 
 

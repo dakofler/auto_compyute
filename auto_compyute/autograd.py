@@ -230,10 +230,16 @@ class Tensor:
             for i in range(0, self.shape[dim], split_size)
         ]
 
+    def squeeze(self) -> Tensor:
+        non_one_dims = tuple(d for d in self.shape if d > 1)
+        return apply_func(View, self, shape=non_one_dims)
+
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
         return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
 
     def view(self, shape) -> Tensor:
+        if shape == self.shape:
+            return self
         return apply_func(View, self, shape=shape)
 
     # ----------------------------------------------------------------------------------
