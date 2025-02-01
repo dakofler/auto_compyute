@@ -216,7 +216,7 @@ class MultiHeadSelfAttention(Module):
     ) -> None:
         super().__init__()
         self.n_heads = n_heads
-        self.mask = mask
+        self.mask = Buffer(mask) if mask is not None else None
         self.dropout = dropout
         self.qkv = Linear(in_dim, 3 * in_dim)
         self.out = Linear(in_dim, in_dim)

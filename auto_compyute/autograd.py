@@ -16,7 +16,7 @@ from .backends import (
     get_array_device,
     move_to_device,
 )
-from .dtypes import DType, float32, int32, is_float
+from .dtypes import DType, float32, int32, int64, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
@@ -265,6 +265,9 @@ class Tensor:
     def int(self) -> Tensor:
         return self.as_type(int32)
 
+    def long(self) -> Tensor:
+        return self.as_type(int64)
+
     def float(self) -> Tensor:
         return self.as_type(float32)
 
@@ -333,6 +336,7 @@ def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tens
     if autograd_active and any(t.requires_grad for t in tensors):
         f.ctx = Context()
         data = f.forward(*[t.data for t in tensors], **kwargs)
+        assert data.dtype == f.m.float32, f.name
         return Tensor(data, f, tensors, True)
     data = f.forward(*[t.data for t in tensors], **kwargs)
     return Tensor(data)
