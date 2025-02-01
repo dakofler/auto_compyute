@@ -7,21 +7,23 @@ from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
 from ..backends import Device, Shape
-from ..dtypes import DType
-from ..tensors import ones, randu, zeros
+from ..dtypes import DType, int64
+from ..tensors import ones, randn, randu, zeros
 from . import functional as F
 
 __all__ = [
     "Parameter",
     "Module",
+    "Modulelist",
     "Sequential",
     "Relu",
     "Linear",
     "Conv2D",
     "MaxPooling2D",
-    "MHSA",
+    "MultiHeadSelfAttention",
     "Batchnorm",
     "Layernorm",
+    "Embedding",
     "Dropout",
     "Flatten",
 ]
@@ -72,7 +74,7 @@ class Module(ABC):
             self._buffers[name] = value
         elif isinstance(value, Module):
             self._modules[name] = value
-        elif isinstance(value, ModuleList):
+        elif isinstance(value, Modulelist):
             for i, m in enumerate(value):
                 self._modules[name + "." + str(i)] = m
         return super().__setattr__(name, value)
@@ -123,7 +125,7 @@ class Module(ABC):
             module.to(device)
 
 
-class ModuleList(list):
+class Modulelist(list):
     def __init__(self, modules: Iterable[Module]) -> None:
         super().__init__(modules)
 
@@ -187,24 +189,31 @@ class MaxPooling2D(Module):
         return F.maxpool2d(x, self.window_size)
 
 
-class MHSA(Module):
+class MultiHeadSelfAttention(Module):
     def __init__(
-        self, in_dim: int, n_heads: int, mask: Optional[Tensor] = None
+        self,
+        in_dim: int,
+        n_heads: int,
+        mask: Optional[Tensor] = None,
+        dropout: float = 0,
     ) -> None:
         super().__init__()
         self.n_heads = n_heads
         self.mask = mask
+        self.dropout = dropout
         self.qkv = Linear(in_dim, 3 * in_dim)
         self.out = Linear(in_dim, in_dim)
 
     def forward(self, x: Tensor) -> Tensor:
         B, S, D = x.shape
+        dropout = self.dropout if self._training else 0
+
         qkv = self.qkv(x)
         q, k, v = qkv.split(D)
         q = q.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
         k = k.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
         v = v.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
-        attn = F.sdpa(q, k, v, self.mask)
+        attn = F.scaled_dot_product_attention(q, k, v, self.mask, dropout)
         attn = attn.transpose(1, 2).view((B, S, D))
         return self.out(attn)
 
@@ -237,6 +246,16 @@ class Layernorm(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return F.layernorm(x, self.w, self.b, self.eps)
+
+
+class Embedding(Module):
+    def __init__(self, n_emb: int, emb_dim: int) -> None:
+        super().__init__()
+        self.w = Parameter(randn((n_emb, emb_dim)))
+
+    def forward(self, x: Tensor) -> Tensor:
+        assert x.dtype == int64
+        return self.w[x]
 
 
 class Dropout(Module):

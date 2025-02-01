@@ -10,3 +10,11 @@ AutoCompyute is a lightweight and efficient deep learning library that provides 
 - A focus on clarity, making it ideal for research and education.
 
 Whether you're exploring the fundamentals of autograd or developing deep learning models, this library offers a pure Python solution with a streamlined API.
+
+## ToDos
+
+- RNN, LSTM, GRU
+- RMSNorm
+- Conv1D
+- SGD, Adam, AdamW
+- GELU, Sigmoid

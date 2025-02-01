@@ -76,12 +76,15 @@ def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def sdpa(q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None) -> Tensor:
+def scaled_dot_product_attention(
+    q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None, dropout_p: float = 0
+) -> Tensor:
     *_, S, H = q.shape
     attn = q @ k.T / math.sqrt(H)
     if mask is not None:
-        attn = attn + mask[:S, :S]
+        attn += mask[:S, :S]
     attn = softmax(attn)
+    attn = dropout(attn, dropout_p, dropout_p > 0)
     return attn @ v
 
 

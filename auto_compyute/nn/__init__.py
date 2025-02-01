@@ -1,5 +1,5 @@
-"""neural network module"""
+"""Neural network module"""
 
-from . import functional
+from . import functional, optimizers
 from .modules import *
 from .utils import *
