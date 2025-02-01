@@ -118,22 +118,25 @@ class Tensor:
     def backward(self, output_grad: Optional[Array] = None):
         assert self.requires_grad
         assert self.grad is None, "Cannot run backward multiple times."
+
+        # set node grad
         if output_grad is None:
             self.grad = self.device.m.ones(self.shape, dtype=self.dtype)
         else:
             assert isinstance(output_grad, Array)
             self.grad = output_grad
 
+        # run backward
         node_queue = _build_backward_queue(self, [], set())
         for node in reversed(node_queue):
-            assert node.ctx is not None
-            assert node.parents is not None
+            assert node.ctx is not None, node.shape
+            assert node.parents is not None, node.shape
             grads = node.ctx.backward(node.grad)
-            for node, grad in zip(node.parents, grads):
-                if not node.requires_grad:
+            for parent, grad in zip(node.parents, grads):
+                if not parent.requires_grad:
                     continue
-                grad = _undo_broadcast(grad, node.shape)
-                node.apply_grad(grad)
+                grad = _undo_broadcast(grad, parent.shape)
+                parent.apply_grad(grad)
 
     # ----------------------------------------------------------------------------------
     # UNARY OPS
@@ -255,12 +258,13 @@ class Tensor:
         if self.dtype == dtype:
             return self
         data = self.data.astype(dtype)
-        if is_float(dtype) and self.requires_grad:
+        if self.requires_grad:
+            assert is_float(dtype), "Cannot change autograd node dtype to non float."
             new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
             if self.grad is not None:
                 new_tensor.grad = self.grad.astype(dtype)
             return new_tensor
-        return Tensor(self.data.astype(dtype))
+        return Tensor(data)
 
     def int(self) -> Tensor:
         return self.as_type(int32)
@@ -317,28 +321,28 @@ def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
 
 
 def _build_backward_queue(
-    node: Tensor, queue: list[Tensor], visited_node_ids: set
+    node: Tensor, queue: list[Tensor], visited: set
 ) -> list[Tensor]:
-    if id(node) not in visited_node_ids:
-        visited_node_ids.add(id(node))
+    if node not in visited:
+        visited.add(node)
         if not node.parents:
             return []
         for p in node.parents:
             if p.requires_grad is False:
                 continue
-            _ = _build_backward_queue(p, queue, visited_node_ids)
+            _ = _build_backward_queue(p, queue, visited)
         queue.append(node)
     return queue
 
 
 def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
-    f = funcion(tensors[0].device)
+    ctx = funcion(tensors[0].device)
+    arrays = tuple(t.data for t in tensors)
     if autograd_active and any(t.requires_grad for t in tensors):
-        f.ctx = Context()
-        data = f.forward(*[t.data for t in tensors], **kwargs)
-        assert data.dtype == f.m.float32, f.name
-        return Tensor(data, f, tensors, True)
-    data = f.forward(*[t.data for t in tensors], **kwargs)
+        ctx.ctx = Context()
+        data = ctx.forward(*arrays, **kwargs)
+        return Tensor(data, ctx=ctx, parents=tensors, requires_grad=True)
+    data = ctx.forward(*arrays, **kwargs)
     return Tensor(data)
 
 

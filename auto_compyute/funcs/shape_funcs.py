@@ -24,8 +24,8 @@ class Select(Function):
         return x[key]
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        shape, key = self.ctx.retrieve()
-        dx = self.m.zeros(shape, dtype=output_grad.dtype)
+        x_shape, key = self.ctx.retrieve()
+        dx = self.m.zeros(x_shape, dtype=output_grad.dtype)
         self.m.add.at(dx, key, output_grad)
         return (dx,)
 
@@ -60,6 +60,6 @@ class View(Function):
         return x.reshape(shape)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        shape = self.ctx.retrieve()
-        dx = output_grad.reshape(shape)
+        x_shape = self.ctx.retrieve()
+        dx = output_grad.reshape(x_shape)
         return (dx,)

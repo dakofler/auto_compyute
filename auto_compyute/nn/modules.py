@@ -13,8 +13,12 @@ from ..dtypes import DType, int64
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
 
+# import cupy
+
+
 __all__ = [
     "Parameter",
+    "Buffer",
     "Module",
     "Modulelist",
     "Sequential",
@@ -29,6 +33,8 @@ __all__ = [
     "Dropout",
     "Flatten",
 ]
+
+# mem = 0
 
 
 class Parameter(Tensor):
@@ -67,6 +73,14 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     def __call__(self, x: Tensor) -> Tensor:
+        # y = self.forward(x)
+        # free, total = cupy.cuda.Device(0).mem_info
+        # usage = total - free
+        # global mem
+        # delta = usage - mem
+        # print(f"{self.__class__.__name__:30s} | {delta:_}")
+        # mem = usage
+        # return y
         return self.forward(x)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -213,13 +227,15 @@ class MultiHeadSelfAttention(Module):
         n_heads: int,
         mask: Optional[Tensor] = None,
         dropout: float = 0,
+        attn_bias: bool = False,
+        bias: bool = True,
     ) -> None:
         super().__init__()
         self.n_heads = n_heads
         self.mask = Buffer(mask) if mask is not None else None
         self.dropout = dropout
-        self.qkv = Linear(in_dim, 3 * in_dim)
-        self.out = Linear(in_dim, in_dim)
+        self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
+        self.out = Linear(in_dim, in_dim, bias=bias)
 
     def forward(self, x: Tensor) -> Tensor:
         B, S, D = x.shape

@@ -11,7 +11,6 @@ from .funcs import (
     CrossEntropyLoss,
     Dilate2D,
     Dropout,
-    Linear,
     Maxpool2D,
     MSELoss,
     Pad2D,
@@ -51,8 +50,10 @@ def tanh(x: Tensor) -> Tensor:
 
 
 def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
-    b = b if b is not None else x.self_like(0)
-    return apply_func(Linear, x, w, b)
+    y = x @ w.T
+    if b is not None:
+        y += b
+    return y
 
 
 # -------------------------------------------------------------------------------------

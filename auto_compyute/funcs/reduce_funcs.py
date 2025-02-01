@@ -14,8 +14,8 @@ class Sum(Function):
         return x.sum(dim, keepdims=keepdims)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        shape = self.ctx.retrieve()
-        dx = self.m.broadcast_to(output_grad, shape)
+        x_shape = self.ctx.retrieve()
+        dx = self.m.broadcast_to(output_grad, x_shape)
         return (dx,)
 
 

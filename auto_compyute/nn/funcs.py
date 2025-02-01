@@ -64,25 +64,6 @@ class Softmax(Function):
 
 
 # -------------------------------------------------------------------------------------
-# LINEAR FUNCTIONS
-# -------------------------------------------------------------------------------------
-
-
-class Linear(Function):
-    def forward(self, x: Array, w: Array, b: Array) -> Array:
-        y = x @ w.swapaxes(-2, -1) + b
-        self.ctx.save(x, w)
-        return y
-
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, w = self.ctx.retrieve()
-        dx = output_grad @ w
-        dw = (output_grad.swapaxes(-2, -1) @ x).sum(tuple(range(output_grad.ndim - 2)))
-        db = output_grad.sum(tuple(range(output_grad.ndim - 1)))
-        return dx, dw, db
-
-
-# -------------------------------------------------------------------------------------
 # CONVOLUTION FUNCTIONS
 # -------------------------------------------------------------------------------------
 
