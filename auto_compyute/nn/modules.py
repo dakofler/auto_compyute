@@ -133,7 +133,7 @@ class Modulelist(list):
 class Sequential(Module):
     def __init__(self, *layers: Module) -> None:
         super().__init__()
-        self.layers = ModuleList(layers)
+        self.layers = Modulelist(layers)
 
     def forward(self, x: Tensor) -> Tensor:
         for layer in self.layers:
