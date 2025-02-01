@@ -4,6 +4,7 @@ import math
 from types import ModuleType
 
 from ..backends import Array, Shape
+from ..funcs.binary_funcs import Maximum
 from ..funcs.function import Function
 
 # -------------------------------------------------------------------------------------
@@ -11,9 +12,43 @@ from ..funcs.function import Function
 # -------------------------------------------------------------------------------------
 
 
+class GELU(Function):
+    def forward(self, x: Array) -> Array:
+        tanh_term = self.m.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
+        y = 0.5 * x * (1 + tanh_term)
+        self.ctx.save(x, tanh_term)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        x, tanh_term = self.ctx.retrieve()
+        dx1 = 1 + tanh_term
+        dx2 = x * (1 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
+        dx = output_grad * 0.5 * (dx1 + dx2)
+        return (dx,)
+
+
+class ReLU(Maximum):
+    def forward(self, x1: Array) -> Array:
+        y = self.m.maximum(x1, 0)
+        self.ctx.save(y == x1)
+        return y
+
+
 def _softmax_forward(m: ModuleType, x: Array, dim: int) -> Array:
     x = m.exp(x - x.max(dim, keepdims=True))
     return x / x.sum(dim, keepdims=True)
+
+
+class Sigmoid(Function):
+    def forward(self, x: Array) -> Array:
+        y = 1 / (1 + self.m.exp(-x))
+        self.ctx.save(y)
+        return y
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        y = self.ctx.retrieve()
+        dx = output_grad * y * (1 - y)
+        return (dx,)
 
 
 class Softmax(Function):

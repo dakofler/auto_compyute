@@ -16,5 +16,4 @@ Whether you're exploring the fundamentals of autograd or developing deep learnin
 - RNN, LSTM, GRU
 - RMSNorm
 - Conv1D
-- SGD, Adam, AdamW
 - GELU, Sigmoid

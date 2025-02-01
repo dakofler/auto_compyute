@@ -16,7 +16,7 @@ __all__ = [
     "Module",
     "Modulelist",
     "Sequential",
-    "Relu",
+    "ReLU",
     "Linear",
     "Conv2D",
     "MaxPooling2D",
@@ -141,9 +141,24 @@ class Sequential(Module):
         return x
 
 
-class Relu(Module):
+class GELU(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return F.gelu(x)
+
+
+class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         return F.relu(x)
+
+
+class Sigmoid(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return F.sigmoid(x)
+
+
+class Tanh(Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return F.tanh(x)
 
 
 class Linear(Module):

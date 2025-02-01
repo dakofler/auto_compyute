@@ -6,6 +6,7 @@ from typing import Optional
 from ..autograd import Tensor, apply_func
 from ..dtypes import int64
 from .funcs import (
+    GELU,
     Conv2D,
     CrossEntropyLoss,
     Dilate2D,
@@ -14,6 +15,8 @@ from .funcs import (
     Maxpool2D,
     MSELoss,
     Pad2D,
+    ReLU,
+    Sigmoid,
     Softmax,
 )
 
@@ -22,8 +25,16 @@ from .funcs import (
 # -------------------------------------------------------------------------------------
 
 
+def gelu(x: Tensor) -> Tensor:
+    return apply_func(GELU, x)
+
+
 def relu(x: Tensor) -> Tensor:
-    return x.maximum(0.0)
+    return apply_func(ReLU, x)
+
+
+def sigmoid(x: Tensor) -> Tensor:
+    return apply_func(Sigmoid, x)
 
 
 def softmax(x: Tensor, dim: int = -1) -> Tensor:

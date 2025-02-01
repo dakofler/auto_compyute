@@ -6,8 +6,16 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from .backends import (Array, Device, Dim, Scalar, Shape, array_to_string,
-                       get_array_device, move_to_device)
+from .backends import (
+    Array,
+    Device,
+    Dim,
+    Scalar,
+    Shape,
+    array_to_string,
+    get_array_device,
+    move_to_device,
+)
 from .dtypes import DType, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function

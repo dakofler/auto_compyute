@@ -18,6 +18,35 @@ def _unary_function_verify(x, torch_x, y, torch_y):
 
 ac_x1, torch_x1 = get_random_floats((10, 20))
 xs = ((ac_x1, torch_x1),)
+
+
+@pytest.mark.parametrize("x", xs)
+def test_gelu(x):
+    """GELU function test"""
+    ac_x, torch_x = x
+    ac_y = F.gelu(ac_x)
+    torch_y = tF.gelu(torch_x, approximate="tanh")
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+@pytest.mark.parametrize("x", xs)
+def test_relu(x):
+    """ReLU function test"""
+    ac_x, torch_x = x
+    ac_y = F.relu(ac_x)
+    torch_y = tF.relu(torch_x)
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+@pytest.mark.parametrize("x", xs)
+def test_sigmoid(x):
+    """Sigmoid function test"""
+    ac_x, torch_x = x
+    ac_y = F.sigmoid(ac_x)
+    torch_y = tF.sigmoid(torch_x)
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
 dims = (0, 1)
 
 
