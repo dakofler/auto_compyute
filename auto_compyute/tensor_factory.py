@@ -1,4 +1,4 @@
-"""Tensors"""
+"""Tensor factory functions"""
 
 from typing import Any
 

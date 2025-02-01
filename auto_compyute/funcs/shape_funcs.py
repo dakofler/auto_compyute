@@ -1,9 +1,21 @@
 """Shape autograd functions"""
 
+from itertools import accumulate
 from typing import Any
 
 from ..backends import Array, Shape
 from .function import Function
+
+
+class Concat(Function):
+    def forward(self, *arrays: Array, dim: int) -> Array:
+        self.ctx.save(dim, [a.shape[dim] for a in arrays])
+        return self.m.concatenate(arrays, dim)
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dim, split_sizes = self.ctx.retrieve()
+        split_indices = list(accumulate(s for s in split_sizes))
+        return tuple(self.m.split(output_grad, split_indices, dim))
 
 
 class Select(Function):
@@ -11,14 +23,24 @@ class Select(Function):
         self.ctx.save(x.shape, key)
         return x[key]
 
-    def backward(self, grad: Array) -> tuple[Array, ...]:
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
         shape, key = self.ctx.retrieve()
-        dx = self.m.zeros(shape, dtype=grad.dtype)
-        self.m.add.at(dx, key, grad)
+        dx = self.m.zeros(shape, dtype=output_grad.dtype)
+        self.m.add.at(dx, key, output_grad)
         return (dx,)
 
 
 class Split(Select): ...
+
+
+class Stack(Function):
+    def forward(self, *arrays: Array, dim: int) -> Array:
+        self.ctx.save(dim)
+        return self.m.stack(arrays, dim)
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        dim = self.ctx.retrieve()
+        return tuple(self.m.moveaxis(output_grad, dim, 0))
 
 
 class Transpose(Function):

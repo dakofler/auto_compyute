@@ -1,3 +1,5 @@
+"""Neural network modules"""
+
 from __future__ import annotations
 
 import math
@@ -8,7 +10,7 @@ from typing import Any, Optional, OrderedDict
 from ..autograd import Tensor
 from ..backends import Device, Shape
 from ..dtypes import DType, int64
-from ..tensors import ones, randn, randu, zeros
+from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
 
 __all__ = [

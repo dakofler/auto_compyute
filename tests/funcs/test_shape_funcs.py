@@ -73,3 +73,54 @@ def test_split(x, split_size, dim):
     torch_ys = torch_x.split(split_size, dim)
     for ac_y, torch_y in zip(ac_ys, torch_ys):
         _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
+def _combine_function_verify(x1, torch_x1, x2, torch_x2, x3, torch_x3, y, torch_y):
+    assert close(y.data, torch_y)
+    dy, torch_dy = get_random_floats(y.shape, False)
+    y.backward(dy.data)
+    torch_y.backward(torch_dy)
+    assert close(x1.grad, torch_x1.grad)
+    assert close(x2.grad, torch_x2.grad)
+    assert close(x3.grad, torch_x3.grad)
+
+
+comb_ac_x1, comb_torch_x1 = get_random_floats((10, 5))
+comb_ac_x2, comb_torch_x2 = get_random_floats((10, 5))
+comb_ac_x3, comb_torch_x3 = get_random_floats((10, 5))
+comb_x1s = ((comb_ac_x1, comb_torch_x1),)
+comb_x2s = ((comb_ac_x2, comb_torch_x2),)
+comb_x3s = ((comb_ac_x3, comb_torch_x3),)
+comb_dims = (0, 1)
+
+
+@pytest.mark.parametrize("x1", comb_x1s)
+@pytest.mark.parametrize("x2", comb_x2s)
+@pytest.mark.parametrize("x3", comb_x3s)
+@pytest.mark.parametrize("dim", comb_dims)
+def test_stack(x1, x2, x3, dim):
+    """Stack function test"""
+    ac_x1, torch_x1 = x1
+    ac_x2, torch_x2 = x2
+    ac_x3, torch_x3 = x3
+    ac_y = ac.stack(ac_x1, ac_x2, ac_x3, dim=dim)
+    torch_y = torch.stack((torch_x1, torch_x2, torch_x3), dim=dim)
+    _combine_function_verify(
+        ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y
+    )
+
+
+@pytest.mark.parametrize("x1", comb_x1s)
+@pytest.mark.parametrize("x2", comb_x2s)
+@pytest.mark.parametrize("x3", comb_x3s)
+@pytest.mark.parametrize("dim", comb_dims)
+def test_concat(x1, x2, x3, dim):
+    """Concat function test"""
+    ac_x1, torch_x1 = x1
+    ac_x2, torch_x2 = x2
+    ac_x3, torch_x3 = x3
+    ac_y = ac.concat(ac_x1, ac_x2, ac_x3, dim=dim)
+    torch_y = torch.concat((torch_x1, torch_x2, torch_x3), dim=dim)
+    _combine_function_verify(
+        ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y
+    )

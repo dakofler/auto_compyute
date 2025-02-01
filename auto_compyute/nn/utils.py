@@ -4,7 +4,7 @@ from collections.abc import Iterator
 
 from ..autograd import Tensor
 from ..backends import Device, cpu
-from ..tensors import arange, randperm
+from ..tensor_factory import arange, randperm
 
 
 class Dataloader:
