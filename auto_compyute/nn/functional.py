@@ -4,10 +4,10 @@ import math
 from typing import Optional
 
 from ..autograd import Tensor, apply_func
+from ..dtypes import int64
 from .funcs import (
-    Batchnorm1D,
-    Batchnorm2D,
     Conv2D,
+    CrossEntropyLoss,
     Dilate2D,
     Dropout,
     Linear,
@@ -143,3 +143,8 @@ def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
 
 def mse_loss(logits: Tensor, targets: Tensor):
     return apply_func(MSELoss, logits, targets)
+
+
+def cross_entropy(logits: Tensor, targets: Tensor, eta: float = 1e-8):
+    assert targets.dtype == int64
+    return apply_func(CrossEntropyLoss, logits, targets, eta=eta)

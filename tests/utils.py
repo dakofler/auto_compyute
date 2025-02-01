@@ -27,6 +27,12 @@ def get_random_positive_floats(shape: Shape, requires_grad: bool = True):
     return x, torch_x
 
 
+def get_random_ints(shape: Shape, low: int, high: int):
+    x = ac.randi(shape, low, high, dtype=ac.int64)
+    torch_x = torch.tensor(x.data)
+    return x, torch_x
+
+
 def get_ones(shape: Shape, requires_grad: bool = False):
     x = ac.ones(shape, requires_grad=requires_grad)
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)

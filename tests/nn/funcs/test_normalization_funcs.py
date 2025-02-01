@@ -1,4 +1,4 @@
-"""Tests for convolution functions"""
+"""Tests for normalization functions"""
 
 import pytest
 import torch.nn.functional as tF
@@ -18,19 +18,20 @@ def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
     assert close(b.grad, torch_b.grad, tol=1e-4)
 
 
-ac_x1, torch_x1 = get_random_floats((16, 32))
-ac_x2, torch_x2 = get_random_floats((16, 32, 8))
-ac_x3, torch_x3 = get_random_floats((16, 32, 28, 28))
 ac_w1, torch_w1 = get_random_floats((32,))
 ac_b1, torch_b1 = get_random_floats((32,))
-xs = ((ac_x1, torch_x1), (ac_x2, torch_x2), (ac_x3, torch_x3))
+
+bn_ac_x1, bn_torch_x1 = get_random_floats((16, 32))
+bn_ac_x2, bn_torch_x2 = get_random_floats((16, 32, 8))
+bn_ac_x3, bn_torch_x3 = get_random_floats((16, 32, 28, 28))
+bn_xs = ((bn_ac_x1, bn_torch_x1), (bn_ac_x2, bn_torch_x2), (bn_ac_x3, bn_torch_x3))
 ws = ((ac_w1, torch_w1),)
 bs = ((ac_b1, torch_b1),)
 ms = (0.1, 0.2)
 trainings = (True, False)
 
 
-@pytest.mark.parametrize("x", xs)
+@pytest.mark.parametrize("x", bn_xs)
 @pytest.mark.parametrize("w", ws)
 @pytest.mark.parametrize("b", bs)
 @pytest.mark.parametrize("m", ms)

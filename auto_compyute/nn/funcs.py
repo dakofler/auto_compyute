@@ -1,5 +1,6 @@
 """Neural network autograd functions"""
 
+import math
 from types import ModuleType
 
 from ..backends import Array, Shape
@@ -10,10 +11,14 @@ from ..funcs.function import Function
 # -------------------------------------------------------------------------------------
 
 
+def _softmax_forward(m: ModuleType, x: Array, dim: int) -> Array:
+    x = m.exp(x - x.max(dim, keepdims=True))
+    return x / x.sum(dim, keepdims=True)
+
+
 class Softmax(Function):
     def forward(self, x: Array, dim: int) -> Array:
-        x = self.m.exp(x - x.max(dim, keepdims=True))
-        y = x / x.sum(dim, keepdims=True)
+        y = _softmax_forward(self.m, x, dim)
         self.ctx.save(dim, y)
         return y
 
@@ -101,8 +106,8 @@ class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
         self.ctx.save(x, w, stride)
         x_pooled = _pool2d(self.m, x, w.shape[-1], stride)
-        y = self.m.einsum("biyxjk,oijk->boyx", x_pooled, w, order="C")
-        return y
+        y = self.m.einsum("biyxjk,oijk->boyx", x_pooled, w)
+        return self.m.ascontiguousarray(y)
 
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
         x, w, stride = self.ctx.retrieve()
@@ -124,11 +129,13 @@ class Conv2D(Function):
         # input grads
         output_grad_pooled = _pool2d(self.m, output_grad, kernel_size)
         w = self.m.flip(w, (-2, -1))
-        dx = self.m.einsum("boyxjk,oijk->biyx", output_grad_pooled, w, order="C")
+        dx = self.m.einsum("boyxjk,oijk->biyx", output_grad_pooled, w)
+        dx = self.m.ascontiguousarray(dx)
 
         # filter grads
         output_grad_pooled = _pool2d(self.m, output_grad, input_size)
-        dw = self.m.einsum("bojkyx,biyx->oijk", output_grad_pooled, x, order="C")
+        dw = self.m.einsum("bojkyx,biyx->oijk", output_grad_pooled, x)
+        dw = self.m.ascontiguousarray(dw)
         dw = self.m.flip(dw, (-2, -1))
 
         return dx, dw
@@ -156,124 +163,6 @@ class Maxpool2D(Function):
         mask = mask.astype(output_grad.dtype)
         dx = _repeat2d(self.m, output_grad, window_size, x.shape) * mask
         return (dx,)
-
-
-# -------------------------------------------------------------------------------------
-# NORMALIZATION FUNCTIONS
-# -------------------------------------------------------------------------------------
-
-
-class Batchnorm1D(Function):
-    def forward(
-        self,
-        x: Array,
-        rmean: Array,
-        rvar: Array,
-        w: Array,
-        b: Array,
-        m: float,
-        eps: float,
-        training: bool,
-    ) -> Array:
-        batch_dims: tuple[int, ...] = (0,) if x.ndim == 2 else (0, 2)
-
-        if training:
-            # compute mean and variance from x
-            mean = x.mean(batch_dims, keepdims=True)
-            std = self.m.sqrt(x.var(batch_dims, keepdims=True) + eps)
-            x_norm = (x - mean) / std
-
-            # keep running stats
-            rmean = rmean * (1 - m) + mean.squeeze() * m
-            rvar = rvar * (1 - m) + x.var(batch_dims, ddof=1) * m
-        else:
-            # use running mean and variance
-            var = rvar if (x.ndim == 2) else rvar.reshape((*rvar.shape, 1))
-            mean = rmean if (x.ndim == 2) else rmean.reshape((*rmean.shape, 1))
-            std = self.m.sqrt(var + eps)
-            x_norm = (x - mean) / std
-
-        w = w if (x.ndim == 2) else w.reshape((*w.shape, 1))
-        b = b if (x.ndim == 2) else b.reshape((*b.shape, 1))
-        y = w * x_norm + b
-
-        self.ctx.save(w, batch_dims, std, x_norm)
-        return y, rmean, rvar
-
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        w, batch_dims, std, x_norm = self.ctx.retrieve()
-        n = float(output_grad.size / output_grad.shape[1])
-
-        # input grads
-        output_grad_s = output_grad.sum(batch_dims, keepdims=True)
-        output_grad_xns = (output_grad * x_norm).sum(batch_dims, keepdims=True)
-        dx = (
-            w / (std * n) * (n * output_grad - output_grad_s - x_norm * output_grad_xns)
-        )
-
-        # gamma grads
-        dw = output_grad_xns.squeeze()
-
-        # beta grads
-        db = output_grad_s.squeeze()
-
-        return dx, dw, db
-
-
-class Batchnorm2D(Function):
-    def forward(
-        self,
-        x: Array,
-        rmean: Array,
-        rvar: Array,
-        w: Array,
-        b: Array,
-        m: float,
-        eps: float,
-        training: bool,
-    ) -> Array:
-        batch_dims = (0, 2, 3)
-
-        if training:
-            # compute mean and variance from x
-            mean = x.mean(batch_dims, keepdims=True)
-            std = self.m.sqrt(x.var(batch_dims, keepdims=True) + eps)
-            x_norm = (x - mean) / std
-
-            # keep running stats
-            rmean = rmean * (1 - m) + mean.squeeze() * m
-            rvar = rvar * (1 - m) + x.var(batch_dims, ddof=1) * m
-        else:
-            # use running mean and variance
-            mean = rmean.view((*rmean.shape, 1, 1))
-            std = self.m.sqrt(rvar.reshape((*rvar.shape, 1, 1)) + eps)
-            x_norm = (x - mean) / std
-
-        w = w.view((*w.shape, 1, 1))
-        b = b.view((*b.shape, 1, 1))
-        y = w * x_norm + b
-
-        self.ctx.save(w, batch_dims, std, x_norm)
-        return y, rmean, rvar
-
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        w, batch_dims, std, x_norm = self.ctx.retrieve()
-        n = float(output_grad.size / output_grad.shape[1])
-
-        # input grads
-        output_grad_s = output_grad.sum(batch_dims, keepdims=True)
-        output_grad_xns = (output_grad * x_norm).sum(batch_dims, keepdims=True)
-        dx = (
-            w / (std * n) * (n * output_grad - output_grad_s - x_norm * output_grad_xns)
-        )
-
-        # gamma grads
-        dw = output_grad_xns.squeeze()
-
-        # beta grads
-        db = output_grad_s.squeeze()
-
-        return dx, dw, db
 
 
 # -------------------------------------------------------------------------------------
@@ -310,4 +199,22 @@ class MSELoss(Function):
     def backward(self, output_grad: Array) -> tuple[Array, ...]:
         x_size, diff = self.ctx.retrieve()
         dx = output_grad * 2.0 * diff / float(x_size)
+        return (dx,)
+
+
+def _onehot(m: ModuleType, x: Array, n: int, dtype: type):
+    return m.eye(n, dtype=dtype)[x]
+
+
+class CrossEntropyLoss(Function):
+    def forward(self, x: Array, y: Array, eta: float) -> Array:
+        probs = _softmax_forward(self.m, x, -1)
+        y = _onehot(self.m, y, x.shape[-1], probs.dtype)
+        loss = -(self.m.log(probs + eta) * y).sum(-1).mean()
+        self.ctx.save(y, probs)
+        return loss
+
+    def backward(self, output_grad: Array) -> tuple[Array, ...]:
+        y, probs = self.ctx.retrieve()
+        dx = output_grad * (probs - y) / float(math.prod(y.shape[:-1]))
         return (dx,)

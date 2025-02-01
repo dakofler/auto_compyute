@@ -175,7 +175,7 @@ class Conv2D(Module):
         self.b = None if not bias else Parameter(randu((out_dim,), -k, k))
 
     def forward(self, x: Tensor) -> Tensor:
-        return F.conv2d(x, self.w, self.b, self.padding, self.stride, self.dilation)
+        return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
 class MaxPooling2D(Module):
