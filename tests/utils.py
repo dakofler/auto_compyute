@@ -20,6 +20,13 @@ def get_random_floats(shape: Shape, requires_grad: bool = True):
     return x, torch_x
 
 
+def get_random_positive_floats(shape: Shape, requires_grad: bool = True):
+    x = ac.randn(shape).abs()
+    x.requires_grad = requires_grad
+    torch_x = torch.tensor(x.data, requires_grad=requires_grad)
+    return x, torch_x
+
+
 def get_ones(shape: Shape, requires_grad: bool = False):
     x = ac.ones(shape, requires_grad=requires_grad)
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)

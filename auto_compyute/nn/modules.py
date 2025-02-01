@@ -207,16 +207,21 @@ class MHSA(Module):
         return self.out(attn)
 
 
-class Batchnorm1D(Module):
+class Batchnorm(Module):
     def __init__(self, in_dim: int, m: float = 0.1, eps: float = 1e-5) -> None:
         super().__init__()
+        self.m = m
+        self.eps = eps
         self.w = Parameter(ones((in_dim,)))
         self.b = Parameter(zeros((in_dim,)))
         self.rmean = Buffer(zeros((in_dim,)))
         self.rvar = Buffer(ones((in_dim,)))
 
     def forward(self, x: Tensor) -> Tensor:
-        return F.batchnorm1d(x, self.dropout, self.training)
+        y, self.rmean, self.rvar = F.batchnorm(
+            x, self.rmean, self.rvar, self.w, self.b, self.m, self.eps, self._training
+        )
+        return y
 
 
 class Dropout(Module):
@@ -225,7 +230,7 @@ class Dropout(Module):
         self.dropout = dropout
 
     def forward(self, x: Tensor) -> Tensor:
-        return F.dropout(x, self.dropout, self.training)
+        return F.dropout(x, self.dropout, self._training)
 
 
 class Flatten(Module):

@@ -90,7 +90,7 @@ def sdpa(q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None) -> Tens
 # -------------------------------------------------------------------------------------
 
 
-def batchnorm1d(
+def batchnorm(
     x: Tensor,
     rmean: Tensor,
     rvar: Tensor,
@@ -100,24 +100,11 @@ def batchnorm1d(
     eps: float = 1e-5,
     training: bool = False,
 ):
-    return apply_func(
-        Batchnorm1D, x, rmean, rvar, w, b, m=m, eps=eps, training=training
-    )
-
-
-def batchnorm2d(
-    x: Tensor,
-    rmean: Tensor,
-    rvar: Tensor,
-    w: Tensor,
-    b: Tensor,
-    m: float = 0.1,
-    eps: float = 1e-5,
-    training: bool = False,
-):
-    return apply_func(
-        Batchnorm2D, x, rmean, rvar, w, b, m=m, eps=eps, training=training
-    )
+    # batch_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
+    # if training:
+    #     mean = x.mean(batch_dims, keepdims=True)
+    #     std = (x.var(batch_dims, keepdims=True) + eps).sqrt()
+    pass
 
 
 # -------------------------------------------------------------------------------------

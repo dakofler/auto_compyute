@@ -22,7 +22,7 @@ from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Context, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Split, Transpose, View
-from .funcs.unary_funcs import Exp, Pow, Tanh
+from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh
 
 __all__ = ["Tensor", "no_grad"]
 
@@ -139,12 +139,17 @@ class Tensor:
     # ----------------------------------------------------------------------------------
     # UNARY OPS
     # ----------------------------------------------------------------------------------
+    def abs(self) -> Tensor:
+        return apply_func(Abs, self)
 
     def exp(self) -> Tensor:
         return apply_func(Exp, self)
 
     def pow(self, x: Scalar) -> Tensor:
         return apply_func(Pow, self, self.self_like(x))
+
+    def sqrt(self) -> Tensor:
+        return apply_func(Sqrt, self)
 
     def tanh(self) -> Tensor:
         return apply_func(Tanh, self)
