@@ -144,7 +144,7 @@ class Conv2D(Function):
 def _repeat2d(m: ModuleType, x: Array, n_repeats: int, target_shape: Shape):
     repeat_shape = (*x.shape[:-1], n_repeats, x.shape[-1], n_repeats)
     repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
-    y = m.lib.stride_tricks.as_strided(x.data, repeat_shape, repeat_strides)
+    y = m.lib.stride_tricks.as_strided(x, repeat_shape, repeat_strides)
     y = y.reshape((*y.shape[:-4], y.shape[-4] * n_repeats, y.shape[-2] * n_repeats))
     if y.shape != target_shape:
         y = _pad_to_shape(m, y, target_shape)

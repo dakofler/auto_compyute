@@ -327,8 +327,14 @@ def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tens
     return Tensor(data)
 
 
-def draw_compute_graph(root_node: Tensor, html: bool = False) -> None:
+def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
     assert root_node.requires_grad
+
+    try:
+        from mermaid import Mermaid
+    except ModuleNotFoundError:
+        raise ModuleNotFoundError("Install mermaid-python to draw graphs.")
+
     colors = {
         "const": ("#CAEDFB", "#4D93D9"),
         "leaf": ("#C6EFCE", "#4EA72E"),
@@ -377,31 +383,12 @@ def draw_compute_graph(root_node: Tensor, html: bool = False) -> None:
         return mermaid_script
 
     mermaid_script = _build_mermaid_script(root_node, mermaid_script)
-
-    graphbytes = mermaid_script.encode("utf8")
-    base64_bytes = base64.urlsafe_b64encode(graphbytes)
-    base64_string = base64_bytes.decode("ascii")
-    svg_url = f"https://mermaid.ink/img/{base64_string}?type=jpg&bgcolor=FFFFFF"
-
-    if html:
-        html_content = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Mermaid Diagram</title>
-            </head>
-            <body>
-                <object type="image/svg+xml" data="{svg_url}" style="width:100%; height:auto;"></object>
-            </body>
-            </html>
-            """
-
-        with open("graph.html", "w") as file:
-            file.write(html_content)
+    mermaid_html = Mermaid(mermaid_script)
+    if save_to_file:
+        with open("compute_graph.html", "w") as f:
+            f.write(mermaid_html._repr_html_())
     else:
-        from IPython.display import Image, display
-
-        display(Image(url=svg_url))
+        return mermaid_html
 
 
 def _parse_key(key: Any) -> Any:
