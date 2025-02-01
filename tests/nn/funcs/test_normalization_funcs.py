@@ -8,8 +8,8 @@ import auto_compyute.nn.functional as F
 from ...utils import close, get_ones, get_random_floats, get_zeros
 
 
-def _batchnorm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
-    assert close(y.data, torch_y)
+def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
+    assert close(y.data, torch_y, tol=1e-4)
     dy, torch_dy = get_random_floats(y.shape, False)
     y.backward(dy.data)
     torch_y.backward(torch_dy)
@@ -46,6 +46,23 @@ def test_batchnorm(x, w, b, m, training):
     torch_y = tF.batch_norm(
         torch_x, torch_rmean, torch_rvar, torch_w, torch_b, training, m, 1e-5
     )
-    _batchnorm_function_verify(
-        ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y
-    )
+    _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+
+
+ln_ac_x1, ln_torch_x1 = get_random_floats((16, 32))
+ln_ac_x2, ln_torch_x2 = get_random_floats((16, 8, 32))
+ln_ac_x3, ln_torch_x3 = get_random_floats((16, 8, 8, 32))
+ln_xs = ((ln_ac_x1, ln_torch_x1), (ln_ac_x2, ln_torch_x2), (ln_ac_x3, ln_torch_x3))
+
+
+@pytest.mark.parametrize("x", ln_xs)
+@pytest.mark.parametrize("w", ws)
+@pytest.mark.parametrize("b", bs)
+def test_layernorm(x, w, b):
+    """Layernorm function test"""
+    ac_x, torch_x = x
+    ac_w, torch_w = w
+    ac_b, torch_b = b
+    ac_y = F.layernorm(ac_x, ac_w, ac_b, 1e-5)
+    torch_y = tF.layer_norm(torch_x, torch_x.shape[-1:], torch_w, torch_b, 1e-5)
+    _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)

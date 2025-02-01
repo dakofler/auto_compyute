@@ -118,6 +118,13 @@ def batchnorm(
     return y, rmean, rvar
 
 
+def layernorm(x: Tensor, w: Tensor, b: Tensor, eps: float = 1e-5) -> Tensor:
+    feat_dims = tuple(-i - 1 for i in range(w.ndim))
+    mean = x.mean(feat_dims, keepdims=True)
+    std = (x.var(feat_dims, ddof=0, keepdims=True) + eps).sqrt()
+    return (x - mean) / std * w + b
+
+
 # -------------------------------------------------------------------------------------
 # REGULARIZATION FUNCTIONS
 # -------------------------------------------------------------------------------------

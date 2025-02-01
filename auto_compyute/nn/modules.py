@@ -6,7 +6,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
-from ..backends import Device
+from ..backends import Device, Shape
 from ..dtypes import DType
 from ..tensors import ones, randu, zeros
 from . import functional as F
@@ -21,6 +21,7 @@ __all__ = [
     "MaxPooling2D",
     "MHSA",
     "Batchnorm",
+    "Layernorm",
     "Dropout",
     "Flatten",
 ]
@@ -225,6 +226,17 @@ class Batchnorm(Module):
         self.rmean = Buffer(rmean)
         self.rvar = Buffer(rvar)
         return y
+
+
+class Layernorm(Module):
+    def __init__(self, norm_shape: Shape, eps: float = 1e-5) -> None:
+        super().__init__()
+        self.eps = eps
+        self.w = Parameter(ones(norm_shape))
+        self.b = Parameter(zeros(norm_shape))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.layernorm(x, self.w, self.b, self.eps)
 
 
 class Dropout(Module):
