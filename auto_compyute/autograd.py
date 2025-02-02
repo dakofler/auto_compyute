@@ -74,7 +74,7 @@ class Tensor:
         return self.sub(x)
 
     def __rsub__(self, x: Scalar) -> Tensor:
-        return self.sub(x, reverse=True)
+        return (-self).add(x)
 
     def __mul__(self, x: Tensor | Scalar) -> Tensor:
         return self.mul(x)
@@ -86,7 +86,7 @@ class Tensor:
         return self.truediv(x)
 
     def __rtruediv__(self, x: Scalar) -> Tensor:
-        return self.truediv(x, reverse=True)
+        return (self**-1).mul(x)
 
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.matmul(x)
@@ -127,7 +127,7 @@ class Tensor:
             self.grad = dy
 
         # run backward
-        node_queue = _build_backward_queue(self, [], set())
+        node_queue = build_backward_queue(self, [], set())
         for node in reversed(node_queue):
             assert node.ctx is not None, node.shape
             assert node.parents is not None, node.shape
@@ -148,7 +148,7 @@ class Tensor:
         return apply_func(Exp, self)
 
     def pow(self, x: Scalar) -> Tensor:
-        return apply_func(Pow, self, self.self_like(x))
+        return apply_func(Pow, self, exp=x)
 
     def sqrt(self) -> Tensor:
         return apply_func(Sqrt, self)
@@ -167,29 +167,25 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, self.self_like(x))
+        return apply_func(Add, self, x)
 
-    def sub(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
-        if reverse:
-            return apply_func(Sub, self.self_like(x), self)
-        return apply_func(Sub, self, self.self_like(x))
+    def sub(self, x: Tensor | Scalar) -> Tensor:
+        return apply_func(Sub, self, x)
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, self.self_like(x))
+        return apply_func(Mul, self, x)
 
-    def truediv(self, x: Tensor | Scalar, reverse: bool = False) -> Tensor:
-        if reverse:
-            return apply_func(Div, self.self_like(x), self)
-        return apply_func(Div, self, self.self_like(x))
+    def truediv(self, x: Tensor | Scalar) -> Tensor:
+        return apply_func(Div, self, x)
 
     def matmul(self, x: Tensor) -> Tensor:
         return apply_func(Matmul, self, self.self_like(x))
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, self.self_like(x))
+        return apply_func(Maximum, self, x)
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, self.self_like(x))
+        return apply_func(Minimum, self, x)
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -320,7 +316,7 @@ def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
     return grad.reshape(target_shape)
 
 
-def _build_backward_queue(
+def build_backward_queue(
     node: Tensor, queue: list[Tensor], visited: set
 ) -> list[Tensor]:
     if node not in visited:
@@ -330,19 +326,20 @@ def _build_backward_queue(
         for p in node.parents:
             if p.requires_grad is False:
                 continue
-            _ = _build_backward_queue(p, queue, visited)
+            _ = build_backward_queue(p, queue, visited)
         queue.append(node)
     return queue
 
 
-def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tensor:
-    ctx = funcion(tensors[0].device)
-    arrays = tuple(t.data for t in tensors)
-    if autograd_active and any(t.requires_grad for t in tensors):
+def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
+    tensor_args = tuple(a for a in args if isinstance(a, Tensor))
+    ctx = funcion(tensor_args[0].device)
+    function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
+    if autograd_active and any(a.requires_grad for a in tensor_args):
         ctx.cache = Cache()
-        data = ctx.forward(*arrays, **kwargs)
-        return Tensor(data, ctx=ctx, parents=tensors, requires_grad=True)
-    data = ctx.forward(*arrays, **kwargs)
+        data = ctx.forward(*function_args, **kwargs)
+        return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)
+    data = ctx.forward(*function_args, **kwargs)
     return Tensor(data)
 
 

@@ -7,14 +7,16 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
+import cupy
+
 from ..autograd import Tensor
 from ..backends import Device, Shape
 from ..dtypes import DType, is_int
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
 
-# import cupy
-
+# free, total = cupy.cuda.Device(0).mem_info
+# mem = total - free
 
 __all__ = [
     "Parameter",
@@ -33,8 +35,6 @@ __all__ = [
     "Dropout",
     "Flatten",
 ]
-
-# mem = 0
 
 
 class Parameter(Tensor):

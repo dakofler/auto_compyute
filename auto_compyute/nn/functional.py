@@ -4,7 +4,6 @@ import math
 from typing import Optional
 
 from ..autograd import Tensor, apply_func
-from ..dtypes import int64
 from .funcs import (
     GELU,
     Conv2D,
@@ -12,6 +11,7 @@ from .funcs import (
     Dilate2D,
     Dropout,
     Layernorm,
+    Linear,
     Maxpool2D,
     MSELoss,
     Pad2D,
@@ -51,10 +51,7 @@ def tanh(x: Tensor) -> Tensor:
 
 
 def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
-    y = x @ w.T
-    if b is not None:
-        y += b
-    return y
+    return apply_func(Linear, x, w, b)
 
 
 # -------------------------------------------------------------------------------------

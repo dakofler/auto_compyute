@@ -2,6 +2,7 @@
 
 import math
 from types import ModuleType
+from typing import Optional
 
 from ..backends import Array, Shape
 from ..funcs.binary_funcs import Maximum
@@ -16,11 +17,12 @@ class GELU(Function):
     def forward(self, x: Array) -> Array:
         tanh_term = self.m.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
         y = 0.5 * x * (1 + tanh_term)
-        self.cache.save(x, tanh_term)
+        self.cache.save(x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, tanh_term = self.cache.retrieve()
+        x = self.cache.retrieve()
+        tanh_term = self.m.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
         dx1 = 1 + tanh_term
         dx2 = x * (1 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
         dx = dy * 0.5 * (dx1 + dx2)
@@ -30,7 +32,7 @@ class GELU(Function):
 class ReLU(Maximum):
     def forward(self, x1: Array) -> Array:
         y = self.m.maximum(x1, 0)
-        self.cache.save(y == x1)
+        self.cache.save(True, y == x1)
         return y
 
 
@@ -61,6 +63,29 @@ class Softmax(Function):
         dim, y = self.cache.retrieve()
         dx = y * (dy - (dy * y).sum(dim, keepdims=True))
         return (dx,)
+
+
+# -------------------------------------------------------------------------------------
+# LINEAR FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+class Linear(Function):
+    def forward(self, x: Array, w: Array, b: Optional[Array]) -> Array:
+        self.cache.save(x, w, b is None)
+        y = x @ w.swapaxes(-1, -2)
+        if b is not None:
+            y += b
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x, w, b_is_none = self.cache.retrieve()
+        dx = dy @ w
+        dw = (dy.swapaxes(-1, -2) @ x).sum(tuple(range(dy.ndim - 2)))
+        if b_is_none:
+            return dx, dw
+        db = dy.sum(tuple(range(dy.ndim - 1)))
+        return dx, dw, db
 
 
 # -------------------------------------------------------------------------------------
@@ -188,11 +213,11 @@ class Maxpool2D(Function):
 class Layernorm(Function):
     def forward(self, x: Array, w: Array, b: Array, eps: float) -> Array:
         f_dims = tuple(range(x.ndim - w.ndim, x.ndim))
-        *_, C = x.shape
+        n = w.size
 
-        mean = x.sum(f_dims, keepdims=True) / C
+        mean = x.sum(f_dims, keepdims=True) / n
         xshift = x - mean
-        var = (xshift**2).sum(f_dims, keepdims=True) / C
+        var = (xshift**2).sum(f_dims, keepdims=True) / n
         rstd = (var + eps) ** -0.5
         x_norm = xshift * rstd
         y = x_norm * w + b
@@ -206,14 +231,12 @@ class Layernorm(Function):
 
         db = dy.sum(b_dims)
         dw = (dy * x_norm).sum(b_dims)
-        # gradients for input
         dx_norm = dy * w
-        dx = (
+        dx = rstd * (
             dx_norm
             - dx_norm.mean(f_dims, keepdims=True)
             - x_norm * (dx_norm * x_norm).mean(f_dims, keepdims=True)
         )
-        dx *= rstd
         return dx, dw, db
 
 
@@ -259,11 +282,12 @@ def _onehot(m: ModuleType, x: Array, n: int, dtype: type):
 class CrossEntropyLoss(Function):
     def forward(self, x: Array, y: Array, eta: float) -> Array:
         probs = _softmax_forward(self.m, x, -1)
-        y = _onehot(self.m, y, x.shape[-1], probs.dtype)
         self.cache.save(y, probs)
+        y = _onehot(self.m, y, x.shape[-1], probs.dtype)
         return -(self.m.log(probs + eta) * y).sum(-1).mean()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         y, probs = self.cache.retrieve()
+        y = _onehot(self.m, y, probs.shape[-1], probs.dtype)
         dx = dy * (probs - y) / float(math.prod(y.shape[:-1]))
         return (dx,)
