@@ -9,6 +9,7 @@ from typing import Any, Optional
 from .backends import (
     Array,
     Device,
+    DeviceLike,
     Dim,
     Scalar,
     Shape,
@@ -272,7 +273,8 @@ class Tensor:
     def float(self) -> Tensor:
         return self.as_type(float32)
 
-    def to(self, device: Device) -> Tensor:
+    def to(self, device: DeviceLike) -> Tensor:
+        device = device if isinstance(device, Device) else Device(device)
         data = self.data if self.device == device else move_to_device(self.data, device)
         if self.requires_grad:
             new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
@@ -281,7 +283,8 @@ class Tensor:
             return new_tensor
         return Tensor(data)
 
-    def ito(self, device: Device) -> None:
+    def ito(self, device: DeviceLike) -> None:
+        device = device if isinstance(device, Device) else Device(device)
         if self.device == device:
             return
         self.data = move_to_device(self.data, device)

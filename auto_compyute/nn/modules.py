@@ -8,7 +8,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
-from ..backends import Device, Shape
+from ..backends import Device, DeviceLike, Shape
 from ..dtypes import DType
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
@@ -119,7 +119,7 @@ class Module(ABC):
         for module in self.modules(recursive=False):
             module.eval()
 
-    def to(self, device: Device) -> None:
+    def to(self, device: DeviceLike) -> None:
         for t in vars(self).values():
             if isinstance(t, Tensor):
                 t.ito(device)

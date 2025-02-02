@@ -3,7 +3,7 @@
 from collections.abc import Iterator
 
 from ..autograd import Tensor
-from ..backends import Device, cpu
+from ..backends import Device, DeviceLike
 from ..tensor_factory import arange, randperm
 
 
@@ -12,14 +12,14 @@ class Dataloader:
         self,
         data: tuple[Tensor, ...],
         batch_size: int = 1,
-        device: Device = cpu,
+        device: DeviceLike = "cpu",
         shuffle_data: bool = True,
         drop_remaining: bool = False,
     ) -> None:
         self.data = data
         self._n = len(self.data[0])
         self.batch_size = min(batch_size, self._n)
-        self.device = device
+        self.device = device if isinstance(device, Device) else Device(device)
         self.shuffle = shuffle_data
         self._additional_batch = not drop_remaining and self._n % self.batch_size > 0
 
