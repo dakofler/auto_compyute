@@ -1,10 +1,10 @@
 """Tensor factory functions"""
 
-from typing import Any
+from typing import Any, Optional
 
 from .autograd import Tensor
-from .backends import Device, Scalar, Shape, select_device
-from .dtypes import DType, float32, int64, select_dtype
+from .backends import Device, Scalar, select_device
+from .dtypes import DType, int64, select_dtype
 
 __all__ = [
     "tensor",
@@ -19,65 +19,117 @@ __all__ = [
 ]
 
 
-def _unpack_factory_kwargs(kwargs) -> tuple[Device, DType, bool]:
-    device = select_device(kwargs.get("device", None))
-    dtype = select_dtype(kwargs.get("dtype", float32))
-    requires_grad = kwargs.get("requires_grad", False)
-    return device, dtype, requires_grad
+def _parse_factory_kwargs(
+    device: Optional[Device], dtype: Optional[DType]
+) -> tuple[Device, DType]:
+    device = select_device(device)
+    dtype = select_dtype(dtype)
+    return device, dtype
 
 
-def tensor(data: Any, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    dtype = factory_kwargs.get("dtype", None)
+def tensor(
+    data: Any,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, _ = _parse_factory_kwargs(device, dtype)
     data = device.backend.asarray(data, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def arange(stop: float, start: float = 0, step: float = 1, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    dtype = factory_kwargs.get("dtype", int64)
+def arange(
+    stop: float,
+    start: float = 0,
+    step: float = 1,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = int64,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
     data = device.backend.arange(start, stop, step, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def ones(shape: Shape, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.ones(shape, dtype)
+def ones(
+    *dims: int,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.ones(dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def zeros(shape: Shape, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.zeros(shape, dtype)
+def zeros(
+    *dims: int,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.zeros(dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def full(shape: Shape, value: Scalar, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.full(shape, value, dtype)
+def full(
+    *dims: int,
+    value: Scalar,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.full(dims, value, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def randi(shape: Shape, low: int, high: int, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    dtype = factory_kwargs.get("dtype", int64)
-    data = device.backend.random.randint(low, high, shape, dtype)
+def randi(
+    *dims: int,
+    low: int,
+    high: int,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = int64,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.random.randint(low, high, dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def randn(shape: Shape, mean: float = 0, var: float = 1, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.random.normal(mean, var, shape).astype(dtype)
+def randn(
+    *dims: int,
+    mean: float = 0,
+    var: float = 1,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.random.normal(mean, var, dims).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def randu(shape: Shape, low: float = -1, high: float = 1, **factory_kwargs) -> Tensor:
-    device, dtype, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.random.uniform(low, high, shape).astype(dtype)
+def randu(
+    *dims: int,
+    low: float = -1,
+    high: float = 1,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
+) -> Tensor:
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.random.uniform(low, high, dims).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
-def randperm(n: int, **factory_kwargs):
-    device, _, requires_grad = _unpack_factory_kwargs(factory_kwargs)
-    data = device.backend.random.permutation(n)
+def randperm(
+    n: int,
+    device: Optional[Device] = None,
+    dtype: Optional[DType] = int64,
+    requires_grad: bool = False,
+):
+    device, dtype = _parse_factory_kwargs(device, dtype)
+    data = device.backend.random.permutation(n).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)

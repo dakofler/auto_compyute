@@ -168,8 +168,8 @@ class Linear(Module):
     def __init__(self, in_dim: int, out_dim: int, bias: bool = True) -> None:
         super().__init__()
         k = 1 / math.sqrt(in_dim)
-        self.w = Parameter(randu((out_dim, in_dim), -k, k))
-        self.b = None if not bias else Parameter(randu((out_dim,), -k, k))
+        self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k))
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.linear(x, self.w, self.b)
@@ -191,8 +191,10 @@ class Conv2D(Module):
         self.stride = stride
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
-        self.w = Parameter(randu((out_dim, in_dim, kernel_size, kernel_size), -k, k))
-        self.b = None if not bias else Parameter(randu((out_dim,), -k, k))
+        self.w = Parameter(
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k)
+        )
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
@@ -230,11 +232,11 @@ class MultiHeadSelfAttention(Module):
 
         qkv = self.qkv(x)
         q, k, v = qkv.split(D)
-        q = q.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
-        k = k.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
-        v = v.view((B, S, self.n_heads, D // self.n_heads)).transpose(1, 2)
+        q = q.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
+        k = k.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
+        v = v.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
         attn = F.scaled_dot_product_attention(q, k, v, self.mask, dropout)
-        attn = attn.transpose(1, 2).view((B, S, D))
+        attn = attn.transpose(1, 2).view(B, S, D)
         return self.out(attn)
 
 
@@ -243,10 +245,10 @@ class Batchnorm(Module):
         super().__init__()
         self.m = m
         self.eps = eps
-        self.w = Parameter(ones((in_dim,)))
-        self.b = Parameter(zeros((in_dim,)))
-        self.rmean = Buffer(zeros((in_dim,)))
-        self.rvar = Buffer(ones((in_dim,)))
+        self.w = Parameter(ones(in_dim))
+        self.b = Parameter(zeros(in_dim))
+        self.rmean = Buffer(zeros(in_dim))
+        self.rvar = Buffer(ones(in_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         y, rmean, rvar = F.batchnorm(
@@ -262,8 +264,8 @@ class Layernorm(Module):
         super().__init__()
         self.eps = eps
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
-        self.w = Parameter(ones(norm_shape))
-        self.b = Parameter(zeros(norm_shape))
+        self.w = Parameter(ones(*norm_shape))
+        self.b = Parameter(zeros(*norm_shape))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.layernorm(x, self.w, self.b, self.eps)
@@ -272,7 +274,7 @@ class Layernorm(Module):
 class Embedding(Module):
     def __init__(self, n_emb: int, emb_dim: int) -> None:
         super().__init__()
-        self.w = Parameter(randn((n_emb, emb_dim)))
+        self.w = Parameter(randn(n_emb, emb_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         return F.embedding(x, self.w)
@@ -289,4 +291,4 @@ class Dropout(Module):
 
 class Flatten(Module):
     def forward(self, x: Tensor) -> Tensor:
-        return x.view((x.shape[0], -1))
+        return x.view(x.shape[0], -1)

@@ -43,8 +43,8 @@ uint64 = np.uint64
 bool_ = np.bool_
 
 
-def select_dtype(device: Optional[DType]) -> DType:
-    return device if device is not None else float32
+def select_dtype(dtype: Optional[DType]) -> DType:
+    return dtype or float32
 
 
 def is_float(dtype: DType) -> bool:

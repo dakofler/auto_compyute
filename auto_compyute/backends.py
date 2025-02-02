@@ -60,7 +60,7 @@ def get_array_device(x: Array) -> Device:
 
 
 def select_device(device: Optional[Device]) -> Device:
-    return device if device is not None else cpu
+    return device or cpu
 
 
 def move_to_device(data: Array, device: Device) -> Array:

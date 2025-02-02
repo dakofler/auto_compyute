@@ -54,7 +54,7 @@ view_shapes = ((20, 10), (10, 10, 2))
 def test_view(x, shape):
     """View function test"""
     ac_x, torch_x = x
-    ac_y = ac_x.view(shape)
+    ac_y = ac_x.view(*shape)
     torch_y = torch_x.view(*shape)
     _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
 

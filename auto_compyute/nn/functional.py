@@ -75,7 +75,7 @@ def conv2d(
         w = apply_func(Dilate2D, w, dilation=dilation)
     y = apply_func(Conv2D, x, w, stride=stride)
     if b is not None:
-        y += b.view((*b.shape, 1, 1))
+        y += b.view(*b.shape, 1, 1)
     return y
 
 
@@ -124,11 +124,11 @@ def batchnorm(
         rmean = rmean * (1 - m) + mean.squeeze() * m
         rvar = rvar * (1 - m) + x.var(batch_dims) * m
     else:
-        mean = rmean.view((*rmean.shape, *ext_shape))
-        std = (rvar.view((*rvar.shape, *ext_shape)) + eps).sqrt()
+        mean = rmean.view(*rmean.shape, *ext_shape)
+        std = (rvar.view(*rvar.shape, *ext_shape) + eps).sqrt()
 
-    w = w.view((*w.shape, *ext_shape))
-    b = b.view((*b.shape, *ext_shape))
+    w = w.view(*w.shape, *ext_shape)
+    b = b.view(*b.shape, *ext_shape)
     y = (x - mean) / std * w + b
     return y, rmean, rvar
 

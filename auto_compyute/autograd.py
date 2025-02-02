@@ -242,10 +242,10 @@ class Tensor:
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
         return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
 
-    def view(self, shape) -> Tensor:
-        if shape == self.shape:
+    def view(self, *dims: int) -> Tensor:
+        if dims == self.shape:
             return self
-        return apply_func(View, self, shape=shape)
+        return apply_func(View, self, shape=dims)
 
     # ----------------------------------------------------------------------------------
     # OTHER METHODS
@@ -254,7 +254,7 @@ class Tensor:
     def as_type(self, dtype: DType) -> Tensor:
         if self.dtype == dtype:
             return self
-        data = self.data.astype(dtype)
+        data: Array = self.data.astype(dtype)
         if self.requires_grad:
             assert is_float(dtype), "Cannot change autograd node dtype to non float."
             new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
@@ -288,7 +288,7 @@ class Tensor:
         if self.grad is not None:
             self.grad = move_to_device(self.grad, device)
 
-    def item(self) -> Scalar:
+    def item(self) -> Any:
         return self.data.item()
 
     def self_like(self, x: Tensor | Scalar) -> Tensor:
@@ -348,9 +348,9 @@ def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
     assert root_node.requires_grad
 
     try:
-        from mermaid import Mermaid
-    except ModuleNotFoundError:
-        raise ModuleNotFoundError("Install mermaid-python to draw graphs.")
+        from mermaid import Mermaid  # type: ignore
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError("Install mermaid-python to draw graphs.") from exc
 
     colors = {
         "const": ("#CAEDFB", "#4D93D9"),
