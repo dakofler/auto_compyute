@@ -58,6 +58,10 @@ class Tensor:
         return self.data.shape
 
     @property
+    def size(self) -> int:
+        return self.data.size
+
+    @property
     def T(self) -> Tensor:
         return self.transpose(-2, -1)
 
@@ -405,7 +409,7 @@ def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
     mermaid_script = _build_mermaid_script(root_node, mermaid_script)
     mermaid_html = Mermaid(mermaid_script)
     if save_to_file:
-        with open("compute_graph.html", "w") as f:
+        with open("compute_graph.html", "w", encoding="utf-8") as f:
             f.write(mermaid_html._repr_html_())
     else:
         return mermaid_html

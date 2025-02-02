@@ -14,16 +14,10 @@ Shape = tuple[int, ...]
 Dim = int | tuple[int, ...]
 
 MAX_LINE_WIDTH = 200
-PRECISION = 4
+PREC = 4
 FLOATMODE = "maxprec_equal"
-
-numpy.set_printoptions(
-    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-)
-
-cupy.set_printoptions(
-    precision=PRECISION, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-)
+numpy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
+cupy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 
 
 def gpu_available():
@@ -37,32 +31,35 @@ def set_random_seed(seed: int):
 
 
 class Device:
-    def __init__(self, device_type: str):
-        device_type, device_id = _get_type_and_id(device_type)
-        self.device_type = device_type
-        self.device_id = device_id
-        self.backend = numpy if device_type == "cpu" else cupy
+    def __init__(self, dev_type: str):
+        dev_type, dev_id = _get_type_and_id(dev_type)
+        self.dev_type = dev_type
+        self.dev_id = dev_id
+        self.backend = numpy if dev_type == "cpu" else cupy
 
     def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, Device)
-            and other.device_type == self.device_type
-            and other.device_id == self.device_id
+            and other.dev_type == self.dev_type
+            and other.dev_id == self.dev_id
         )
 
     def __repr__(self):
-        id_suffix = f":{self.device_id}" if self.device_type == "cuda" else ""
-        return f"Device({self.device_type}{id_suffix})"
+        id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
+        return f"Device({self.dev_type}{id_suffix})"
 
     def __enter__(self) -> None:
-        if self.device_type == "cpu":
+        if self.dev_type == "cpu":
             return None
-        return cupy.cuda.Device(self.device_id).__enter__()
+        return cupy.cuda.Device(self.dev_id).__enter__()
 
     def __exit__(self, *args: Any) -> None:
-        if self.device_type == "cpu":
+        if self.dev_type == "cpu":
             return None
-        return cupy.cuda.Device(self.device_id).__exit__(*args)
+        return cupy.cuda.Device(self.dev_id).__exit__(*args)
+
+
+DeviceLike: TypeAlias = Device | str
 
 
 def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
@@ -74,9 +71,6 @@ def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
         device_id = match.group("id")
         return (device_type, None if device_id is None else int(device_id))
     raise ValueError(f"Unknown device: {device_type}")
-
-
-DeviceLike: TypeAlias = Device | str
 
 
 def get_array_device(x: Array) -> Device:
@@ -100,7 +94,7 @@ def array_to_string(data: Array, prefix: str) -> str:
     return device.backend.array2string(
         data,
         max_line_width=MAX_LINE_WIDTH,
-        precision=PRECISION,
+        precision=PREC,
         separator=", ",
         prefix=prefix,
         floatmode=FLOATMODE,

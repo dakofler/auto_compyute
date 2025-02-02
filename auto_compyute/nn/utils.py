@@ -6,6 +6,8 @@ from ..autograd import Tensor
 from ..backends import Device, DeviceLike
 from ..tensor_factory import arange, randperm
 
+__all__ = ["Dataloader"]
+
 
 class Dataloader:
     def __init__(
