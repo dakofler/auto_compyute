@@ -3,13 +3,14 @@
 import math
 from typing import Optional
 
-from ..autograd import Tensor, apply_func
+from ..autograd import Tensor, _parse_key, apply_func
 from .funcs import (
     GELU,
     Conv2D,
     CrossEntropyLoss,
     Dilate2D,
     Dropout,
+    Embedding,
     Layernorm,
     Linear,
     Maxpool2D,
@@ -144,6 +145,16 @@ def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
     if not training or p == 0:
         return x
     return apply_func(Dropout, x, p=p)
+
+
+# -------------------------------------------------------------------------------------
+# EMBEDDING FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
+    key = _parse_key(x)
+    return apply_func(Embedding, emb_table, key=key)
 
 
 # -------------------------------------------------------------------------------------

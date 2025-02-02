@@ -7,6 +7,7 @@ from typing import Optional
 from ..backends import Array, Shape
 from ..funcs.binary_funcs import Maximum
 from ..funcs.function import Function
+from ..funcs.shape_funcs import Select
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTIONS
@@ -256,6 +257,14 @@ class Dropout(Function):
         p, dropout_mask = self.cache.retrieve()
         dx = dy * dropout_mask / p
         return (dx,)
+
+
+# -------------------------------------------------------------------------------------
+# EMBEDDING FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+class Embedding(Select): ...
 
 
 # -------------------------------------------------------------------------------------
