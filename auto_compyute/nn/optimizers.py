@@ -49,13 +49,14 @@ class SGD(Optimizer):
             if param.grad is None:
                 continue
 
+            state = self._state[i]
+            grad = param.grad
+
             if self.momentum > 0:
-                v_prev = self._state[i].get("v", 0)
-                v = self.momentum * v_prev + param.grad
-                self._state[i]["v"] = v
-                param.data -= self.learning_rate * v
-            else:
-                param.data -= self.learning_rate * param.grad
+                state["v"] = grad + self.momentum * state.get("v", 0)
+                grad = state["v"]
+
+            param.data -= self.learning_rate * grad
 
         self._t += 1
 
@@ -82,19 +83,11 @@ class Adam(Optimizer):
             if param.grad is None:
                 continue
 
-            # first moment estimate (exponential moving average)
-            m_prev = self._state[i].get("m", 0)
-            m = self.beta1 * m_prev + (1 - self.beta1) * param.grad
-            self._state[i]["m"] = m
-
-            # second moment estimate (squared gradient)
-            v_prev = self._state[i].get("v", 0)
-            v = self.beta2 * v_prev + (1 - self.beta2) * param.grad**2
-            self._state[i]["v"] = v
-
-            m = m / m_div
-            v = v / v_div
-            param.data -= self.learning_rate * m / (v**0.5 + self.eps)
+            state = self._state[i]
+            grad = param.grad
+            state["m"] = m = state.get("m", 0) * self.beta1 + grad * (1 - self.beta1)
+            state["v"] = v = state.get("v", 0) * self.beta2 + grad**2 * (1 - self.beta2)
+            param.data -= self.learning_rate * (m / m_div) / (v**0.5 / v_div + self.eps)
 
         self._t += 1
 
@@ -118,25 +111,17 @@ class AdamW(Optimizer):
     def step(self):
         m_div = 1 - self.beta1**self._t
         v_div = 1 - self.beta2**self._t
+        weight_decay_modifier = 1 - self.learning_rate * self.weight_decay
 
         for i, param in enumerate(self._parameters):
             if param.grad is None:
                 continue
 
-            param.data *= 1 - self.learning_rate * self.weight_decay
-
-            # first moment estimate (exponential moving average)
-            m_prev = self._state[i].get("m", 0)
-            m = self.beta1 * m_prev + (1 - self.beta1) * param.grad
-            self._state[i]["m"] = m
-
-            # second moment estimate (squared gradient)
-            v_prev = self._state[i].get("v", 0)
-            v = self.beta2 * v_prev + (1 - self.beta2) * param.grad**2
-            self._state[i]["v"] = v
-
-            m = m / m_div
-            v = v / v_div
-            param.data -= self.learning_rate * m / (v**0.5 + self.eps)
+            param.data *= weight_decay_modifier
+            state = self._state[i]
+            grad = param.grad
+            state["m"] = m = state.get("m", 0) * self.beta1 + grad * (1 - self.beta1)
+            state["v"] = v = state.get("v", 0) * self.beta2 + grad**2 * (1 - self.beta2)
+            param.data -= self.learning_rate * (m / m_div) / (v**0.5 / v_div + self.eps)
 
         self._t += 1

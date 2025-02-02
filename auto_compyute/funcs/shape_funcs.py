@@ -10,12 +10,12 @@ from .function import Function
 class Concat(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
         self.cache.save(dim, [a.shape[dim] for a in arrays])
-        return self.m.concatenate(arrays, dim)
+        return self.backend.concatenate(arrays, dim)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, split_sizes = self.cache.retrieve()
         split_indices = list(accumulate(s for s in split_sizes))
-        return tuple(self.m.split(dy, split_indices, dim))
+        return tuple(self.backend.split(dy, split_indices, dim))
 
 
 class Select(Function):
@@ -25,8 +25,8 @@ class Select(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape, key = self.cache.retrieve()
-        dx = self.m.zeros(x_shape, dtype=dy.dtype)
-        self.m.add.at(dx, key, dy)
+        dx = self.backend.zeros(x_shape, dtype=dy.dtype)
+        self.backend.add.at(dx, key, dy)
         return (dx,)
 
 
@@ -36,11 +36,11 @@ class Split(Select): ...
 class Stack(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
         self.cache.save(dim)
-        return self.m.stack(arrays, dim)
+        return self.backend.stack(arrays, dim)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim = self.cache.retrieve()
-        return tuple(self.m.moveaxis(dy, dim, 0))
+        return tuple(self.backend.moveaxis(dy, dim, 0))
 
 
 class Transpose(Function):

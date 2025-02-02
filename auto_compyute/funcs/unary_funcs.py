@@ -6,20 +6,20 @@ from .function import Function
 
 class Abs(Function):
     def forward(self, x: Array) -> Array:
-        y = self.m.absolute(x)
+        y = self.backend.absolute(x)
         self.cache.save(y != x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         mask = self.cache.retrieve()
         dx = dy
-        self.m.multiply.at(dx, mask, -1)
+        self.backend.multiply.at(dx, mask, -1)
         return (dx,)
 
 
 class Exp(Function):
     def forward(self, x: Array) -> Array:
-        y = self.m.exp(x)
+        y = self.backend.exp(x)
         self.cache.save(y)
         return y
 
@@ -42,7 +42,7 @@ class Pow(Function):
 
 class Sqrt(Function):
     def forward(self, x: Array) -> Array:
-        y = self.m.sqrt(x)
+        y = self.backend.sqrt(x)
         self.cache.save(y)
         return y
 
@@ -54,7 +54,7 @@ class Sqrt(Function):
 
 class Tanh(Function):
     def forward(self, x: Array) -> Array:
-        y = self.m.tanh(x)
+        y = self.backend.tanh(x)
         self.cache.save(y)
         return y
 
@@ -66,7 +66,7 @@ class Tanh(Function):
 
 class Tril(Function):
     def forward(self, x: Array, diag: int) -> Array:
-        y = self.m.tril(x, diag)
+        y = self.backend.tril(x, diag)
         self.cache.save(y == x)
         return y
 
@@ -78,7 +78,7 @@ class Tril(Function):
 
 class Triu(Function):
     def forward(self, x: Array, diag: int) -> Array:
-        y = self.m.triu(x, diag)
+        y = self.backend.triu(x, diag)
         self.cache.save(y == x)
         return y
 

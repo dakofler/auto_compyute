@@ -121,7 +121,7 @@ class Tensor:
 
         # set node grad
         if dy is None:
-            self.grad = self.device.m.ones(self.shape, dtype=self.dtype)
+            self.grad = self.device.backend.ones(self.shape, dtype=self.dtype)
         else:
             assert isinstance(dy, Array)
             self.grad = dy
@@ -293,7 +293,7 @@ class Tensor:
     def self_like(self, x: Tensor | Scalar) -> Tensor:
         if isinstance(x, Tensor):
             return x.as_type(self.dtype)
-        return Tensor(self.device.m.asarray(x, dtype=self.dtype))
+        return Tensor(self.device.backend.asarray(x, dtype=self.dtype))
 
 
 def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:

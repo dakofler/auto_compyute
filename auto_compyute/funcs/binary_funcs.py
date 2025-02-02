@@ -50,25 +50,25 @@ class Div(Function):
         dx1 = dy / x2
         if x2_requires_grad:
             return (dx1,)
-        dx2 = dy * x1 * -(x2**-2)
+        dx2 = -(dy * x1) / (x2 * x2)
         return (dx1, dx2)
 
 
 class Matmul(Function):
     def forward(self, x1: Array, x2: Array) -> Array:
         self.cache.save(x1, x2)
-        return self.m.einsum("...ij,...jk->...ik", x1, x2)
+        return x1 @ x2
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x1, x2 = self.cache.retrieve()
-        dx1 = self.m.einsum("...ik,...jk->...ij", dy, x2)
-        dx2 = self.m.einsum("...ij,...ik->...jk", x1, dy)
+        dx1 = dy @ x2.swapaxes(-1, -2)
+        dx2 = x1.swapaxes(-1, -2) @ dy
         return dx1, dx2
 
 
 class Maximum(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        y = self.m.maximum(x1, x2)
+        y = self.backend.maximum(x1, x2)
         self.cache.save(x2_requires_grad, y == x1)
         return y
 
@@ -77,13 +77,13 @@ class Maximum(Function):
         dx1 = dy * mask
         if x2_requires_grad:
             return (dx1,)
-        dx2 = dy * self.m.invert(mask)
+        dx2 = dy * self.backend.invert(mask)
         return dx1, dx2
 
 
 class Minimum(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        y = self.m.minimum(x1, x2)
+        y = self.backend.minimum(x1, x2)
         self.cache.save(x2_requires_grad, y == x1)
         return y
 
@@ -92,5 +92,5 @@ class Minimum(Function):
         dx1 = dy * mask
         if x2_requires_grad:
             return (dx1,)
-        dx2 = dy * self.m.invert(mask)
+        dx2 = dy * self.backend.invert(mask)
         return dx1, dx2

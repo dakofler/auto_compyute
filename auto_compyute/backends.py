@@ -37,18 +37,18 @@ def set_random_seed(seed: int):
 
 
 class Device:
-    m: ModuleType = numpy
+    backend: ModuleType = numpy
 
     def __repr__(self):
         return f"Device({self.__class__.__name__})"
 
 
 class CPU(Device):
-    m = numpy
+    backend = numpy
 
 
 class CUDA(Device):
-    m = cupy
+    backend = cupy
 
 
 cpu = CPU()
@@ -71,7 +71,7 @@ def move_to_device(data: Array, device: Device) -> Array:
 
 def array_to_string(data: Array, prefix: str) -> str:
     device = get_array_device(data)
-    return device.m.array2string(
+    return device.backend.array2string(
         data,
         max_line_width=MAX_LINE_WIDTH,
         precision=PRECISION,

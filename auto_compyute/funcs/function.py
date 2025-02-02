@@ -27,7 +27,7 @@ class DummyCache(Cache):
 
 class Function(ABC):
     def __init__(self, device: Device) -> None:
-        self.m = device.m
+        self.backend = device.backend
         self.cache: Cache = DummyCache()
 
     @property

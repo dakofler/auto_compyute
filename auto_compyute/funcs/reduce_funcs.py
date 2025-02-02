@@ -15,7 +15,7 @@ class Sum(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape = self.cache.retrieve()
-        dx = self.m.broadcast_to(dy, x_shape)
+        dx = self.backend.broadcast_to(dy, x_shape)
         return (dx,)
 
 
@@ -29,7 +29,7 @@ class Mean(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape, size = self.cache.retrieve()
-        dx = self.m.broadcast_to(dy / size, x_shape)
+        dx = self.backend.broadcast_to(dy / size, x_shape)
         return (dx,)
 
 
@@ -43,7 +43,7 @@ class Var(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, dim, n = self.cache.retrieve()
-        dx = dy * 2 * (x - x.mean(dim, keepdims=True)) / n
+        dx = dy * 2.0 * (x - x.mean(dim, keepdims=True)) / n
         return (dx,)
 
 
@@ -71,7 +71,7 @@ class Max(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, keepdims, mask = self.cache.retrieve()
         if not keepdims and dim is not None:
-            dy = self.m.expand_dims(dy, dim)
+            dy = self.backend.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, keepdims=True)
         return (dx,)
 
@@ -85,6 +85,6 @@ class Min(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, keepdims, mask = self.cache.retrieve()
         if not keepdims and dim is not None:
-            dy = self.m.expand_dims(dy, dim)
+            dy = self.backend.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, keepdims=True)
         return (dx,)
