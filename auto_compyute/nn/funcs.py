@@ -23,6 +23,7 @@ class GELU(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x = self.cache.retrieve()
+        # recompute to save memory
         tanh_term = self.backend.tanh(x * 0.7978845608 * (1.0 + 0.044715 * x * x))
         dx1 = 1.0 + tanh_term
         dx2 = x * (1.0 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
@@ -218,7 +219,7 @@ class Layernorm(Function):
 
         mean = x.sum(f_dims, keepdims=True) / n
         xshift = x - mean
-        var = (xshift**2).sum(f_dims, keepdims=True) / n
+        var = (xshift * xshift).sum(f_dims, keepdims=True) / n
         rstd = (var + eps) ** -0.5
         x_norm = xshift * rstd
         y = x_norm * w + b

@@ -60,7 +60,7 @@ class Tanh(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         y = self.cache.retrieve()
-        dx = dy * (1 - y**2)
+        dx = dy * (1.0 - y * y)
         return (dx,)
 
 

@@ -23,7 +23,7 @@ from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Split, Transpose, View
 from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
 
-__all__ = ["Tensor", "no_grad"]
+__all__ = ["Tensor", "no_autograd_tracing"]
 
 
 class Tensor:
@@ -137,6 +137,7 @@ class Tensor:
                     continue
                 grad = _undo_broadcast(grad, parent.shape)
                 parent.apply_grad(grad)
+            node.grad, node.ctx, node.parents = None, None, None
 
     # ----------------------------------------------------------------------------------
     # UNARY OPS
@@ -335,7 +336,7 @@ def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
     tensor_args = tuple(a for a in args if isinstance(a, Tensor))
     ctx = funcion(tensor_args[0].device)
     function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
-    if autograd_active and any(a.requires_grad for a in tensor_args):
+    if autograd_tracing_active and any(a.requires_grad for a in tensor_args):
         ctx.cache = Cache()
         data = ctx.forward(*function_args, **kwargs)
         return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)
@@ -415,18 +416,18 @@ def _parse_key(key: Any) -> Any:
     return key
 
 
-autograd_active = True
+autograd_tracing_active = True
 
 
-def set_autograd_mode(active: bool) -> None:
-    global autograd_active
-    autograd_active = active
+def set_autograd__tracing_mode(active: bool) -> None:
+    global autograd_tracing_active
+    autograd_tracing_active = active
 
 
 @contextmanager
-def no_grad() -> Generator:
-    set_autograd_mode(False)
+def no_autograd_tracing() -> Generator:
+    set_autograd__tracing_mode(False)
     try:
         yield
     finally:
-        set_autograd_mode(True)
+        set_autograd__tracing_mode(True)
