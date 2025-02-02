@@ -69,8 +69,8 @@ split_dims = (0, 1, -1)
 def test_split(x, split_size, dim):
     """Split function test"""
     ac_x, torch_x = x
-    ac_ys = ac_x.split(split_size, dim)
-    torch_ys = torch_x.split(split_size, dim)
+    ac_ys = ac_x.split(split_size, dim=dim)
+    torch_ys = torch_x.split(split_size, dim=dim)
     for ac_y, torch_y in zip(ac_ys, torch_ys):
         _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
 

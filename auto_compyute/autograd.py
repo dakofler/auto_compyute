@@ -121,7 +121,7 @@ class Tensor:
         self.grad = grad if self.grad is None else self.grad + grad
 
     def backward(self, dy: Optional[Array] = None):
-        assert self.requires_grad
+        assert self.requires_grad, "Node not in autograd graph"
         assert self.grad is None, "Cannot run backward multiple times."
 
         # set node grad
@@ -131,17 +131,19 @@ class Tensor:
             assert isinstance(dy, Array)
             self.grad = dy
 
-        # run backward
+        # run backward through traced graph
         node_queue = build_backward_queue(self, [], set())
         for node in reversed(node_queue):
-            assert node.ctx is not None, node.shape
-            assert node.parents is not None, node.shape
+            assert node.ctx is not None, "Node has no function context"
+            assert node.parents is not None, "Node has no parent nodes"
             grads = node.ctx.backward(node.grad)
             for parent, grad in zip(node.parents, grads):
                 if not parent.requires_grad:
                     continue
                 grad = _undo_broadcast(grad, parent.shape)
                 parent.apply_grad(grad)
+
+            # clear context of intermediate nodes
             node.grad, node.ctx, node.parents = None, None, None
 
     # ----------------------------------------------------------------------------------
@@ -197,26 +199,26 @@ class Tensor:
     # REDUCE OPS
     # ----------------------------------------------------------------------------------
 
-    def sum(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+    def sum(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         return apply_func(Sum, self, dim=dim, keepdims=keepdims)
 
-    def mean(self, dim: Optional[Dim] = None, keepdims: bool = False) -> Tensor:
+    def mean(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         return apply_func(Mean, self, dim=dim, keepdims=keepdims)
 
     def var(
-        self, dim: Optional[Dim] = None, ddof: int = 1, keepdims: bool = False
+        self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Tensor:
         return apply_func(Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def std(
-        self, dim: Optional[Dim] = None, ddof: int = 1, keepdims: bool = False
+        self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Tensor:
         return apply_func(Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
-    def max(self, dim: Optional[int] = None, keepdims: bool = False) -> Tensor:
+    def max(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Tensor:
         return apply_func(Max, self, dim=dim, keepdims=keepdims)
 
-    def min(self, dim: Optional[int] = None, keepdims: bool = False) -> Tensor:
+    def min(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Tensor:
         return apply_func(Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
@@ -231,7 +233,7 @@ class Tensor:
         key = _parse_key(key)
         return apply_func(Split, self, key=key)
 
-    def split(self, split_size: int, dim: int = -1) -> list[Tensor]:
+    def split(self, split_size: int, *, dim: int = -1) -> list[Tensor]:
         dim = dim % self.ndim
         pre_dim_slice = (slice(None),) * dim
         post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
@@ -341,13 +343,20 @@ def build_backward_queue(
 
 def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
     tensor_args = tuple(a for a in args if isinstance(a, Tensor))
-    ctx = funcion(tensor_args[0].device)
     function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
+    device = tensor_args[0].device
+    ctx = funcion(tensor_args[0].device)
+
+    # add autograd context to resulting node
     if autograd_tracing_active and any(a.requires_grad for a in tensor_args):
         ctx.cache = Cache()
-        data = ctx.forward(*function_args, **kwargs)
+        with device:
+            data = ctx.forward(*function_args, **kwargs)
         return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)
-    data = ctx.forward(*function_args, **kwargs)
+
+    # just compute forward pass without adding context
+    with device:
+        data = ctx.forward(*function_args, **kwargs)
     return Tensor(data)
 
 
