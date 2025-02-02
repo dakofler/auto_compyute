@@ -21,7 +21,7 @@ from .dtypes import DType, float32, int32, int64, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Cache, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
-from .funcs.shape_funcs import Select, Split, Transpose, View
+from .funcs.shape_funcs import Select, Split, Squeeze, Transpose, View
 from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
 
 __all__ = ["Tensor", "no_autograd_tracing"]
@@ -243,8 +243,10 @@ class Tensor:
         ]
 
     def squeeze(self) -> Tensor:
-        non_one_dims = tuple(d for d in self.shape if d > 1)
-        return apply_func(View, self, shape=non_one_dims)
+        non_singular_dims = tuple(d for d in self.shape if d > 1)
+        if len(non_singular_dims) == self.ndim:
+            return self
+        return apply_func(Squeeze, self, shape=non_singular_dims)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
         return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
@@ -361,7 +363,7 @@ def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
 
 
 def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
-    assert root_node.requires_grad
+    assert root_node.requires_grad, "Node not in autograd graph"
 
     try:
         from mermaid import Mermaid  # type: ignore

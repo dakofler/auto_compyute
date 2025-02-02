@@ -63,3 +63,6 @@ class View(Function):
         x_shape = self.cache.retrieve()
         dx = dy.reshape(x_shape)
         return (dx,)
+
+
+class Squeeze(View): ...
