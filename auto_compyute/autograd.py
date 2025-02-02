@@ -167,25 +167,25 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, x)
+        return apply_func(Add, self, self.self_like(x), isinstance(x, Scalar))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Sub, self, x)
+        return apply_func(Sub, self, self.self_like(x), isinstance(x, Scalar))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, x)
+        return apply_func(Mul, self, self.self_like(x), isinstance(x, Scalar))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Div, self, x)
+        return apply_func(Div, self, self.self_like(x), isinstance(x, Scalar))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, self.self_like(x))
+        return apply_func(Matmul, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, x)
+        return apply_func(Maximum, self, self.self_like(x), isinstance(x, Scalar))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, x)
+        return apply_func(Minimum, self, self.self_like(x), isinstance(x, Scalar))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
