@@ -13,7 +13,7 @@ Whether you're exploring the fundamentals of autograd or developing deep learnin
 
 ## ToDos
 
+- Batchnorm as Function
+- Conv1D, ConvTranspose1D, ConvTranspose2D
 - RNN, LSTM, GRU
 - RMSNorm
-- Conv1D, ConvTranspose1D, ConvTranspose2D 
-- GELU, Sigmoid
