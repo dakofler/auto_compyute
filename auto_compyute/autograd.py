@@ -18,7 +18,7 @@ from .backends import (
 )
 from .dtypes import DType, float32, int32, int64, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
-from .funcs.function import Context, Function
+from .funcs.function import Cache, Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Split, Transpose, View
 from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
@@ -115,16 +115,16 @@ class Tensor:
     def apply_grad(self, grad: Array) -> None:
         self.grad = grad if self.grad is None else self.grad + grad
 
-    def backward(self, output_grad: Optional[Array] = None):
+    def backward(self, dy: Optional[Array] = None):
         assert self.requires_grad
         assert self.grad is None, "Cannot run backward multiple times."
 
         # set node grad
-        if output_grad is None:
+        if dy is None:
             self.grad = self.device.m.ones(self.shape, dtype=self.dtype)
         else:
-            assert isinstance(output_grad, Array)
-            self.grad = output_grad
+            assert isinstance(dy, Array)
+            self.grad = dy
 
         # run backward
         node_queue = _build_backward_queue(self, [], set())
@@ -339,7 +339,7 @@ def apply_func(funcion: type[Function], *tensors: Tensor, **kwargs: Any) -> Tens
     ctx = funcion(tensors[0].device)
     arrays = tuple(t.data for t in tensors)
     if autograd_active and any(t.requires_grad for t in tensors):
-        ctx.ctx = Context()
+        ctx.cache = Cache()
         data = ctx.forward(*arrays, **kwargs)
         return Tensor(data, ctx=ctx, parents=tensors, requires_grad=True)
     data = ctx.forward(*arrays, **kwargs)

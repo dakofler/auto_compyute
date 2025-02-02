@@ -65,5 +65,6 @@ def test_layernorm(x, w, b):
     ac_w, torch_w = w
     ac_b, torch_b = b
     ac_y = F.layernorm(ac_x, ac_w, ac_b, 1e-5)
-    torch_y = tF.layer_norm(torch_x, torch_x.shape[-1:], torch_w, torch_b, 1e-5)
+    torch_norm_shape = (torch_x.shape[-1],)
+    torch_y = tF.layer_norm(torch_x, torch_norm_shape, torch_w, torch_b, 1e-5)
     _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)

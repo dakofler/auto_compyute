@@ -7,12 +7,12 @@ from .function import Function
 class Abs(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.absolute(x)
-        self.ctx.save(y != x)
+        self.cache.save(y != x)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        mask = self.ctx.retrieve()
-        dx = output_grad
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        mask = self.cache.retrieve()
+        dx = dy
         self.m.multiply.at(dx, mask, -1)
         return (dx,)
 
@@ -20,69 +20,69 @@ class Abs(Function):
 class Exp(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.exp(x)
-        self.ctx.save(y)
+        self.cache.save(y)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        y = self.ctx.retrieve()
-        dx = output_grad * y
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        y = self.cache.retrieve()
+        dx = dy * y
         return (dx,)
 
 
 class Pow(Function):
     def forward(self, x: Array, exp: Scalar) -> Array:
-        self.ctx.save(x, exp)
+        self.cache.save(x, exp)
         return x**exp
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x, exp = self.ctx.retrieve()
-        dx = output_grad * exp * x ** (exp - 1)
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x, exp = self.cache.retrieve()
+        dx = dy * exp * x ** (exp - 1)
         return (dx,)
 
 
 class Sqrt(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.sqrt(x)
-        self.ctx.save(y)
+        self.cache.save(y)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        y = self.ctx.retrieve()
-        dx = output_grad * 0.5 / y
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        y = self.cache.retrieve()
+        dx = dy * 0.5 / y
         return (dx,)
 
 
 class Tanh(Function):
     def forward(self, x: Array) -> Array:
         y = self.m.tanh(x)
-        self.ctx.save(y)
+        self.cache.save(y)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        y = self.ctx.retrieve()
-        dx = output_grad * (1 - y**2)
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        y = self.cache.retrieve()
+        dx = dy * (1 - y**2)
         return (dx,)
 
 
 class Tril(Function):
     def forward(self, x: Array, diag: int) -> Array:
         y = self.m.tril(x, diag)
-        self.ctx.save(y == x)
+        self.cache.save(y == x)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        mask = self.ctx.retrieve()
-        dx = output_grad * mask
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        mask = self.cache.retrieve()
+        dx = dy * mask
         return (dx,)
 
 
 class Triu(Function):
     def forward(self, x: Array, diag: int) -> Array:
         y = self.m.triu(x, diag)
-        self.ctx.save(y == x)
+        self.cache.save(y == x)
         return y
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        mask = self.ctx.retrieve()
-        dx = output_grad * mask
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        mask = self.cache.retrieve()
+        dx = dy * mask
         return (dx,)

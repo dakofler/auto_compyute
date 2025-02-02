@@ -271,9 +271,10 @@ class Batchnorm(Module):
 
 
 class Layernorm(Module):
-    def __init__(self, norm_shape: Shape, eps: float = 1e-5) -> None:
+    def __init__(self, norm_shape: int | Shape, eps: float = 1e-5) -> None:
         super().__init__()
         self.eps = eps
+        norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
         self.w = Parameter(ones(norm_shape))
         self.b = Parameter(zeros(norm_shape))
 

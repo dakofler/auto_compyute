@@ -6,7 +6,7 @@ from typing import Any, Optional
 from ..backends import Array, Device
 
 
-class Context:
+class Cache:
     def __init__(self):
         self.vals: Optional[tuple[Any, ...]] = None
 
@@ -20,7 +20,7 @@ class Context:
         return values
 
 
-class PseudoContext(Context):
+class DummyCache(Cache):
     def save(self, *args: Any) -> None:
         pass
 
@@ -28,7 +28,7 @@ class PseudoContext(Context):
 class Function(ABC):
     def __init__(self, device: Device) -> None:
         self.m = device.m
-        self.ctx: Context = PseudoContext()
+        self.cache: Cache = DummyCache()
 
     @property
     def name(self) -> str:

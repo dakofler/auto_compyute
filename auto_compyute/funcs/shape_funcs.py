@@ -9,24 +9,24 @@ from .function import Function
 
 class Concat(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
-        self.ctx.save(dim, [a.shape[dim] for a in arrays])
+        self.cache.save(dim, [a.shape[dim] for a in arrays])
         return self.m.concatenate(arrays, dim)
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dim, split_sizes = self.ctx.retrieve()
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        dim, split_sizes = self.cache.retrieve()
         split_indices = list(accumulate(s for s in split_sizes))
-        return tuple(self.m.split(output_grad, split_indices, dim))
+        return tuple(self.m.split(dy, split_indices, dim))
 
 
 class Select(Function):
     def forward(self, x: Array, key: Any) -> Array:
-        self.ctx.save(x.shape, key)
+        self.cache.save(x.shape, key)
         return x[key]
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x_shape, key = self.ctx.retrieve()
-        dx = self.m.zeros(x_shape, dtype=output_grad.dtype)
-        self.m.add.at(dx, key, output_grad)
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x_shape, key = self.cache.retrieve()
+        dx = self.m.zeros(x_shape, dtype=dy.dtype)
+        self.m.add.at(dx, key, dy)
         return (dx,)
 
 
@@ -35,31 +35,31 @@ class Split(Select): ...
 
 class Stack(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
-        self.ctx.save(dim)
+        self.cache.save(dim)
         return self.m.stack(arrays, dim)
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dim = self.ctx.retrieve()
-        return tuple(self.m.moveaxis(output_grad, dim, 0))
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        dim = self.cache.retrieve()
+        return tuple(self.m.moveaxis(dy, dim, 0))
 
 
 class Transpose(Function):
     def forward(self, x: Array, dim1, dim2) -> Array:
-        self.ctx.save(dim1, dim2)
+        self.cache.save(dim1, dim2)
         return x.swapaxes(dim1, dim2)
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        dim1, dim2 = self.ctx.retrieve()
-        dx = output_grad.swapaxes(dim1, dim2)
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        dim1, dim2 = self.cache.retrieve()
+        dx = dy.swapaxes(dim1, dim2)
         return (dx,)
 
 
 class View(Function):
     def forward(self, x: Array, shape: Shape) -> Array:
-        self.ctx.save(x.shape)
+        self.cache.save(x.shape)
         return x.reshape(shape)
 
-    def backward(self, output_grad: Array) -> tuple[Array, ...]:
-        x_shape = self.ctx.retrieve()
-        dx = output_grad.reshape(x_shape)
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x_shape = self.cache.retrieve()
+        dx = dy.reshape(x_shape)
         return (dx,)
