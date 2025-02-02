@@ -7,16 +7,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
-import cupy
-
 from ..autograd import Tensor
 from ..backends import Device, Shape
-from ..dtypes import DType, is_int
+from ..dtypes import DType
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
-
-# free, total = cupy.cuda.Device(0).mem_info
-# mem = total - free
 
 __all__ = [
     "Parameter",
@@ -73,14 +68,6 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     def __call__(self, x: Tensor) -> Tensor:
-        # y = self.forward(x)
-        # free, total = cupy.cuda.Device(0).mem_info
-        # usage = total - free
-        # global mem
-        # delta = usage - mem
-        # print(f"{self.__class__.__name__:30s} | {delta:_}")
-        # mem = usage
-        # return y
         return self.forward(x)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -288,8 +275,7 @@ class Embedding(Module):
         self.w = Parameter(randn((n_emb, emb_dim)))
 
     def forward(self, x: Tensor) -> Tensor:
-        assert is_int(x.dtype)
-        return self.w[x]
+        return F.embedding(x, self.w)
 
 
 class Dropout(Module):

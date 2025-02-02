@@ -4,6 +4,7 @@ import math
 from typing import Optional
 
 from ..autograd import Tensor, _parse_key, apply_func
+from ..dtypes import is_int
 from .funcs import (
     GELU,
     Conv2D,
@@ -153,6 +154,7 @@ def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
 
 
 def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
+    assert is_int(x.dtype)
     key = _parse_key(x)
     return apply_func(Embedding, emb_table, key=key)
 
