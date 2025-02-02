@@ -159,5 +159,4 @@ def mse_loss(logits: Tensor, targets: Tensor):
 
 
 def cross_entropy(logits: Tensor, targets: Tensor, eta: float = 1e-8):
-    assert targets.dtype == int64
     return apply_func(CrossEntropyLoss, logits, targets, eta=eta)

@@ -17,8 +17,6 @@ __all__ = [
     "uint32",
     "uint64",
     "bool_",
-    "complex64",
-    "complex128",
 ]
 
 DType: TypeAlias = type
@@ -44,14 +42,14 @@ uint64 = np.uint64
 # Boolean type
 bool_ = np.bool_
 
-# Complex types
-complex64 = np.complex64
-complex128 = np.complex128
-
 
 def select_dtype(device: Optional[DType]) -> DType:
     return device if device is not None else float32
 
 
 def is_float(dtype: DType) -> bool:
-    return dtype in {float16, float32, float64}
+    return any(dtype == d for d in [float16, float32, float64])
+
+
+def is_int(dtype: DType) -> bool:
+    return any(dtype == d for d in [int16, int32, int64])

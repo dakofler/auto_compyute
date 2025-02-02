@@ -9,7 +9,7 @@ from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
 from ..backends import Device, Shape
-from ..dtypes import DType, int64
+from ..dtypes import DType, is_int
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
 
@@ -288,7 +288,7 @@ class Embedding(Module):
         self.w = Parameter(randn((n_emb, emb_dim)))
 
     def forward(self, x: Tensor) -> Tensor:
-        assert x.dtype == int64
+        assert is_int(x.dtype)
         return self.w[x]
 
 
