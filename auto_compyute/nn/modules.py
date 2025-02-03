@@ -20,6 +20,9 @@ __all__ = [
     "Modulelist",
     "Sequential",
     "ReLU",
+    "LeakyReLU",
+    "Sigmoid",
+    "Tanh",
     "Linear",
     "Conv2D",
     "MaxPooling2D",
@@ -152,6 +155,15 @@ class GELU(Module):
 class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         return F.relu(x)
+
+
+class LeakyReLU(Module):
+    def __init__(self, alpha) -> None:
+        super().__init__()
+        self.alpha = alpha
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.leaky_relu(x, self.alpha)
 
 
 class Sigmoid(Module):

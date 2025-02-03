@@ -68,7 +68,7 @@ class Matmul(Function):
 
 class Maximum(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        y = self.backend.maximum(x1, x2)
+        y = self.xp.maximum(x1, x2)
         self.save_to_cache(x2_requires_grad, y == x1)
         return y
 
@@ -77,13 +77,13 @@ class Maximum(Function):
         dx1 = dy * mask
         if x2_requires_grad:
             return (dx1,)
-        dx2 = dy * self.backend.invert(mask)
+        dx2 = dy * self.xp.invert(mask)
         return dx1, dx2
 
 
 class Minimum(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        y = self.backend.minimum(x1, x2)
+        y = self.xp.minimum(x1, x2)
         self.save_to_cache(x2_requires_grad, y == x1)
         return y
 
@@ -92,5 +92,5 @@ class Minimum(Function):
         dx1 = dy * mask
         if x2_requires_grad:
             return (dx1,)
-        dx2 = dy * self.backend.invert(mask)
+        dx2 = dy * self.xp.invert(mask)
         return dx1, dx2

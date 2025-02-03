@@ -15,7 +15,7 @@ class Sum(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape = self.retrieve_from_cache()
-        dx = self.backend.broadcast_to(dy, x_shape)
+        dx = self.xp.broadcast_to(dy, x_shape)
         return (dx,)
 
 
@@ -29,7 +29,7 @@ class Mean(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape, size = self.retrieve_from_cache()
-        dx = self.backend.broadcast_to(dy / size, x_shape)
+        dx = self.xp.broadcast_to(dy / size, x_shape)
         return (dx,)
 
 
@@ -71,7 +71,7 @@ class Max(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, keepdims, mask = self.retrieve_from_cache()
         if not keepdims and dim is not None:
-            dy = self.backend.expand_dims(dy, dim)
+            dy = self.xp.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, keepdims=True)
         return (dx,)
 
@@ -85,6 +85,6 @@ class Min(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, keepdims, mask = self.retrieve_from_cache()
         if not keepdims and dim is not None:
-            dy = self.backend.expand_dims(dy, dim)
+            dy = self.xp.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, keepdims=True)
         return (dx,)

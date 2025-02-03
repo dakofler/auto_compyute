@@ -35,7 +35,7 @@ def tensor(
 ) -> Tensor:
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.asarray(data, dtype)
+        data = device.xp.asarray(data, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -49,7 +49,7 @@ def arange(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.arange(start, stop, step, dtype)
+        data = device.xp.arange(start, stop, step, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -61,7 +61,7 @@ def ones(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.ones(dims, dtype)
+        data = device.xp.ones(dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -73,7 +73,7 @@ def zeros(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.zeros(dims, dtype)
+        data = device.xp.zeros(dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -86,7 +86,7 @@ def full(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.full(dims, value, dtype)
+        data = device.xp.full(dims, value, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -100,7 +100,7 @@ def randi(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.random.randint(low, high, dims, dtype)
+        data = device.xp.random.randint(low, high, dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -114,7 +114,7 @@ def randn(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.random.normal(mean, var, dims).astype(dtype)
+        data = device.xp.random.normal(mean, var, dims).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -128,7 +128,7 @@ def randu(
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.random.uniform(low, high, dims).astype(dtype)
+        data = device.xp.random.uniform(low, high, dims).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)
 
 
@@ -140,5 +140,5 @@ def randperm(
 ):
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
-        data = device.backend.random.permutation(n).astype(dtype)
+        data = device.xp.random.permutation(n).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)

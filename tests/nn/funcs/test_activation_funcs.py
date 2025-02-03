@@ -38,6 +38,19 @@ def test_relu(x):
     _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
 
 
+alphas = (0.1, 0.2)
+
+
+@pytest.mark.parametrize("x", xs)
+@pytest.mark.parametrize("alpha", alphas)
+def test_leaky_relu(x, alpha):
+    """Leaky ReLU function test"""
+    ac_x, torch_x = x
+    ac_y = F.leaky_relu(ac_x, alpha)
+    torch_y = tF.leaky_relu(torch_x, alpha)
+    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
 @pytest.mark.parametrize("x", xs)
 def test_sigmoid(x):
     """Sigmoid function test"""

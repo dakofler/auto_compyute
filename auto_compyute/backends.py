@@ -39,7 +39,7 @@ class Device:
         dev_type, dev_id = _get_type_and_id(dev_type)
         self.dev_type = dev_type
         self.dev_id = dev_id
-        self.backend = numpy if dev_type == "cpu" else cupy
+        self.xp = numpy if dev_type == "cpu" else cupy
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -95,7 +95,7 @@ def move_to_device(data: Array, device: Device) -> Array:
 
 def array_to_string(data: Array, prefix: str) -> str:
     device = get_array_device(data)
-    return device.backend.array2string(
+    return device.xp.array2string(
         data,
         max_line_width=MAX_LINE_WIDTH,
         precision=PREC,

@@ -1,19 +1,21 @@
 """Neural network functions"""
 
 import math
-from typing import Optional
+from typing import Literal, Optional
 
 from ..autograd import Tensor, _parse_key, apply_func
 from ..dtypes import is_int
 from .funcs import (
     GELU,
     Batchnorm,
+    BCELoss,
     Conv2D,
     CrossEntropyLoss,
     Dilate2D,
     Dropout,
     Embedding,
     Layernorm,
+    LeakyReLU,
     Linear,
     Maxpool2D,
     MSELoss,
@@ -34,6 +36,10 @@ def gelu(x: Tensor) -> Tensor:
 
 def relu(x: Tensor) -> Tensor:
     return apply_func(ReLU, x)
+
+
+def leaky_relu(x: Tensor, alpha: float = 0.2) -> Tensor:
+    return apply_func(LeakyReLU, x, alpha=alpha)
 
 
 def sigmoid(x: Tensor) -> Tensor:
@@ -153,9 +159,22 @@ def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def mse_loss(logits: Tensor, targets: Tensor):
-    return apply_func(MSELoss, logits, targets)
+def mse_loss(
+    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
+):
+    return apply_func(MSELoss, logits, targets, reduction=reduction)
 
 
-def cross_entropy(logits: Tensor, targets: Tensor, eta: float = 1e-8):
-    return apply_func(CrossEntropyLoss, logits, targets, eta=eta)
+def cross_entropy_loss(
+    logits: Tensor,
+    targets: Tensor,
+    eta: float = 1e-8,
+    reduction: Literal["sum", "mean"] = "mean",
+):
+    return apply_func(CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction)
+
+
+def bce_loss(
+    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
+):
+    return apply_func(BCELoss, logits, targets, reduction=reduction)

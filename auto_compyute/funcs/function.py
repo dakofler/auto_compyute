@@ -8,7 +8,7 @@ from ..backends import Array, Device
 
 class Function(ABC):
     def __init__(self, device: Device) -> None:
-        self.backend = device.backend
+        self.xp = device.xp
         self.caching: bool = False
         self._cache: Any = None
 
