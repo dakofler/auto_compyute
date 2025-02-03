@@ -230,13 +230,18 @@ class MultiHeadSelfAttention(Module):
         B, S, D = x.shape
         dropout = self.dropout if self._training else 0
 
-        qkv = self.qkv(x)
-        q, k, v = qkv.split(D)
+        # create query, key and value projections
+        q, k, v = self.qkv(x).split(D)
+
+        # split q, k, v into seperate heads
         q = q.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
         k = k.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
         v = v.view(B, S, self.n_heads, D // self.n_heads).transpose(1, 2)
+
         attn = F.scaled_dot_product_attention(q, k, v, self.mask, dropout)
-        attn = attn.transpose(1, 2).view(B, S, D)
+
+        # concatinate heads
+        attn = attn.transpose(1, 2).contiguous().view(B, S, D)
         return self.out(attn)
 
 

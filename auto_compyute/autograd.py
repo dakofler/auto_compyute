@@ -307,6 +307,10 @@ class Tensor:
             return x.as_type(self.dtype)
         return Tensor(self.device.backend.asarray(x, dtype=self.dtype))
 
+    def contiguous(self) -> Tensor:
+        data = self.device.backend.ascontiguousarray(self.data)
+        return Tensor(data, self.ctx, self.parents, self.requires_grad)
+
 
 def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
     return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])

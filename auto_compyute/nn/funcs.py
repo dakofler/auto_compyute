@@ -15,6 +15,7 @@ from ..funcs.shape_funcs import Select
 
 
 class GELU(Function):
+
     def forward(self, x: Array) -> Array:
         tanh_term = self.backend.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
         y = 0.5 * x * (1.0 + tanh_term)
@@ -175,7 +176,7 @@ class Conv2D(Function):
         dx = self.backend.einsum("boyxjk,oijk->biyx", dy_pooled, w)
         dx = self.backend.ascontiguousarray(dx)
 
-        # filter grads
+        # weight grads
         dy_pooled = _pool2d(self.backend, dy, input_size)
         dw = self.backend.einsum("bojkyx,biyx->oijk", dy_pooled, x)
         dw = self.backend.flip(dw, (-2, -1))
@@ -215,29 +216,28 @@ class Maxpool2D(Function):
 class Layernorm(Function):
     def forward(self, x: Array, w: Array, b: Array, eps: float) -> Array:
         f_dims = tuple(range(x.ndim - w.ndim, x.ndim))
-        n = w.size
 
-        mean = x.sum(f_dims, keepdims=True) / n
+        mean = x.mean(f_dims, keepdims=True)
         xshift = x - mean
-        var = (xshift * xshift).sum(f_dims, keepdims=True) / n
+        var = (xshift * xshift).mean(f_dims, keepdims=True)
         rstd = (var + eps) ** -0.5
-        x_norm = xshift * rstd
-        y = x_norm * w + b
+        xnorm = xshift * rstd
+        y = xnorm * w + b
 
-        self.cache.save(w, f_dims, rstd, x_norm)
+        self.cache.save(w, f_dims, rstd, xnorm)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        w, f_dims, rstd, x_norm = self.cache.retrieve()
+        w, f_dims, rstd, xnorm = self.cache.retrieve()
         b_dims = tuple(range(dy.ndim - w.ndim))
 
         db = dy.sum(b_dims)
-        dw = (dy * x_norm).sum(b_dims)
-        dx_norm = dy * w
+        dw = (dy * xnorm).sum(b_dims)
+        dxnorm = dy * w
         dx = rstd * (
-            dx_norm
-            - dx_norm.mean(f_dims, keepdims=True)
-            - x_norm * (dx_norm * x_norm).mean(f_dims, keepdims=True)
+            dxnorm
+            - dxnorm.mean(f_dims, keepdims=True)
+            - xnorm * (dxnorm * xnorm).mean(f_dims, keepdims=True)
         )
         return dx, dw, db
 

@@ -39,7 +39,7 @@ def sigmoid(x: Tensor) -> Tensor:
     return apply_func(Sigmoid, x)
 
 
-def softmax(x: Tensor, dim: int = -1) -> Tensor:
+def softmax(x: Tensor, *, dim: int = -1) -> Tensor:
     return apply_func(Softmax, x, dim=dim)
 
 
@@ -91,10 +91,11 @@ def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
 def scaled_dot_product_attention(
     q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None, dropout_p: float = 0
 ) -> Tensor:
-    *_, S, H = q.shape
-    attn = q @ k.T / math.sqrt(H)
+    *_, seq_len, head_size = q.shape
+
+    attn = q @ k.T / math.sqrt(head_size)
     if mask is not None:
-        attn += mask[:S, :S]
+        attn += mask[:seq_len, :seq_len]
     attn = softmax(attn)
     attn = dropout(attn, dropout_p, dropout_p > 0)
     return attn @ v
@@ -111,7 +112,7 @@ def batchnorm(
     rvar: Tensor,
     w: Tensor,
     b: Tensor,
-    m: float = 0.1,
+    momentum: float = 0.1,
     eps: float = 1e-5,
     training: bool = False,
 ) -> tuple[Tensor, Tensor, Tensor]:
@@ -121,8 +122,8 @@ def batchnorm(
     if training:
         mean = x.mean(batch_dims, keepdims=True)
         std = (x.var(batch_dims, ddof=0, keepdims=True) + eps).sqrt()
-        rmean = rmean * (1 - m) + mean.squeeze() * m
-        rvar = rvar * (1 - m) + x.var(batch_dims) * m
+        rmean = rmean * (1 - momentum) + mean.squeeze() * momentum
+        rvar = rvar * (1 - momentum) + x.var(batch_dims) * momentum
     else:
         mean = rmean.view(*rmean.shape, *ext_shape)
         std = (rvar.view(*rvar.shape, *ext_shape) + eps).sqrt()
