@@ -4,6 +4,8 @@ import math
 from types import ModuleType
 from typing import Optional
 
+import opt_einsum as oe  # type: ignore
+
 from ..backends import Array, Shape
 from ..funcs.binary_funcs import Maximum
 from ..funcs.function import Function
@@ -77,9 +79,9 @@ class Linear(Function):
     def forward(self, x: Array, w: Array, b: Optional[Array]) -> Array:
         self.cache.save(x, w, b is None)
         y = x @ w.swapaxes(-1, -2)
-        if b is not None:
-            y += b
-        return y
+        if b is None:
+            return y
+        return y + b
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, w, b_is_none = self.cache.retrieve()
@@ -150,8 +152,7 @@ class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
         self.cache.save(x, w, stride)
         x_pooled = _pool2d(self.backend, x, w.shape[-1], stride)
-        y = self.backend.einsum("biyxjk,oijk->boyx", x_pooled, w)
-        return self.backend.ascontiguousarray(y)
+        return oe.contract("biyxjk,oijk->boyx", x_pooled, w)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, w, stride = self.cache.retrieve()
@@ -173,14 +174,12 @@ class Conv2D(Function):
         # input grads
         dy_pooled = _pool2d(self.backend, dy, kernel_size)
         w = self.backend.flip(w, (-2, -1))
-        dx = self.backend.einsum("boyxjk,oijk->biyx", dy_pooled, w)
-        dx = self.backend.ascontiguousarray(dx)
+        dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w)
 
         # weight grads
         dy_pooled = _pool2d(self.backend, dy, input_size)
-        dw = self.backend.einsum("bojkyx,biyx->oijk", dy_pooled, x)
+        dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x)
         dw = self.backend.flip(dw, (-2, -1))
-        dw = self.backend.ascontiguousarray(dw)
 
         return dx, dw
 

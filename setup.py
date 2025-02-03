@@ -30,10 +30,7 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     python_requires=">=3.12",
-    install_requires=[
-        "cupy_cuda12x>=13.0.0",
-        "numpy>=1.26.4",
-    ],
+    install_requires=["cupy_cuda12x>=13.0.0", "numpy>=1.26.4", "opt_einsum>=3.4.0"],
     extras_require={
         "dev": [
             "mypy>=1.11.2",

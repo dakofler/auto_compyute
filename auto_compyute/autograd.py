@@ -106,7 +106,7 @@ class Tensor:
         return self.select(key)
 
     def __repr__(self) -> str:
-        prefix = "array("
+        prefix = f"{self.__class__.__name__}("
         suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
         return prefix + array_to_string(self.data, prefix) + suffix
 
@@ -290,6 +290,12 @@ class Tensor:
                 new_tensor.grad = move_to_device(self.grad, device)
             return new_tensor
         return Tensor(data)
+
+    def cpu(self) -> Tensor:
+        return self.to("cpu")
+
+    def cuda(self) -> Tensor:
+        return self.to("cuda")
 
     def ito(self, device: DeviceLike) -> None:
         device = device if isinstance(device, Device) else Device(device)

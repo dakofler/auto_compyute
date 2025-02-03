@@ -46,7 +46,7 @@ class Device:
 
     def __repr__(self):
         id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
-        return f"Device({self.dev_type}{id_suffix})"
+        return f"device('{self.dev_type}{id_suffix}')"
 
     def __enter__(self) -> None:
         if self.dev_type == "cpu":
