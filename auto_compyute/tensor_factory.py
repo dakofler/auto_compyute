@@ -10,11 +10,17 @@ __all__ = [
     "tensor",
     "arange",
     "ones",
+    "ones_like",
     "zeros",
+    "ones_like",
     "full",
+    "full_like",
     "randi",
+    "randi_like",
     "randn",
+    "randn_like",
     "randu",
+    "randu_like",
     "randperm",
 ]
 
@@ -65,6 +71,10 @@ def ones(
     return Tensor(data, requires_grad=requires_grad)
 
 
+def ones_like(x: Tensor) -> Tensor:
+    return ones(*x.shape, device=x.device, dtype=x.dtype)
+
+
 def zeros(
     *dims: int,
     device: Optional[DeviceLike] = None,
@@ -75,6 +85,10 @@ def zeros(
     with device:
         data = device.xp.zeros(dims, dtype)
     return Tensor(data, requires_grad=requires_grad)
+
+
+def zeros_like(x: Tensor) -> Tensor:
+    return zeros(*x.shape, device=x.device, dtype=x.dtype)
 
 
 def full(
@@ -88,6 +102,10 @@ def full(
     with device:
         data = device.xp.full(dims, value, dtype)
     return Tensor(data, requires_grad=requires_grad)
+
+
+def full_like(x: Tensor, value: Scalar) -> Tensor:
+    return full(*x.shape, value=value, device=x.device, dtype=x.dtype)
 
 
 def randi(
@@ -104,6 +122,12 @@ def randi(
     return Tensor(data, requires_grad=requires_grad)
 
 
+def randi_like(
+    x: Tensor, low: int, high: int, dtype: Optional[DType] = int64
+) -> Tensor:
+    return randi(*x.shape, low=low, high=high, device=x.device, dtype=dtype)
+
+
 def randn(
     *dims: int,
     mean: float = 0,
@@ -118,6 +142,12 @@ def randn(
     return Tensor(data, requires_grad=requires_grad)
 
 
+def randn_like(
+    x: Tensor, mean: float = 0, var: float = 1, dtype: Optional[DType] = None
+) -> Tensor:
+    return randn(*x.shape, mean=mean, var=var, device=x.device, dtype=dtype)
+
+
 def randu(
     *dims: int,
     low: float = -1,
@@ -130,6 +160,12 @@ def randu(
     with device:
         data = device.xp.random.uniform(low, high, dims).astype(dtype)
     return Tensor(data, requires_grad=requires_grad)
+
+
+def randu_like(
+    x: Tensor, low: float = -1, high: float = 1, dtype: Optional[DType] = None
+) -> Tensor:
+    return randu(*x.shape, low=low, high=high, device=x.device, dtype=dtype)
 
 
 def randperm(
