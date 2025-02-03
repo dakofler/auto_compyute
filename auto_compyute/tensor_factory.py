@@ -71,8 +71,8 @@ def ones(
     return Tensor(data, requires_grad=requires_grad)
 
 
-def ones_like(x: Tensor) -> Tensor:
-    return ones(*x.shape, device=x.device, dtype=x.dtype)
+def ones_like(x: Tensor, requires_grad: bool = False) -> Tensor:
+    return ones(*x.shape, device=x.device, dtype=x.dtype, requires_grad=requires_grad)
 
 
 def zeros(
@@ -87,8 +87,8 @@ def zeros(
     return Tensor(data, requires_grad=requires_grad)
 
 
-def zeros_like(x: Tensor) -> Tensor:
-    return zeros(*x.shape, device=x.device, dtype=x.dtype)
+def zeros_like(x: Tensor, requires_grad: bool = False) -> Tensor:
+    return zeros(*x.shape, device=x.device, dtype=x.dtype, requires_grad=requires_grad)
 
 
 def full(
@@ -104,8 +104,14 @@ def full(
     return Tensor(data, requires_grad=requires_grad)
 
 
-def full_like(x: Tensor, value: Scalar) -> Tensor:
-    return full(*x.shape, value=value, device=x.device, dtype=x.dtype)
+def full_like(x: Tensor, value: Scalar, requires_grad: bool = False) -> Tensor:
+    return full(
+        *x.shape,
+        value=value,
+        device=x.device,
+        dtype=x.dtype,
+        requires_grad=requires_grad,
+    )
 
 
 def randi(
@@ -123,9 +129,20 @@ def randi(
 
 
 def randi_like(
-    x: Tensor, low: int, high: int, dtype: Optional[DType] = int64
+    x: Tensor,
+    low: int,
+    high: int,
+    dtype: Optional[DType] = int64,
+    requires_grad: bool = False,
 ) -> Tensor:
-    return randi(*x.shape, low=low, high=high, device=x.device, dtype=dtype)
+    return randi(
+        *x.shape,
+        low=low,
+        high=high,
+        device=x.device,
+        dtype=dtype,
+        requires_grad=requires_grad,
+    )
 
 
 def randn(
@@ -143,9 +160,20 @@ def randn(
 
 
 def randn_like(
-    x: Tensor, mean: float = 0, var: float = 1, dtype: Optional[DType] = None
+    x: Tensor,
+    mean: float = 0,
+    var: float = 1,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
 ) -> Tensor:
-    return randn(*x.shape, mean=mean, var=var, device=x.device, dtype=dtype)
+    return randn(
+        *x.shape,
+        mean=mean,
+        var=var,
+        device=x.device,
+        dtype=dtype,
+        requires_grad=requires_grad,
+    )
 
 
 def randu(
@@ -163,9 +191,20 @@ def randu(
 
 
 def randu_like(
-    x: Tensor, low: float = -1, high: float = 1, dtype: Optional[DType] = None
+    x: Tensor,
+    low: float = -1,
+    high: float = 1,
+    dtype: Optional[DType] = None,
+    requires_grad: bool = False,
 ) -> Tensor:
-    return randu(*x.shape, low=low, high=high, device=x.device, dtype=dtype)
+    return randu(
+        *x.shape,
+        low=low,
+        high=high,
+        device=x.device,
+        dtype=dtype,
+        requires_grad=requires_grad,
+    )
 
 
 def randperm(
