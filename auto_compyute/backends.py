@@ -20,6 +20,10 @@ numpy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOAT
 cupy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 
 
+def get_available_devices() -> list[str]:
+    return ["cpu"] + [f"cuda:{i}" for i in range(cupy.cuda.runtime.getDeviceCount())]
+
+
 def gpu_available():
     return cupy.cuda.is_available()
 
