@@ -10,8 +10,9 @@ class Sum(Function):
     def forward(
         self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> Array:
+        y = x.sum(dim, keepdims=keepdims)
         self.save_to_cache(x.shape)
-        return x.sum(dim, keepdims=keepdims)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape = self.retrieve_from_cache()

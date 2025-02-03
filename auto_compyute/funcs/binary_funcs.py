@@ -6,8 +6,9 @@ from .function import Function
 
 class Add(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
+        y = x1 + x2
         self.save_to_cache(x2_requires_grad)
-        return x1 + x2
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x2_requires_grad = self.retrieve_from_cache()
@@ -16,8 +17,9 @@ class Add(Function):
 
 class Sub(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
+        y = x1 - x2
         self.save_to_cache(x2_requires_grad)
-        return x1 - x2
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x2_requires_grad = self.retrieve_from_cache()
@@ -26,9 +28,9 @@ class Sub(Function):
 
 class Mul(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        x2_requires_grad = x2_requires_grad
+        y = x1 * x2
         self.save_to_cache((None if x2_requires_grad else x1), x2)
-        return x1 * x2
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x1, x2 = self.retrieve_from_cache()
@@ -41,9 +43,9 @@ class Mul(Function):
 
 class Div(Function):
     def forward(self, x1: Array, x2: Array, x2_requires_grad: bool) -> Array:
-        x2_requires_grad = x2_requires_grad
+        y = x1 / x2
         self.save_to_cache((None if x2_requires_grad else x1), x2)
-        return x1 / x2
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x1, x2 = self.retrieve_from_cache()
@@ -56,13 +58,16 @@ class Div(Function):
 
 class Matmul(Function):
     def forward(self, x1: Array, x2: Array) -> Array:
+        y = x1 @ x2
         self.save_to_cache(x1, x2)
-        return x1 @ x2
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x1, x2 = self.retrieve_from_cache()
+
         dx1 = dy @ x2.swapaxes(-1, -2)
         dx2 = x1.swapaxes(-1, -2) @ dy
+
         return dx1, dx2
 
 

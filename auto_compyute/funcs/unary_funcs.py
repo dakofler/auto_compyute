@@ -31,8 +31,9 @@ class Exp(Function):
 
 class Pow(Function):
     def forward(self, x: Array, exp: Scalar) -> Array:
+        y = x**exp
         self.save_to_cache(x, exp)
-        return x**exp
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, exp = self.retrieve_from_cache()

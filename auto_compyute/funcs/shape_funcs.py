@@ -9,8 +9,9 @@ from .function import Function
 
 class Concat(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
+        y = self.xp.concatenate(arrays, dim)
         self.save_to_cache(dim, [a.shape[dim] for a in arrays])
-        return self.xp.concatenate(arrays, dim)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, split_sizes = self.retrieve_from_cache()
@@ -20,8 +21,9 @@ class Concat(Function):
 
 class Select(Function):
     def forward(self, x: Array, key: Any) -> Array:
+        y = x[key]
         self.save_to_cache(x.shape, key)
-        return x[key]
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape, key = self.retrieve_from_cache()
@@ -35,8 +37,9 @@ class Split(Select): ...
 
 class Stack(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
+        y = self.xp.stack(arrays, dim)
         self.save_to_cache(dim)
-        return self.xp.stack(arrays, dim)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim = self.retrieve_from_cache()
@@ -45,8 +48,9 @@ class Stack(Function):
 
 class Transpose(Function):
     def forward(self, x: Array, dim1, dim2) -> Array:
+        y = x.swapaxes(dim1, dim2)
         self.save_to_cache(dim1, dim2)
-        return x.swapaxes(dim1, dim2)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim1, dim2 = self.retrieve_from_cache()
@@ -56,8 +60,9 @@ class Transpose(Function):
 
 class View(Function):
     def forward(self, x: Array, shape: Shape) -> Array:
+        y = x.reshape(shape)
         self.save_to_cache(x.shape)
-        return x.reshape(shape)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_shape = self.retrieve_from_cache()

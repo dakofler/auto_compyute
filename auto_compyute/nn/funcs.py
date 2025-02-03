@@ -26,7 +26,6 @@ class GELU(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x = self.retrieve_from_cache()
-        # recompute to save memory
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1.0 + 0.044715 * x * x))
         dx1 = 1.0 + tanh_term
         dx2 = x * (1.0 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
@@ -71,7 +70,8 @@ class Sigmoid(Function):
 
 def _softmax_forward(xp: ModuleType, x: Array, dim: int) -> Array:
     x = xp.exp(x - x.max(dim, keepdims=True))
-    return x / x.sum(dim, keepdims=True)
+    x = x / x.sum(dim, keepdims=True)
+    return x
 
 
 class Softmax(Function):
@@ -95,9 +95,8 @@ class Linear(Function):
     def forward(self, x: Array, w: Array, b: Optional[Array]) -> Array:
         self.save_to_cache(x, w, b is None)
         y = x @ w.swapaxes(-1, -2)
-        if b is None:
-            return y
-        return y + b
+        y = y if b is None else y + b
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, w, b_is_none = self.retrieve_from_cache()
@@ -122,8 +121,9 @@ def _pad2d_forward(xp: ModuleType, x: Array, padding: int) -> Array:
 
 class Pad2D(Function):
     def forward(self, x: Array, padding: int) -> Array:
+        y = _pad2d_forward(self.xp, x, padding)
         self.save_to_cache(padding)
-        return _pad2d_forward(self.xp, x, padding)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         padding = self.retrieve_from_cache()
@@ -142,8 +142,9 @@ def _dilate2d_forward(xp: ModuleType, x: Array, dilation: int) -> Array:
 
 class Dilate2D(Function):
     def forward(self, x: Array, dilation: int) -> Array:
+        y = _dilate2d_forward(self.xp, x, dilation)
         self.save_to_cache(dilation)
-        return _dilate2d_forward(self.xp, x, dilation)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dilation = self.retrieve_from_cache()
@@ -154,21 +155,24 @@ class Dilate2D(Function):
 def _pool2d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Array:
     out = (x.shape[-1] - window_size) // stride + 1
     out_shape = (*x.shape[:-2], out, out, window_size, window_size)
-    x_str = x.strides
-    out_strides = (*x_str[:-2], x_str[-2] * stride, x_str[-1] * stride, *x_str[-2:])
-    return xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
+    xstr = x.strides
+    out_strides = (*xstr[:-2], xstr[-2] * stride, xstr[-1] * stride, *xstr[-2:])
+    y = xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
+    return y
 
 
 def _pad_to_shape(xp: ModuleType, x: Array, shape: Shape) -> Array:
     padding = tuple((int(0), shape[i] - x.shape[i]) for i in range(x.ndim))
-    return xp.pad(x, padding)
+    y = xp.pad(x, padding)
+    return y
 
 
 class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
-        self.save_to_cache(x, w, stride)
         x_pooled = _pool2d(self.xp, x, w.shape[-1], stride)
-        return oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
+        y = oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
+        self.save_to_cache(x, w, stride)
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, w, stride = self.retrieve_from_cache()
@@ -205,8 +209,7 @@ def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: Shape):
     repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
     y = xp.lib.stride_tricks.as_strided(x, repeat_shape, repeat_strides)
     y = y.reshape((*y.shape[:-4], y.shape[-4] * n_repeats, y.shape[-2] * n_repeats))
-    if y.shape != target_shape:
-        y = _pad_to_shape(xp, y, target_shape)
+    y = y if y.shape == target_shape else _pad_to_shape(xp, y, target_shape)
     return y
 
 
@@ -270,7 +273,6 @@ class Batchnorm(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         w, b_dims, rstd, xnorm = self.retrieve_from_cache()
-
         db = dy.sum(b_dims)
         dw = (dy * xnorm).sum(b_dims)
         dxnorm = dy * w
@@ -299,7 +301,6 @@ class Layernorm(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         w, f_dims, rstd, xnorm = self.retrieve_from_cache()
         b_dims = tuple(range(dy.ndim - w.ndim))
-
         db = dy.sum(b_dims)
         dw = (dy * xnorm).sum(b_dims)
         dxnorm = dy * w
@@ -320,8 +321,9 @@ class Dropout(Function):
     def forward(self, x: Array, p: float) -> Array:
         p = 1.0 - p
         dropout_mask = self.xp.random.random(x.shape) < p
+        y = x * dropout_mask / p
         self.save_to_cache(p, dropout_mask)
-        return x * dropout_mask / p
+        return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         p, dropout_mask = self.retrieve_from_cache()
@@ -345,8 +347,8 @@ class Embedding(Select): ...
 class MSELoss(Function):
     def forward(self, x: Array, y: Array, reduction: str) -> Array:
         diff = x - y
-        self.save_to_cache(x.size, diff, reduction)
         loss = diff * diff
+        self.save_to_cache(x.size, diff, reduction)
         return loss.mean() if reduction == "mean" else loss.sum()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -364,9 +366,9 @@ def _onehot(xp: ModuleType, x: Array, n: int, dtype: type):
 class CrossEntropyLoss(Function):
     def forward(self, x: Array, y: Array, eta: float, reduction: str) -> Array:
         probs = _softmax_forward(self.xp, x, dim=-1)
+        y_onehot = _onehot(self.xp, y, x.shape[-1], probs.dtype)
+        loss = -(self.xp.log(probs + eta) * y_onehot).sum(-1)
         self.save_to_cache(y, probs, reduction)
-        y = _onehot(self.xp, y, x.shape[-1], probs.dtype)
-        loss = -(self.xp.log(probs + eta) * y).sum(-1)
         return loss.mean() if reduction == "mean" else loss.sum()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -380,9 +382,9 @@ class CrossEntropyLoss(Function):
 
 class BCELoss(Function):
     def forward(self, x: Array, y: Array, reduction: str) -> Array:
-        self.save_to_cache(x, y, reduction)
         max_logits = self.xp.maximum(x, 0.0)
         loss = max_logits - x * y + self.xp.log(1.0 + self.xp.exp(-self.xp.abs(x)))
+        self.save_to_cache(x, y, reduction)
         return loss.mean() if reduction == "mean" else loss.sum()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
