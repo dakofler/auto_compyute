@@ -96,8 +96,8 @@ def scaled_dot_product_attention(
     attn = q @ k.T / math.sqrt(head_size)
     if mask is not None:
         attn += mask[:seq_len, :seq_len]
-    attn = softmax(attn)
-    attn = dropout(attn, dropout_p, dropout_p > 0)
+    attn = softmax(attn, dim=-1)
+    attn = dropout(attn, dropout_p)
     return attn @ v
 
 
