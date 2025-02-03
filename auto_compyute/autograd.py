@@ -19,7 +19,7 @@ from .backends import (
 )
 from .dtypes import DType, float32, int32, int64, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
-from .funcs.function import Cache, Function
+from .funcs.function import Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
 from .funcs.shape_funcs import Select, Split, Squeeze, Transpose, View
 from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
@@ -361,7 +361,7 @@ def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
 
     # add autograd context to resulting node
     if autograd_tracing_active and any(a.requires_grad for a in tensor_args):
-        ctx.cache = Cache()
+        ctx.caching = True
         with device:
             data = ctx.forward(*function_args, **kwargs)
         return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)

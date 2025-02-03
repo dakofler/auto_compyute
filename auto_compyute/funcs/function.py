@@ -1,38 +1,30 @@
 """Autograd function"""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from ..backends import Array, Device
-
-
-class Cache:
-    def __init__(self):
-        self.vals: Optional[tuple[Any, ...]] = None
-
-    def save(self, *args: Any) -> None:
-        self.vals = args
-
-    def retrieve(self) -> Any:
-        assert self.vals is not None
-        values = self.vals[0] if len(self.vals) == 1 else self.vals
-        self.vals = None
-        return values
-
-
-class DummyCache(Cache):
-    def save(self, *args: Any) -> None:
-        pass
 
 
 class Function(ABC):
     def __init__(self, device: Device) -> None:
         self.backend = device.backend
-        self.cache: Cache = DummyCache()
+        self.caching: bool = False
+        self._cache: Any = None
 
     @property
     def name(self) -> str:
         return self.__class__.__name__
+
+    def save_to_cache(self, *args):
+        if self.caching:
+            self._cache = args
+
+    def retrieve_from_cache(self) -> Any:
+        assert self._cache is not None
+        values = self._cache if len(self._cache) > 1 else self._cache[0]
+        self._cache = None
+        return values
 
     @abstractmethod
     def forward(self, *args, **kwargs) -> Array: ...

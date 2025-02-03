@@ -9,22 +9,22 @@ from .function import Function
 
 class Concat(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
-        self.cache.save(dim, [a.shape[dim] for a in arrays])
+        self.save_to_cache(dim, [a.shape[dim] for a in arrays])
         return self.backend.concatenate(arrays, dim)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim, split_sizes = self.cache.retrieve()
+        dim, split_sizes = self.retrieve_from_cache()
         split_indices = list(accumulate(s for s in split_sizes))
         return tuple(self.backend.split(dy, split_indices, dim))
 
 
 class Select(Function):
     def forward(self, x: Array, key: Any) -> Array:
-        self.cache.save(x.shape, key)
+        self.save_to_cache(x.shape, key)
         return x[key]
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x_shape, key = self.cache.retrieve()
+        x_shape, key = self.retrieve_from_cache()
         dx = self.backend.zeros(x_shape, dtype=dy.dtype)
         self.backend.add.at(dx, key, dy)
         return (dx,)
@@ -35,32 +35,32 @@ class Split(Select): ...
 
 class Stack(Function):
     def forward(self, *arrays: Array, dim: int) -> Array:
-        self.cache.save(dim)
+        self.save_to_cache(dim)
         return self.backend.stack(arrays, dim)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim = self.cache.retrieve()
+        dim = self.retrieve_from_cache()
         return tuple(self.backend.moveaxis(dy, dim, 0))
 
 
 class Transpose(Function):
     def forward(self, x: Array, dim1, dim2) -> Array:
-        self.cache.save(dim1, dim2)
+        self.save_to_cache(dim1, dim2)
         return x.swapaxes(dim1, dim2)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim1, dim2 = self.cache.retrieve()
+        dim1, dim2 = self.retrieve_from_cache()
         dx = dy.swapaxes(dim1, dim2)
         return (dx,)
 
 
 class View(Function):
     def forward(self, x: Array, shape: Shape) -> Array:
-        self.cache.save(x.shape)
+        self.save_to_cache(x.shape)
         return x.reshape(shape)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x_shape = self.cache.retrieve()
+        x_shape = self.retrieve_from_cache()
         dx = dy.reshape(x_shape)
         return (dx,)
 

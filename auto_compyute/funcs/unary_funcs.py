@@ -7,11 +7,11 @@ from .function import Function
 class Abs(Function):
     def forward(self, x: Array) -> Array:
         y = self.backend.absolute(x)
-        self.cache.save(y != x)
+        self.save_to_cache(y != x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        mask = self.cache.retrieve()
+        mask = self.retrieve_from_cache()
         dx = dy
         self.backend.multiply.at(dx, mask, -1)
         return (dx,)
@@ -20,22 +20,22 @@ class Abs(Function):
 class Exp(Function):
     def forward(self, x: Array) -> Array:
         y = self.backend.exp(x)
-        self.cache.save(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        y = self.cache.retrieve()
+        y = self.retrieve_from_cache()
         dx = dy * y
         return (dx,)
 
 
 class Pow(Function):
     def forward(self, x: Array, exp: Scalar) -> Array:
-        self.cache.save(x, exp)
+        self.save_to_cache(x, exp)
         return x**exp
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, exp = self.cache.retrieve()
+        x, exp = self.retrieve_from_cache()
         dx = dy * exp * x ** (exp - 1)
         return (dx,)
 
@@ -43,11 +43,11 @@ class Pow(Function):
 class Sqrt(Function):
     def forward(self, x: Array) -> Array:
         y = self.backend.sqrt(x)
-        self.cache.save(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        y = self.cache.retrieve()
+        y = self.retrieve_from_cache()
         dx = dy * 0.5 / y
         return (dx,)
 
@@ -55,11 +55,11 @@ class Sqrt(Function):
 class Tanh(Function):
     def forward(self, x: Array) -> Array:
         y = self.backend.tanh(x)
-        self.cache.save(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        y = self.cache.retrieve()
+        y = self.retrieve_from_cache()
         dx = dy * (1.0 - y * y)
         return (dx,)
 
@@ -67,11 +67,11 @@ class Tanh(Function):
 class Tril(Function):
     def forward(self, x: Array, diag: int) -> Array:
         y = self.backend.tril(x, diag)
-        self.cache.save(y == x)
+        self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        mask = self.cache.retrieve()
+        mask = self.retrieve_from_cache()
         dx = dy * mask
         return (dx,)
 
@@ -79,10 +79,10 @@ class Tril(Function):
 class Triu(Function):
     def forward(self, x: Array, diag: int) -> Array:
         y = self.backend.triu(x, diag)
-        self.cache.save(y == x)
+        self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        mask = self.cache.retrieve()
+        mask = self.retrieve_from_cache()
         dx = dy * mask
         return (dx,)
