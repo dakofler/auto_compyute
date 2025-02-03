@@ -212,6 +212,60 @@ class Maxpool2D(Function):
 # -------------------------------------------------------------------------------------
 
 
+class Batchnorm(Function):
+    def forward(
+        self,
+        x: Array,
+        w: Array,
+        b: Array,
+        rmean: Array,
+        rvar: Array,
+        momentum: float,
+        eps: float,
+        training: bool,
+    ) -> Array:
+        b_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
+        ext_shape = (1,) * (x.ndim - 2)
+        n = x.size / w.size
+
+        if training:
+            mean = x.mean(b_dims, keepdims=True)
+            xshift = x - mean
+            var = (xshift * xshift).mean(b_dims, keepdims=True)
+
+            # update rmean and rvar inplace to avoid returning multiple arrays
+            rmean *= 1.0 - momentum
+            rmean += mean.squeeze() * momentum
+            rvar *= 1.0 - momentum
+            rvar += n / (n - 1) * var.squeeze() * momentum
+        else:
+            mean = rmean.reshape(*rmean.shape, *ext_shape)
+            xshift = x - mean
+            var = rvar.reshape(*rvar.shape, *ext_shape)
+
+        rstd = (var + eps) ** -0.5
+        xnorm = xshift * rstd
+        w = w.reshape(*w.shape, *ext_shape)
+        b = b.reshape(*b.shape, *ext_shape)
+        y = xnorm * w + b
+
+        self.cache.save(w, b_dims, rstd, xnorm)
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        w, b_dims, rstd, xnorm = self.cache.retrieve()
+
+        db = dy.sum(b_dims)
+        dw = (dy * xnorm).sum(b_dims)
+        dxnorm = dy * w
+        dx = rstd * (
+            dxnorm
+            - dxnorm.mean(b_dims, keepdims=True)
+            - xnorm * (dxnorm * xnorm).mean(b_dims, keepdims=True)
+        )
+        return dx, dw, db
+
+
 class Layernorm(Function):
     def forward(self, x: Array, w: Array, b: Array, eps: float) -> Array:
         f_dims = tuple(range(x.ndim - w.ndim, x.ndim))

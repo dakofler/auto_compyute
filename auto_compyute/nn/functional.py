@@ -7,6 +7,7 @@ from ..autograd import Tensor, _parse_key, apply_func
 from ..dtypes import is_int
 from .funcs import (
     GELU,
+    Batchnorm,
     Conv2D,
     CrossEntropyLoss,
     Dilate2D,
@@ -108,30 +109,17 @@ def scaled_dot_product_attention(
 
 def batchnorm(
     x: Tensor,
-    rmean: Tensor,
-    rvar: Tensor,
     w: Tensor,
     b: Tensor,
+    rmean: Tensor,
+    rvar: Tensor,
     momentum: float = 0.1,
     eps: float = 1e-5,
     training: bool = False,
-) -> tuple[Tensor, Tensor, Tensor]:
-    batch_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
-    ext_shape = (1,) * (x.ndim - 2)
-
-    if training:
-        mean = x.mean(batch_dims, keepdims=True)
-        std = (x.var(batch_dims, ddof=0, keepdims=True) + eps).sqrt()
-        rmean = rmean * (1 - momentum) + mean.squeeze() * momentum
-        rvar = rvar * (1 - momentum) + x.var(batch_dims) * momentum
-    else:
-        mean = rmean.view(*rmean.shape, *ext_shape)
-        std = (rvar.view(*rvar.shape, *ext_shape) + eps).sqrt()
-
-    w = w.view(*w.shape, *ext_shape)
-    b = b.view(*b.shape, *ext_shape)
-    y = (x - mean) / std * w + b
-    return y, rmean, rvar
+):
+    return apply_func(
+        Batchnorm, x, rmean, rvar, w, b, momentum=momentum, eps=eps, training=training
+    )
 
 
 def layernorm(x: Tensor, w: Tensor, b: Tensor, eps: float = 1e-5) -> Tensor:

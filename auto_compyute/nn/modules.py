@@ -256,12 +256,9 @@ class Batchnorm(Module):
         self.rvar = Buffer(ones(in_dim))
 
     def forward(self, x: Tensor) -> Tensor:
-        y, rmean, rvar = F.batchnorm(
+        return F.batchnorm(
             x, self.rmean, self.rvar, self.w, self.b, self.m, self.eps, self._training
         )
-        self.rmean = Buffer(rmean)
-        self.rvar = Buffer(rvar)
-        return y
 
 
 class Layernorm(Module):

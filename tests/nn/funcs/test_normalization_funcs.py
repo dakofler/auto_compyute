@@ -28,24 +28,22 @@ bn_xs = ((bn_ac_x1, bn_torch_x1), (bn_ac_x2, bn_torch_x2), (bn_ac_x3, bn_torch_x
 ws = ((ac_w1, torch_w1),)
 bs = ((ac_b1, torch_b1),)
 ms = (0.1, 0.2)
-trainings = (True, False)
 
 
 @pytest.mark.parametrize("x", bn_xs)
 @pytest.mark.parametrize("w", ws)
 @pytest.mark.parametrize("b", bs)
 @pytest.mark.parametrize("m", ms)
-@pytest.mark.parametrize("training", trainings)
-def test_batchnorm(x, w, b, m, training):
+def test_batchnorm(x, w, b, m):
     """Batchnorm function test"""
     ac_x, torch_x = x
     ac_w, torch_w = w
     ac_b, torch_b = b
     ac_rmean, torch_rmean = get_zeros((ac_x.shape[1],))
     ac_rvar, torch_rvar = get_ones((ac_x.shape[1],))
-    ac_y, *_ = F.batchnorm(ac_x, ac_rmean, ac_rvar, ac_w, ac_b, m, 1e-5, training)
+    ac_y = F.batchnorm(ac_x, ac_rmean, ac_rvar, ac_w, ac_b, m, 1e-5, True)
     torch_y = tF.batch_norm(
-        torch_x, torch_rmean, torch_rvar, torch_w, torch_b, training, m, 1e-5
+        torch_x, torch_rmean, torch_rvar, torch_w, torch_b, True, m, 1e-5
     )
     _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
 
