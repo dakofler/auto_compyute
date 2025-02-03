@@ -152,7 +152,7 @@ class Conv2D(Function):
     def forward(self, x: Array, w: Array, stride: int) -> Array:
         self.cache.save(x, w, stride)
         x_pooled = _pool2d(self.backend, x, w.shape[-1], stride)
-        return oe.contract("biyxjk,oijk->boyx", x_pooled, w)
+        return oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, w, stride = self.cache.retrieve()
@@ -174,11 +174,11 @@ class Conv2D(Function):
         # input grads
         dy_pooled = _pool2d(self.backend, dy, kernel_size)
         w = self.backend.flip(w, (-2, -1))
-        dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w)
+        dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w, use_blas=True)
 
         # weight grads
         dy_pooled = _pool2d(self.backend, dy, input_size)
-        dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x)
+        dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x, use_blas=True)
         dw = self.backend.flip(dw, (-2, -1))
 
         return dx, dw
