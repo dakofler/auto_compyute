@@ -8,10 +8,16 @@ from .function import Function
 
 class Sum(Function):
     def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
+        self,
+        x: Array,
+        x_req_grad: bool,
+        *,
+        dim: Optional[int | tuple[int, ...]],
+        keepdims: bool,
     ) -> Array:
         y = x.sum(dim, keepdims=keepdims)
-        self.save_to_cache(x.shape)
+        if x_req_grad:
+            self.save_to_cache(x.shape)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -22,10 +28,16 @@ class Sum(Function):
 
 class Mean(Function):
     def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], keepdims: bool
+        self,
+        x: Array,
+        x_req_grad: bool,
+        *,
+        dim: Optional[int | tuple[int, ...]],
+        keepdims: bool,
     ) -> Array:
         y = x.mean(dim, keepdims=keepdims)
-        self.save_to_cache(x.shape, x.size / y.size)
+        if x_req_grad:
+            self.save_to_cache(x.shape, x.size / y.size)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -36,10 +48,17 @@ class Mean(Function):
 
 class Var(Function):
     def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], ddof: int, keepdims: bool
+        self,
+        x: Array,
+        x_req_grad: bool,
+        *,
+        dim: Optional[int | tuple[int, ...]],
+        ddof: int,
+        keepdims: bool,
     ) -> Array:
         y = x.var(dim, ddof=ddof, keepdims=keepdims)
-        self.save_to_cache(x, dim, x.size / y.size - ddof)
+        if x_req_grad:
+            self.save_to_cache(x, dim, x.size / y.size - ddof)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -50,10 +69,17 @@ class Var(Function):
 
 class Std(Function):
     def forward(
-        self, x: Array, dim: Optional[int | tuple[int, ...]], ddof: int, keepdims: bool
+        self,
+        x: Array,
+        x_req_grad: bool,
+        *,
+        dim: Optional[int | tuple[int, ...]],
+        ddof: int,
+        keepdims: bool,
     ) -> Array:
         y = x.std(dim, ddof=ddof, keepdims=keepdims)
-        self.save_to_cache(x, dim, ddof, y)
+        if x_req_grad:
+            self.save_to_cache(x, dim, ddof, y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -64,9 +90,12 @@ class Std(Function):
 
 
 class Max(Function):
-    def forward(self, x: Array, dim: Optional[int], keepdims: bool) -> Array:
+    def forward(
+        self, x: Array, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
+    ) -> Array:
         y = x.max(dim, keepdims=True)
-        self.save_to_cache(dim, keepdims, x == y)
+        if x_req_grad:
+            self.save_to_cache(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -78,9 +107,12 @@ class Max(Function):
 
 
 class Min(Function):
-    def forward(self, x: Array, dim: Optional[int], keepdims: bool) -> Array:
+    def forward(
+        self, x: Array, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
+    ) -> Array:
         y = x.min(dim, keepdims=True)
-        self.save_to_cache(dim, keepdims, x == y)
+        if x_req_grad:
+            self.save_to_cache(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:

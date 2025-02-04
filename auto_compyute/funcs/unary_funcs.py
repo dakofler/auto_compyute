@@ -5,9 +5,10 @@ from .function import Function
 
 
 class Abs(Function):
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = self.xp.absolute(x)
-        self.save_to_cache(y != x)
+        if x_req_grad:
+            self.save_to_cache(y != x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -18,9 +19,10 @@ class Abs(Function):
 
 
 class Exp(Function):
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = self.xp.exp(x)
-        self.save_to_cache(y)
+        if x_req_grad:
+            self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -30,9 +32,10 @@ class Exp(Function):
 
 
 class Pow(Function):
-    def forward(self, x: Array, exp: Scalar) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, exp: Scalar) -> Array:
         y = x**exp
-        self.save_to_cache(x, exp)
+        if x_req_grad:
+            self.save_to_cache(x, exp)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -42,9 +45,10 @@ class Pow(Function):
 
 
 class Sqrt(Function):
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = self.xp.sqrt(x)
-        self.save_to_cache(y)
+        if x_req_grad:
+            self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -54,9 +58,10 @@ class Sqrt(Function):
 
 
 class Tanh(Function):
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = self.xp.tanh(x)
-        self.save_to_cache(y)
+        if x_req_grad:
+            self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -66,9 +71,10 @@ class Tanh(Function):
 
 
 class Tril(Function):
-    def forward(self, x: Array, diag: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, diag: int) -> Array:
         y = self.xp.tril(x, diag)
-        self.save_to_cache(y == x)
+        if x_req_grad:
+            self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -78,9 +84,10 @@ class Tril(Function):
 
 
 class Triu(Function):
-    def forward(self, x: Array, diag: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, diag: int) -> Array:
         y = self.xp.triu(x, diag)
-        self.save_to_cache(y == x)
+        if x_req_grad:
+            self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:

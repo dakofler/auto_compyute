@@ -7,7 +7,6 @@ from typing import Optional
 import opt_einsum as oe  # type: ignore
 
 from ..backends import Array, Shape
-from ..funcs.binary_funcs import Maximum
 from ..funcs.function import Function
 from ..funcs.shape_funcs import Select
 
@@ -18,10 +17,11 @@ from ..funcs.shape_funcs import Select
 
 class GELU(Function):
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
         y = 0.5 * x * (1.0 + tanh_term)
-        self.save_to_cache(x)
+        if x_req_grad:
+            self.save_to_cache(x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -34,9 +34,10 @@ class GELU(Function):
 
 
 class ReLU(Function):
-    def forward(self, x: Array, x_requires_grad: bool) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = self.xp.maximum(x, 0.0)
-        self.save_to_cache((y == x) if x_requires_grad else None)
+        if x_req_grad:
+            self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -46,9 +47,10 @@ class ReLU(Function):
 
 
 class LeakyReLU(Function):
-    def forward(self, x: Array, alpha: float) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, alpha: float) -> Array:
         y = self.xp.maximum(x, x * alpha)
-        self.save_to_cache(alpha, y == x)
+        if x_req_grad:
+            self.save_to_cache(alpha, y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -62,9 +64,10 @@ def _sigmoid_forward(xp: ModuleType, x: Array) -> Array:
 
 
 class Sigmoid(Function):
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array, x_req_grad: bool) -> Array:
         y = _sigmoid_forward(self.xp, x)
-        self.save_to_cache(y)
+        if x_req_grad:
+            self.save_to_cache(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -80,9 +83,10 @@ def _softmax_forward(xp: ModuleType, x: Array, dim: int) -> Array:
 
 
 class Softmax(Function):
-    def forward(self, x: Array, dim: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, dim: int) -> Array:
         y = _softmax_forward(self.xp, x, dim)
-        self.save_to_cache(dim, y)
+        if x_req_grad:
+            self.save_to_cache(dim, y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -99,18 +103,18 @@ class Linear(Function):
     def forward(
         self,
         x: Array,
-        x_requires_grad: bool,
+        x_req_grad: bool,
         w: Array,
-        w_requires_grad: bool,
+        w_req_grad: bool,
         b: Optional[Array],
-        b_requires_grad: bool,
+        b_req_grad: bool,
     ) -> Array:
         y = x @ w.swapaxes(-1, -2)
         y = y if b is None else y + b
         self.save_to_cache(
-            (x if w_requires_grad else None),
-            (w if x_requires_grad else None),
-            b is not None and b_requires_grad,
+            (x if w_req_grad else None),
+            (w if x_req_grad else None),
+            b_req_grad,
         )
         return y
 
@@ -134,9 +138,10 @@ def _pad2d_forward(xp: ModuleType, x: Array, padding: int) -> Array:
 
 
 class Pad2D(Function):
-    def forward(self, x: Array, padding: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, padding: int) -> Array:
         y = _pad2d_forward(self.xp, x, padding)
-        self.save_to_cache(padding)
+        if x_req_grad:
+            self.save_to_cache(padding)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -155,9 +160,10 @@ def _dilate2d_forward(xp: ModuleType, x: Array, dilation: int) -> Array:
 
 
 class Dilate2D(Function):
-    def forward(self, x: Array, dilation: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, dilation: int) -> Array:
         y = _dilate2d_forward(self.xp, x, dilation)
-        self.save_to_cache(dilation)
+        if x_req_grad:
+            self.save_to_cache(dilation)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -182,10 +188,14 @@ def _pad_to_shape(xp: ModuleType, x: Array, shape: Shape) -> Array:
 
 
 class Conv2D(Function):
-    def forward(self, x: Array, w: Array, stride: int) -> Array:
+    def forward(
+        self, x: Array, x_req_grad: bool, w: Array, w_req_grad: bool, *, stride: int
+    ) -> Array:
         x_pooled = _pool2d(self.xp, x, w.shape[-1], stride)
         y = oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
-        self.save_to_cache(x, w, stride)
+        self.save_to_cache(
+            (x if w_req_grad else None), (w if x_req_grad else None), stride
+        )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -206,14 +216,20 @@ class Conv2D(Function):
         dy = _pad2d_forward(self.xp, dy, kernel_size - 1)
 
         # input grads
-        dy_pooled = _pool2d(self.xp, dy, kernel_size)
-        w = self.xp.flip(w, (-2, -1))
-        dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w, use_blas=True)
+        if w is not None:
+            dy_pooled = _pool2d(self.xp, dy, kernel_size)
+            w = self.xp.flip(w, (-2, -1))
+            dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w, use_blas=True)
+        else:
+            dx = None
 
         # weight grads
-        dy_pooled = _pool2d(self.xp, dy, input_size)
-        dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x, use_blas=True)
-        dw = self.xp.flip(dw, (-2, -1))
+        if x is not None:
+            dy_pooled = _pool2d(self.xp, dy, input_size)
+            dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x, use_blas=True)
+            dw = self.xp.flip(dw, (-2, -1))
+        else:
+            dw = None
 
         return dx, dw
 
@@ -228,9 +244,10 @@ def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: Shape):
 
 
 class Maxpool2D(Function):
-    def forward(self, x: Array, window_size: int) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, window_size: int) -> Array:
         y = _pool2d(self.xp, x, window_size, window_size).max((-2, -1))
-        self.save_to_cache(x, window_size, y)
+        if x_req_grad:
+            self.save_to_cache(x, window_size, y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -249,10 +266,16 @@ class Batchnorm(Function):
     def forward(
         self,
         x: Array,
+        x_req_grad: bool,
         w: Array,
+        w_req_grad: bool,
         b: Array,
+        b_req_grad: bool,
         rmean: Array,
+        _1: bool,  # dummy placeholders for rmean_req_grad
         rvar: Array,
+        _2: bool,  # dummy placeholders for rvar_req_grad
+        *,
         momentum: float,
         eps: float,
         training: bool,
@@ -282,24 +305,50 @@ class Batchnorm(Function):
         b = b.reshape(*b.shape, *ext_shape)
         y = xnorm * w + b
 
-        self.save_to_cache(w, b_dims, rstd, xnorm)
+        self.save_to_cache(
+            (w if x_req_grad else None),
+            b_dims,
+            (rstd if x_req_grad else None),
+            (xnorm if x_req_grad or w_req_grad else None),
+            b_req_grad,
+        )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        w, b_dims, rstd, xnorm = self.retrieve_from_cache()
-        db = dy.sum(b_dims)
-        dw = (dy * xnorm).sum(b_dims)
-        dxnorm = dy * w
-        dx = rstd * (
-            dxnorm
-            - dxnorm.mean(b_dims, keepdims=True)
-            - xnorm * (dxnorm * xnorm).mean(b_dims, keepdims=True)
-        )
+        w, b_dims, rstd, xnorm, b_req_grad = self.retrieve_from_cache()
+
+        # bias grads
+        db = None if not b_req_grad else dy.sum(b_dims)
+
+        # weight grads
+        dw = None if xnorm is None else (dy * xnorm).sum(b_dims)
+
+        # input grads
+        if rstd is not None:
+            dxnorm = dy * w
+            dx = rstd * (
+                dxnorm
+                - dxnorm.mean(b_dims, keepdims=True)
+                - xnorm * (dxnorm * xnorm).mean(b_dims, keepdims=True)
+            )
+        else:
+            dx = None
+
         return dx, dw, db
 
 
 class Layernorm(Function):
-    def forward(self, x: Array, w: Array, b: Array, eps: float) -> Array:
+    def forward(
+        self,
+        x: Array,
+        x_req_grad: bool,
+        w: Array,
+        w_req_grad: bool,
+        b: Array,
+        b_req_grad: bool,
+        *,
+        eps: float,
+    ) -> Array:
         f_dims = tuple(range(x.ndim - w.ndim, x.ndim))
 
         mean = x.mean(f_dims, keepdims=True)
@@ -309,20 +358,36 @@ class Layernorm(Function):
         xnorm = xshift * rstd
         y = xnorm * w + b
 
-        self.save_to_cache(w, f_dims, rstd, xnorm)
+        self.save_to_cache(
+            (w if x_req_grad else None),
+            f_dims,
+            (rstd if x_req_grad else None),
+            (xnorm if x_req_grad or w_req_grad else None),
+            b_req_grad,
+        )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        w, f_dims, rstd, xnorm = self.retrieve_from_cache()
+        w, f_dims, rstd, xnorm, b_req_grad = self.retrieve_from_cache()
         b_dims = tuple(range(dy.ndim - w.ndim))
-        db = dy.sum(b_dims)
-        dw = (dy * xnorm).sum(b_dims)
-        dxnorm = dy * w
-        dx = rstd * (
-            dxnorm
-            - dxnorm.mean(f_dims, keepdims=True)
-            - xnorm * (dxnorm * xnorm).mean(f_dims, keepdims=True)
-        )
+
+        # bias grads
+        db = None if not b_req_grad else dy.sum(b_dims)
+
+        # weight grads
+        dw = None if xnorm is None else (dy * xnorm).sum(b_dims)
+
+        # input grads
+        if rstd is not None:
+            dxnorm = dy * w
+            dx = rstd * (
+                dxnorm
+                - dxnorm.mean(f_dims, keepdims=True)
+                - xnorm * (dxnorm * xnorm).mean(f_dims, keepdims=True)
+            )
+        else:
+            dx = None
+
         return dx, dw, db
 
 
@@ -332,11 +397,12 @@ class Layernorm(Function):
 
 
 class Dropout(Function):
-    def forward(self, x: Array, p: float) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, p: float) -> Array:
         p = 1.0 - p
         dropout_mask = self.xp.random.random(x.shape) < p
         y = x * dropout_mask / p
-        self.save_to_cache(p, dropout_mask)
+        if x_req_grad:
+            self.save_to_cache(p, dropout_mask)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -359,11 +425,15 @@ class Embedding(Select): ...
 
 
 class MSELoss(Function):
-    def forward(self, x: Array, y: Array, reduction: str) -> Array:
+    def forward(
+        self, x: Array, x_req_grad: bool, y: Array, _: bool, *, reduction: str
+    ) -> Array:
         diff = x - y
         loss = diff * diff
-        self.save_to_cache(x.size, diff, reduction)
-        return loss.mean() if reduction == "mean" else loss.sum()
+        loss = loss.mean() if reduction == "mean" else loss.sum()
+        if x_req_grad:
+            self.save_to_cache(x.size, diff, reduction)
+        return loss
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x_size, diff, reduction = self.retrieve_from_cache()
@@ -378,12 +448,23 @@ def _onehot(xp: ModuleType, x: Array, n: int, dtype: type):
 
 
 class CrossEntropyLoss(Function):
-    def forward(self, x: Array, y: Array, eta: float, reduction: str) -> Array:
+    def forward(
+        self,
+        x: Array,
+        x_req_grad: bool,
+        y: Array,
+        _: bool,
+        *,
+        eta: float,
+        reduction: str,
+    ) -> Array:
         probs = _softmax_forward(self.xp, x, dim=-1)
         y_onehot = _onehot(self.xp, y, x.shape[-1], probs.dtype)
         loss = -(self.xp.log(probs + eta) * y_onehot).sum(-1)
-        self.save_to_cache(y, probs, reduction)
-        return loss.mean() if reduction == "mean" else loss.sum()
+        loss = loss.mean() if reduction == "mean" else loss.sum()
+        if x_req_grad:
+            self.save_to_cache(y, probs, reduction)
+        return loss
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         y, probs, reduction = self.retrieve_from_cache()
@@ -395,11 +476,15 @@ class CrossEntropyLoss(Function):
 
 
 class BCELoss(Function):
-    def forward(self, x: Array, y: Array, reduction: str) -> Array:
+    def forward(
+        self, x: Array, x_req_grad: bool, y: Array, _: bool, *, reduction: str
+    ) -> Array:
         max_logits = self.xp.maximum(x, 0.0)
         loss = max_logits - x * y + self.xp.log(1.0 + self.xp.exp(-self.xp.abs(x)))
-        self.save_to_cache(x, y, reduction)
-        return loss.mean() if reduction == "mean" else loss.sum()
+        loss = loss.mean() if reduction == "mean" else loss.sum()
+        if x_req_grad:
+            self.save_to_cache(x, y, reduction)
+        return loss
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         x, y, reduction = self.retrieve_from_cache()

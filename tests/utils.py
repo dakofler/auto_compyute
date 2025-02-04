@@ -15,14 +15,14 @@ def close(ac_in: Array, torch_in: Tensor, tol: float = 1e-5):
 
 
 def get_random_floats(shape: Shape, requires_grad: bool = True):
-    x = ac.randn(*shape, requires_grad=requires_grad)
+    x = ac.randn(*shape, req_grad=requires_grad)
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)
     return x, torch_x
 
 
 def get_random_positive_floats(shape: Shape, requires_grad: bool = True):
     x = ac.randn(*shape).abs()
-    x.requires_grad = requires_grad
+    x.req_grad = requires_grad
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)
     return x, torch_x
 
@@ -40,6 +40,6 @@ def get_ones(shape: Shape, requires_grad: bool = False):
 
 
 def get_zeros(shape: Shape, requires_grad: bool = False):
-    x = ac.zeros(*shape, requires_grad=requires_grad)
+    x = ac.zeros(*shape, req_grad=requires_grad)
     torch_x = torch.tensor(x.data, requires_grad=requires_grad)
     return x, torch_x

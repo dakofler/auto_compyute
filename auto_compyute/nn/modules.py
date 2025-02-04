@@ -37,7 +37,7 @@ __all__ = [
 
 class Parameter(Tensor):
     def __init__(self, data: Tensor) -> None:
-        super().__init__(data.data, requires_grad=True)
+        super().__init__(data.data, req_grad=True)
 
 
 class Buffer(Tensor):

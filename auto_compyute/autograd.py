@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from contextlib import contextmanager
+from itertools import chain
 from typing import Any, Optional
 
 from .backends import (
@@ -33,12 +34,12 @@ class Tensor:
         data: Array,
         ctx: Optional[Function] = None,
         parents: Optional[tuple[Tensor, ...]] = None,
-        requires_grad: bool = False,
+        req_grad: bool = False,
     ) -> None:
         self.data = data
         self.ctx = ctx
         self.parents = parents
-        self.requires_grad = requires_grad
+        self.req_grad = req_grad
         self.grad: Optional[Array] = None
 
     @property
@@ -121,24 +122,24 @@ class Tensor:
         self.grad = grad if self.grad is None else self.grad + grad
 
     def backward(self, dy: Optional[Array] = None):
-        assert self.requires_grad, "Node not in autograd graph"
+        assert self.req_grad, "Node not in autograd graph."
         assert self.grad is None, "Cannot run backward multiple times."
 
         # set node grad
         if dy is None:
             self.grad = self.device.xp.ones(self.shape, dtype=self.dtype)
         else:
-            assert isinstance(dy, Array)
+            assert isinstance(dy, Array), "Gradient must be an array."
             self.grad = dy
 
         # run backward through traced graph
         node_queue = build_backward_queue(self, [], set())
         for node in reversed(node_queue):
-            assert node.ctx is not None, "Node has no function context"
-            assert node.parents is not None, "Node has no parent nodes"
+            assert node.ctx is not None, "Node has no function context."
+            assert node.parents is not None, "Node has no parent nodes."
             grads = node.ctx.backward(node.grad)
             for parent, grad in zip(node.parents, grads):
-                if not parent.requires_grad:
+                if not parent.req_grad:
                     continue
                 grad = _undo_broadcast(grad, parent.shape)
                 parent.apply_grad(grad)
@@ -175,31 +176,25 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Add, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Add, self, self.self_like(x))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Sub, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Sub, self, self.self_like(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Mul, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Mul, self, self.self_like(x))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Div, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Div, self, self.self_like(x))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Matmul, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Maximum, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Maximum, self, self.self_like(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        x = self.self_like(x)
-        return apply_func(Minimum, self, self.requires_grad, x, x.requires_grad)
+        return apply_func(Minimum, self, self.self_like(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -270,9 +265,9 @@ class Tensor:
         if self.dtype == dtype:
             return self
         data: Array = self.data.astype(dtype)
-        if self.requires_grad:
+        if self.req_grad:
             assert is_float(dtype), "Cannot change autograd node dtype to non float."
-            new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
+            new_tensor = Tensor(data, self.ctx, self.parents, self.req_grad)
             if self.grad is not None:
                 new_tensor.grad = self.grad.astype(dtype)
             return new_tensor
@@ -290,8 +285,8 @@ class Tensor:
     def to(self, device: DeviceLike) -> Tensor:
         device = device if isinstance(device, Device) else Device(device)
         data = self.data if self.device == device else move_to_device(self.data, device)
-        if self.requires_grad:
-            new_tensor = Tensor(data, self.ctx, self.parents, self.requires_grad)
+        if self.req_grad:
+            new_tensor = Tensor(data, self.ctx, self.parents, self.req_grad)
             if self.grad is not None:
                 new_tensor.grad = move_to_device(self.grad, device)
             return new_tensor
@@ -321,7 +316,7 @@ class Tensor:
 
     def contiguous(self) -> Tensor:
         data = self.device.xp.ascontiguousarray(self.data)
-        return Tensor(data, self.ctx, self.parents, self.requires_grad)
+        return Tensor(data, self.ctx, self.parents, self.req_grad)
 
 
 # -------------------------------------------------------------------------------------
@@ -353,7 +348,7 @@ def build_backward_queue(
         if not node.parents:
             return []
         for p in node.parents:
-            if p.requires_grad is False:
+            if p.req_grad is False:
                 continue
             _ = build_backward_queue(p, queue, visited)
         queue.append(node)
@@ -361,16 +356,22 @@ def build_backward_queue(
 
 
 def apply_func(function: type[Function], *args: Any, **kwargs: Any) -> Tensor:
+    # extract req_grad from tensors and handle optional tensors
+    function_args = tuple(
+        (a.data, a.req_grad) if isinstance(a, Tensor) else (None, False) for a in args
+    )
+    function_args = tuple(chain.from_iterable(function_args))
+
+    # get tensor args
     tensor_args = tuple(a for a in args if isinstance(a, Tensor))
-    function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
     device = tensor_args[0].device
     ctx = function(tensor_args[0].device)
 
     # add autograd context to resulting node
-    if autograd_tracing_active and any(a.requires_grad for a in tensor_args):
+    if autograd_tracing_active and any(a.req_grad for a in tensor_args):
         with device:
             data = ctx.forward(*function_args, **kwargs)
-        return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)
+        return Tensor(data, ctx=ctx, parents=tensor_args, req_grad=True)
 
     # just compute forward pass without adding context
     with device:
@@ -379,7 +380,7 @@ def apply_func(function: type[Function], *args: Any, **kwargs: Any) -> Tensor:
 
 
 def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
-    assert root_node.requires_grad, "Node not in autograd graph"
+    assert root_node.req_grad, "Node not in autograd graph"
 
     try:
         from mermaid import Mermaid  # type: ignore
@@ -395,7 +396,7 @@ def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
     def _get_mermaid_node_label(n: Tensor) -> str:
 
         # constant
-        if not n.requires_grad:
+        if not n.req_grad:
             node_name = "Const"
             fill_color, stroke_color = colors["const"]
 

@@ -8,21 +8,25 @@ from .function import Function
 
 
 class Concat(Function):
-    def forward(self, *arrays: Array, dim: int) -> Array:
+    def forward(self, *arrays_and_req_grads: Array | bool, dim: int) -> Array:
+        arrays = arrays_and_req_grads[::2]
+        req_grads = arrays_and_req_grads[1::2]
         y = self.xp.concatenate(arrays, dim)
-        self.save_to_cache(dim, [a.shape[dim] for a in arrays])
+        self.save_to_cache(dim, req_grads, [a.shape[dim] for a in arrays])
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim, split_sizes = self.retrieve_from_cache()
+        dim, req_grads, split_sizes = self.retrieve_from_cache()
         split_indices = list(accumulate(s for s in split_sizes))
-        return tuple(self.xp.split(dy, split_indices, dim))
+        dxs = tuple(self.xp.split(dy, split_indices, dim))
+        return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
 
 
 class Select(Function):
-    def forward(self, x: Array, key: Any) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, key: Any) -> Array:
         y = x[key]
-        self.save_to_cache(x.shape, key)
+        if x_req_grad:
+            self.save_to_cache(x.shape, key)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -36,20 +40,24 @@ class Split(Select): ...
 
 
 class Stack(Function):
-    def forward(self, *arrays: Array, dim: int) -> Array:
+    def forward(self, *arrays_and_req_grads: Array | bool, dim: int) -> Array:
+        arrays = arrays_and_req_grads[::2]
+        req_grads = arrays_and_req_grads[1::2]
         y = self.xp.stack(arrays, dim)
-        self.save_to_cache(dim)
+        self.save_to_cache(dim, req_grads)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim = self.retrieve_from_cache()
-        return tuple(self.xp.moveaxis(dy, dim, 0))
+        dim, req_grads = self.retrieve_from_cache()
+        dxs = tuple(self.xp.moveaxis(dy, dim, 0))
+        return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
 
 
 class Transpose(Function):
-    def forward(self, x: Array, dim1, dim2) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, dim1, dim2) -> Array:
         y = x.swapaxes(dim1, dim2)
-        self.save_to_cache(dim1, dim2)
+        if x_req_grad:
+            self.save_to_cache(dim1, dim2)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
@@ -59,9 +67,10 @@ class Transpose(Function):
 
 
 class View(Function):
-    def forward(self, x: Array, shape: Shape) -> Array:
+    def forward(self, x: Array, x_req_grad: bool, *, shape: Shape) -> Array:
         y = x.reshape(shape)
-        self.save_to_cache(x.shape)
+        if x_req_grad:
+            self.save_to_cache(x.shape)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:

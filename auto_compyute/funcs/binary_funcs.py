@@ -6,44 +6,44 @@ from .function import Function
 
 class Add(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = x1 + x2
-
-        # TODO: if both are False cache never gets emptied. Problem?
-        self.save_to_cache(x1_requires_grad, x2_requires_grad)
+        if x1_req_grad or x2_req_grad:
+            self.save_to_cache(x1_req_grad, x2_req_grad)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1_requires_grad, x2_requires_grad = self.retrieve_from_cache()
-        dx1 = dy if x1_requires_grad else None
-        dx2 = dy if x2_requires_grad else None
+        x1_req_grad, x2_req_grad = self.retrieve_from_cache()
+        dx1 = dy if x1_req_grad else None
+        dx2 = dy if x2_req_grad else None
         return dx1, dx2
 
 
 class Sub(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = x1 - x2
-        self.save_to_cache(x1_requires_grad, x2_requires_grad)
+        if x1_req_grad or x2_req_grad:
+            self.save_to_cache(x1_req_grad, x2_req_grad)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1_requires_grad, x2_requires_grad = self.retrieve_from_cache()
-        dx1 = dy if x1_requires_grad else None
-        dx2 = (-dy) if x2_requires_grad else None
+        x1_req_grad, x2_req_grad = self.retrieve_from_cache()
+        dx1 = dy if x1_req_grad else None
+        dx2 = (-dy) if x2_req_grad else None
         return dx1, dx2
 
 
 class Mul(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = x1 * x2
         self.save_to_cache(
-            (x1 if x2_requires_grad else None),
-            (x2 if x1_requires_grad else None),
+            (x1 if x2_req_grad else None),
+            (x2 if x1_req_grad else None),
         )
         return y
 
@@ -56,12 +56,12 @@ class Mul(Function):
 
 class Div(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = x1 / x2
         self.save_to_cache(
-            (x1 if x2_requires_grad else None),
-            (x2 if x1_requires_grad or x2_requires_grad else None),
+            (x1 if x2_req_grad else None),
+            (x2 if x1_req_grad or x2_req_grad else None),
         )
         return y
 
@@ -74,12 +74,12 @@ class Div(Function):
 
 class Matmul(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = x1 @ x2
         self.save_to_cache(
-            (x1 if x2_requires_grad else None),
-            (x2 if x1_requires_grad else None),
+            (x1 if x2_req_grad else None),
+            (x2 if x1_req_grad else None),
         )
         return y
 
@@ -92,37 +92,37 @@ class Matmul(Function):
 
 class Maximum(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = self.xp.maximum(x1, x2)
         self.save_to_cache(
-            x1_requires_grad,
-            x2_requires_grad,
-            ((y == x1) if x1_requires_grad or x2_requires_grad else None),
+            x1_req_grad,
+            x2_req_grad,
+            ((y == x1) if x1_req_grad or x2_req_grad else None),
         )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1_requires_grad, x2_requires_grad, mask = self.retrieve_from_cache()
-        dx1 = None if not x1_requires_grad else (dy * mask)
-        dx2 = None if not x2_requires_grad else (dy * self.xp.invert(mask))
+        x1_req_grad, x2_req_grad, mask = self.retrieve_from_cache()
+        dx1 = None if not x1_req_grad else (dy * mask)
+        dx2 = None if not x2_req_grad else (dy * self.xp.invert(mask))
         return dx1, dx2
 
 
 class Minimum(Function):
     def forward(
-        self, x1: Array, x1_requires_grad: bool, x2: Array, x2_requires_grad: bool
+        self, x1: Array, x1_req_grad: bool, x2: Array, x2_req_grad: bool
     ) -> Array:
         y = self.xp.minimum(x1, x2)
         self.save_to_cache(
-            x1_requires_grad,
-            x2_requires_grad,
-            ((y == x1) if x1_requires_grad or x2_requires_grad else None),
+            x1_req_grad,
+            x2_req_grad,
+            ((y == x1) if x1_req_grad or x2_req_grad else None),
         )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1_requires_grad, x2_requires_grad, mask = self.retrieve_from_cache()
-        dx1 = None if not x1_requires_grad else (dy * mask)
-        dx2 = None if not x2_requires_grad else (dy * self.xp.invert(mask))
+        x1_req_grad, x2_req_grad, mask = self.retrieve_from_cache()
+        dx1 = None if not x1_req_grad else (dy * mask)
+        dx2 = None if not x2_req_grad else (dy * self.xp.invert(mask))
         return dx1, dx2

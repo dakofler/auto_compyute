@@ -42,7 +42,7 @@ def tensor(
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=requires_grad)
 
 
 def arange(
@@ -56,7 +56,7 @@ def arange(
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.arange(start, stop, step, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=requires_grad)
 
 
 def ones(
@@ -68,7 +68,7 @@ def ones(
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.ones(dims, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=requires_grad)
 
 
 def ones_like(x: Tensor, requires_grad: bool = False) -> Tensor:
@@ -79,16 +79,16 @@ def zeros(
     *dims: int,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.zeros(dims, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
-def zeros_like(x: Tensor, requires_grad: bool = False) -> Tensor:
-    return zeros(*x.shape, device=x.device, dtype=x.dtype, requires_grad=requires_grad)
+def zeros_like(x: Tensor, req_grad: bool = False) -> Tensor:
+    return zeros(*x.shape, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def full(
@@ -96,21 +96,17 @@ def full(
     value: Scalar,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.full(dims, value, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
-def full_like(x: Tensor, value: Scalar, requires_grad: bool = False) -> Tensor:
+def full_like(x: Tensor, value: Scalar, req_grad: bool = False) -> Tensor:
     return full(
-        *x.shape,
-        value=value,
-        device=x.device,
-        dtype=x.dtype,
-        requires_grad=requires_grad,
+        *x.shape, value=value, device=x.device, dtype=x.dtype, req_grad=req_grad
     )
 
 
@@ -120,12 +116,12 @@ def randi(
     high: int,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.randint(low, high, dims, dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randi_like(
@@ -133,15 +129,10 @@ def randi_like(
     low: int,
     high: int,
     dtype: Optional[DType] = int64,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     return randi(
-        *x.shape,
-        low=low,
-        high=high,
-        device=x.device,
-        dtype=dtype,
-        requires_grad=requires_grad,
+        *x.shape, low=low, high=high, device=x.device, dtype=dtype, req_grad=req_grad
     )
 
 
@@ -151,12 +142,12 @@ def randn(
     var: float = 1,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.normal(mean, var, dims).astype(dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randn_like(
@@ -164,15 +155,10 @@ def randn_like(
     mean: float = 0,
     var: float = 1,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     return randn(
-        *x.shape,
-        mean=mean,
-        var=var,
-        device=x.device,
-        dtype=dtype,
-        requires_grad=requires_grad,
+        *x.shape, mean=mean, var=var, device=x.device, dtype=dtype, req_grad=req_grad
     )
 
 
@@ -182,12 +168,12 @@ def randu(
     high: float = 1,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.uniform(low, high, dims).astype(dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randu_like(
@@ -195,15 +181,10 @@ def randu_like(
     low: float = -1,
     high: float = 1,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     return randu(
-        *x.shape,
-        low=low,
-        high=high,
-        device=x.device,
-        dtype=dtype,
-        requires_grad=requires_grad,
+        *x.shape, low=low, high=high, device=x.device, dtype=dtype, req_grad=req_grad
     )
 
 
@@ -211,9 +192,9 @@ def randperm(
     n: int,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ):
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.permutation(n).astype(dtype)
-    return Tensor(data, requires_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
