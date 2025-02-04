@@ -56,7 +56,7 @@ class Tensor:
 
     @property
     def shape(self) -> Shape:
-        return self.data.shape
+        return Shape(self.data.shape)
 
     @property
     def size(self) -> int:
@@ -226,8 +226,8 @@ class Tensor:
     # SHAPE OPS
     # ----------------------------------------------------------------------------------
 
-    def expand(self, *shape: int) -> Tensor:
-        return apply_func(Expand, self, shape=shape)
+    def expand(self, *dims: int) -> Tensor:
+        return apply_func(Expand, self, shape=dims)
 
     def select(self, key: Any) -> Tensor:
         key = _parse_key(key)
@@ -336,7 +336,7 @@ def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
         axis = _get_shape_diff(grad.shape, target_shape)
         grad = grad.sum(axis, keepdims=True)
     else:
-        data_shape = (1,) * (grad.ndim - target_ndim) + target_shape
+        data_shape = Shape((1,) * (grad.ndim - target_ndim) + target_shape)
         axis = _get_shape_diff(grad.shape, data_shape)
         grad = grad.sum(axis=axis)
 

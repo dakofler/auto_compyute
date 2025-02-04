@@ -10,7 +10,6 @@ __all__ = ["Device"]
 
 Array: TypeAlias = cupy.ndarray | numpy.ndarray
 Scalar: TypeAlias = int | float
-Shape = tuple[int, ...]
 Dim = int | tuple[int, ...]
 
 MAX_LINE_WIDTH = 200
@@ -18,6 +17,11 @@ PREC = 4
 FLOATMODE = "maxprec_equal"
 numpy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 cupy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
+
+
+class Shape(tuple):
+    def __repr__(self) -> str:
+        return f"shape({super().__repr__().replace("(", "").replace(")", "")})"
 
 
 def get_available_devices() -> list[str]:
@@ -48,7 +52,7 @@ class Device:
             and other.dev_id == self.dev_id
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
         return f"device('{self.dev_type}{id_suffix}')"
 
