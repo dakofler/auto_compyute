@@ -37,12 +37,12 @@ def tensor(
     data: Any,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)
-    return Tensor(data, req_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def arange(

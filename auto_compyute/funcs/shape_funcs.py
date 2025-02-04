@@ -18,8 +18,17 @@ class Concat(Function):
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dim, req_grads, split_sizes = self.retrieve_from_cache()
         split_indices = list(accumulate(s for s in split_sizes))
-        dxs = tuple(self.xp.split(dy, split_indices, dim))
+        dxs = self.xp.split(dy, split_indices, dim)
         return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
+
+
+class Expand(Function):
+    def forward(self, x: Array, _: bool, *, shape: Shape) -> Array:
+        y = self.xp.broadcast_to(x, shape)
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        return (dy,)
 
 
 class Select(Function):

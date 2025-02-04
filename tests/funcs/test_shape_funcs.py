@@ -16,6 +16,21 @@ def _shape_function_verify(x, torch_x, y, torch_y):
     assert close(x.grad, torch_x.grad)
 
 
+expand_ac_x1, expand_torch_x1 = get_random_floats((1, 20, 1))
+expand_xs = ((expand_ac_x1, expand_torch_x1),)
+expand_shapes = ((10, 20, 1), (1, 20, 10), (5, 20, 4))
+
+
+@pytest.mark.parametrize("x", expand_xs)
+@pytest.mark.parametrize("shape", expand_shapes)
+def test_expand(x, shape):
+    """Expand function test"""
+    ac_x, torch_x = x
+    ac_y = ac_x.expand(*shape)
+    torch_y = torch_x.expand(*shape)
+    _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
+
+
 ac_x1, torch_x1 = get_random_floats((10, 20))
 ac_x2, torch_x2 = get_random_floats((10, 20, 30))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))

@@ -22,7 +22,7 @@ from .dtypes import DType, float32, int32, int64, is_float
 from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
 from .funcs.function import Function
 from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
-from .funcs.shape_funcs import Select, Split, Squeeze, Transpose, View
+from .funcs.shape_funcs import Expand, Select, Split, Squeeze, Transpose, View
 from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
 
 __all__ = ["Tensor", "no_autograd_tracing"]
@@ -225,6 +225,9 @@ class Tensor:
     # ----------------------------------------------------------------------------------
     # SHAPE OPS
     # ----------------------------------------------------------------------------------
+
+    def expand(self, *shape: int) -> Tensor:
+        return apply_func(Expand, self, shape=shape)
 
     def select(self, key: Any) -> Tensor:
         key = _parse_key(key)
