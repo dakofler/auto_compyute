@@ -6,7 +6,7 @@ from typing import Optional
 
 import opt_einsum as oe  # type: ignore
 
-from ..backends import Array, Shape
+from ..backends import Array, ShapeLike
 from ..funcs.function import Function
 from ..funcs.shape_funcs import Select
 
@@ -182,7 +182,7 @@ def _pool2d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Arra
     return y
 
 
-def _pad_to_shape(xp: ModuleType, x: Array, shape: Shape) -> Array:
+def _pad_to_shape(xp: ModuleType, x: Array, shape: ShapeLike) -> Array:
     padding = tuple((int(0), shape[i] - x.shape[i]) for i in range(x.ndim))
     y = xp.pad(x, padding)
     return y
@@ -237,7 +237,7 @@ class Conv2D(Function):
         return dx, dw
 
 
-def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: Shape):
+def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: ShapeLike):
     repeat_shape = (*x.shape[:-1], n_repeats, x.shape[-1], n_repeats)
     repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
     y = xp.lib.stride_tricks.as_strided(x, repeat_shape, repeat_strides)

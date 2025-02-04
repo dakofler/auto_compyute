@@ -51,28 +51,28 @@ def arange(
     step: float = 1,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.arange(start, stop, step, dtype)
-    return Tensor(data, req_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def ones(
     *dims: int,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
-    requires_grad: bool = False,
+    req_grad: bool = False,
 ) -> Tensor:
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.ones(dims, dtype)
-    return Tensor(data, req_grad=requires_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
-def ones_like(x: Tensor, requires_grad: bool = False) -> Tensor:
-    return ones(*x.shape, device=x.device, dtype=x.dtype, requires_grad=requires_grad)
+def ones_like(x: Tensor, req_grad: bool = False) -> Tensor:
+    return ones(*x.shape, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def zeros(

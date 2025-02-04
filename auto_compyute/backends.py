@@ -24,6 +24,9 @@ class Shape(tuple):
         return f"shape({super().__repr__().replace("(", "").replace(")", "")})"
 
 
+ShapeLike: TypeAlias = Shape | tuple[int, ...]
+
+
 def get_available_devices() -> list[str]:
     return ["cpu"] + [f"cuda:{i}" for i in range(cupy.cuda.runtime.getDeviceCount())]
 

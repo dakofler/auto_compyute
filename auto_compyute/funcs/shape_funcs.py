@@ -3,7 +3,7 @@
 from itertools import accumulate
 from typing import Any
 
-from ..backends import Array, Shape
+from ..backends import Array, ShapeLike
 from .function import Function
 
 
@@ -23,7 +23,7 @@ class Concat(Function):
 
 
 class Expand(Function):
-    def forward(self, x: Array, _: bool, *, shape: Shape) -> Array:
+    def forward(self, x: Array, _: bool, *, shape: ShapeLike) -> Array:
         y = self.xp.broadcast_to(x, shape)
         return y
 
@@ -76,8 +76,8 @@ class Transpose(Function):
 
 
 class View(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, shape: Shape) -> Array:
-        y = x.reshape(shape)
+    def forward(self, x: Array, x_req_grad: bool, *, shape: ShapeLike) -> Array:
+        y = self.xp.reshape(x, shape)
         if x_req_grad:
             self.save_to_cache(x.shape)
         return y
@@ -89,3 +89,28 @@ class View(Function):
 
 
 class Squeeze(View): ...
+
+
+class Where(Function):
+    def forward(
+        self,
+        condition: Array,
+        _: bool,
+        x1: Array,
+        x1_req_grad: bool,
+        x2: Array,
+        x2_req_grad: bool,
+    ) -> Array:
+        y = self.xp.where(condition, x1, x2)
+        self.save_to_cache(
+            x1_req_grad,
+            x2_req_grad,
+            ((y == x1) if x1_req_grad or x2_req_grad else None),
+        )
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x1_req_grad, x2_req_grad, mask = self.retrieve_from_cache()
+        dx1 = None if not x1_req_grad else (dy * mask)
+        dx2 = None if not x2_req_grad else (dy * self.xp.invert(mask))
+        return None, dx1, dx2

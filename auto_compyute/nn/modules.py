@@ -8,7 +8,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
-from ..backends import Device, DeviceLike, Shape
+from ..backends import Device, DeviceLike, ShapeLike
 from ..dtypes import DType
 from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
@@ -274,7 +274,7 @@ class Batchnorm(Module):
 
 
 class Layernorm(Module):
-    def __init__(self, norm_shape: int | Shape, eps: float = 1e-5) -> None:
+    def __init__(self, norm_shape: int | ShapeLike, eps: float = 1e-5) -> None:
         super().__init__()
         self.eps = eps
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape

@@ -14,16 +14,18 @@ from .backends import (
     Dim,
     Scalar,
     Shape,
+    ShapeLike,
     array_to_string,
     get_array_device,
     move_to_device,
+    select_device,
 )
 from .dtypes import DType, float32, int32, int64, is_float
-from .funcs.binary_funcs import Add, Div, Matmul, Maximum, Minimum, Mul, Sub
+from .funcs import binary_funcs as BFuncs
+from .funcs import reduce_funcs as RFuncs
+from .funcs import shape_funcs as SFuncs
+from .funcs import unary_funcs as UFuncs
 from .funcs.function import Function
-from .funcs.reduce_funcs import Max, Mean, Min, Std, Sum, Var
-from .funcs.shape_funcs import Expand, Select, Split, Squeeze, Transpose, View
-from .funcs.unary_funcs import Abs, Exp, Pow, Sqrt, Tanh, Tril, Triu
 
 __all__ = ["Tensor", "no_autograd_tracing"]
 
@@ -103,6 +105,24 @@ class Tensor:
     def __neg__(self) -> Tensor:
         return self.mul(-1)
 
+    def __eq__(self, x: Tensor | Scalar) -> Tensor:  # type: ignore
+        return Tensor(self.data == as_tensor(x).data)
+
+    def __neq__(self, x: Tensor | Scalar) -> Tensor:
+        return Tensor(self.data != as_tensor(x).data)
+
+    def __lt__(self, x: Tensor | Scalar) -> Tensor:
+        return Tensor(self.data < as_tensor(x).data)
+
+    def __gt__(self, x: Tensor | Scalar) -> Tensor:
+        return Tensor(self.data > as_tensor(x).data)
+
+    def __le__(self, x: Tensor | Scalar) -> Tensor:
+        return Tensor(self.data <= as_tensor(x).data)
+
+    def __ge__(self, x: Tensor | Scalar) -> Tensor:
+        return Tensor(self.data >= as_tensor(x).data)
+
     def __getitem__(self, key: Any) -> Tensor:
         return self.select(key)
 
@@ -113,6 +133,9 @@ class Tensor:
 
     def __len__(self) -> int:
         return self.data.shape[0]
+
+    def __hash__(self) -> int:
+        return id(self)
 
     # ----------------------------------------------------------------------------------
     # AUTOGRAD METHODS
@@ -151,91 +174,91 @@ class Tensor:
     # UNARY OPS
     # ----------------------------------------------------------------------------------
     def abs(self) -> Tensor:
-        return apply_func(Abs, self)
+        return apply_func(UFuncs.Abs, self)
 
     def exp(self) -> Tensor:
-        return apply_func(Exp, self)
+        return apply_func(UFuncs.Exp, self)
 
     def pow(self, x: Scalar) -> Tensor:
-        return apply_func(Pow, self, exp=x)
+        return apply_func(UFuncs.Pow, self, exp=x)
 
     def sqrt(self) -> Tensor:
-        return apply_func(Sqrt, self)
+        return apply_func(UFuncs.Sqrt, self)
 
     def tanh(self) -> Tensor:
-        return apply_func(Tanh, self)
+        return apply_func(UFuncs.Tanh, self)
 
     def tril(self, diag: int = 0) -> Tensor:
-        return apply_func(Tril, self, diag=diag)
+        return apply_func(UFuncs.Tril, self, diag=diag)
 
     def triu(self, diag: int = 0) -> Tensor:
-        return apply_func(Triu, self, diag=diag)
+        return apply_func(UFuncs.Triu, self, diag=diag)
 
     # ----------------------------------------------------------------------------------
     # BINARY OPS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, self.self_like(x))
+        return apply_func(BFuncs.Add, self, as_tensor(x, self.device))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Sub, self, self.self_like(x))
+        return apply_func(BFuncs.Sub, self, as_tensor(x, self.device))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, self.self_like(x))
+        return apply_func(BFuncs.Mul, self, as_tensor(x, self.device))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Div, self, self.self_like(x))
+        return apply_func(BFuncs.Div, self, as_tensor(x, self.device))
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, x)
+        return apply_func(BFuncs.Matmul, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, self.self_like(x))
+        return apply_func(BFuncs.Maximum, self, as_tensor(x, self.device))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, self.self_like(x))
+        return apply_func(BFuncs.Minimum, self, as_tensor(x, self.device))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
     # ----------------------------------------------------------------------------------
 
     def sum(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
-        return apply_func(Sum, self, dim=dim, keepdims=keepdims)
+        return apply_func(RFuncs.Sum, self, dim=dim, keepdims=keepdims)
 
     def mean(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
-        return apply_func(Mean, self, dim=dim, keepdims=keepdims)
+        return apply_func(RFuncs.Mean, self, dim=dim, keepdims=keepdims)
 
     def var(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Tensor:
-        return apply_func(Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
+        return apply_func(RFuncs.Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def std(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Tensor:
-        return apply_func(Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
+        return apply_func(RFuncs.Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def max(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Tensor:
-        return apply_func(Max, self, dim=dim, keepdims=keepdims)
+        return apply_func(RFuncs.Max, self, dim=dim, keepdims=keepdims)
 
     def min(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Tensor:
-        return apply_func(Min, self, dim=dim, keepdims=keepdims)
+        return apply_func(RFuncs.Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
     # SHAPE OPS
     # ----------------------------------------------------------------------------------
 
     def expand(self, *dims: int) -> Tensor:
-        return apply_func(Expand, self, shape=dims)
+        return apply_func(SFuncs.Expand, self, shape=dims)
 
     def select(self, key: Any) -> Tensor:
         key = _parse_key(key)
-        return apply_func(Select, self, key=key)
+        return apply_func(SFuncs.Select, self, key=key)
 
     def _split(self, key: Any) -> Tensor:
         key = _parse_key(key)
-        return apply_func(Split, self, key=key)
+        return apply_func(SFuncs.Split, self, key=key)
 
     def split(self, split_size: int, *, dim: int = -1) -> list[Tensor]:
         dim = dim % self.ndim
@@ -250,15 +273,15 @@ class Tensor:
         non_singular_dims = tuple(d for d in self.shape if d > 1)
         if len(non_singular_dims) == self.ndim:
             return self
-        return apply_func(Squeeze, self, shape=non_singular_dims)
+        return apply_func(SFuncs.Squeeze, self, shape=non_singular_dims)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
-        return apply_func(Transpose, self, dim1=dim1, dim2=dim2)
+        return apply_func(SFuncs.Transpose, self, dim1=dim1, dim2=dim2)
 
     def view(self, *dims: int) -> Tensor:
         if dims == self.shape:
             return self
-        return apply_func(View, self, shape=dims)
+        return apply_func(SFuncs.View, self, shape=dims)
 
     # ----------------------------------------------------------------------------------
     # OTHER METHODS
@@ -312,11 +335,6 @@ class Tensor:
     def item(self) -> Any:
         return self.data.item()
 
-    def self_like(self, x: Tensor | Scalar) -> Tensor:
-        if isinstance(x, Tensor):
-            return x.as_type(self.dtype)
-        return Tensor(self.device.xp.asarray(x, dtype=self.dtype))
-
     def contiguous(self) -> Tensor:
         data = self.device.xp.ascontiguousarray(self.data)
         return Tensor(data, self.ctx, self.parents, self.req_grad)
@@ -327,7 +345,7 @@ class Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
+def _undo_broadcast(grad: Array, target_shape: ShapeLike) -> Array:
     if grad.shape == target_shape:
         return grad
     target_ndim = len(target_shape)
@@ -363,7 +381,7 @@ def apply_func(
 ) -> Tensor:
     # create function args by extracting req_grad from tensors and handle optional tensors
     f_args = [(t.data, t.req_grad) if t is not None else (None, False) for t in tensors]
-    f_args = tuple(chain(*f_args))
+    f_args = tuple(chain(*f_args))  # type: ignore
 
     # get tensor args
     t_args = tuple(t for t in tensors if t is not None)
@@ -471,6 +489,13 @@ def no_autograd_tracing() -> Generator:
 # -------------------------------------------------------------------------------------
 
 
+def as_tensor(x: Tensor | Scalar, device: Optional[Device] = None) -> Tensor:
+    if isinstance(x, Tensor):
+        return x
+    device = select_device(device)
+    return Tensor(device.xp.asarray(x))
+
+
 def _parse_key(key: Any) -> Any:
     if isinstance(key, tuple):
         return tuple(k.data if isinstance(k, Tensor) else k for k in key)
@@ -479,5 +504,5 @@ def _parse_key(key: Any) -> Any:
     return key
 
 
-def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
-    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
+def _get_shape_diff(shape1: ShapeLike, shape2: ShapeLike) -> Shape:
+    return Shape(i for i in range(len(shape1)) if shape1[i] != shape2[i])
