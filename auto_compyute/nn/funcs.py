@@ -138,6 +138,10 @@ def _pad2d_forward(xp: ModuleType, x: Array, padding: int) -> Array:
     return y
 
 
+def _pad2d_backward(dy: Array, padding: int) -> Array:
+    return dy[..., padding:-padding, padding:-padding]
+
+
 class Pad2D(Function):
     def forward(self, x: Array, x_req_grad: bool, *, padding: int) -> Array:
         y = _pad2d_forward(self.xp, x, padding)
@@ -147,8 +151,7 @@ class Pad2D(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         padding = self.retrieve_from_cache()
-        dx = dy[..., padding:-padding, padding:-padding]
-        dx = self.xp.ascontiguousarray(dx)
+        dx = _pad2d_backward(dy, padding)
         return (dx,)
 
 
@@ -160,6 +163,23 @@ def _dilate2d_forward(xp: ModuleType, x: Array, dilation: int) -> Array:
     return y
 
 
+def _dilate2d_backward(dy: Array, dilation: int) -> Array:
+    return dy[..., ::dilation, ::dilation]
+
+
+class InvPad2D(Function):
+    def forward(self, x: Array, x_req_grad: bool, *, padding: int) -> Array:
+        y = _pad2d_backward(x, padding)
+        if x_req_grad:
+            self.save_to_cache(padding)
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        padding = self.retrieve_from_cache()
+        dx = _pad2d_forward(self.xp, dy, padding)
+        return (dx,)
+
+
 class Dilate2D(Function):
     def forward(self, x: Array, x_req_grad: bool, *, dilation: int) -> Array:
         y = _dilate2d_forward(self.xp, x, dilation)
@@ -169,7 +189,7 @@ class Dilate2D(Function):
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
         dilation = self.retrieve_from_cache()
-        dx = dy[..., ::dilation, ::dilation]
+        dx = _dilate2d_backward(dy, dilation)
         return (dx,)
 
 
@@ -231,6 +251,57 @@ class Conv2D(Function):
             dy_pooled = _pool2d(self.xp, dy, input_size)
             dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x, use_blas=True)
             dw = self.xp.flip(dw, (-2, -1))
+        else:
+            dw = None
+
+        return dx, dw
+
+
+class ConvTranspose2D(Function):
+    def forward(
+        self, x: Array, x_req_grad: bool, w: Array, w_req_grad: bool, *, stride: int
+    ) -> Array:
+        w = self.xp.flip(w, (-2, -1))
+
+        # upsample input by dilating
+        x = _dilate2d_forward(self.xp, x, stride)
+
+        # full pad input
+        x = _pad2d_forward(self.xp, x, w.shape[-1] - 1)
+
+        # convolve
+        x_pooled = _pool2d(self.xp, x, w.shape[-1], 1)
+        y = oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
+
+        self.save_to_cache(
+            (x if w_req_grad else None),
+            (w if x_req_grad else None),
+            x.shape[-1],
+            w.shape[-1],
+            stride,
+        )
+        return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        x, w, input_size, kernel_size, stride = self.retrieve_from_cache()
+
+        # full pad
+        dy = _pad2d_forward(self.xp, dy, kernel_size - 1)
+
+        # input grads
+        if w is not None:
+            dy_pooled = _pool2d(self.xp, dy, kernel_size)
+            w = self.xp.flip(w, (-2, -1))
+            dx = oe.contract("boyxjk,oijk->biyx", dy_pooled, w, use_blas=True)
+            dx = _pad2d_backward(dx, kernel_size - 1)
+            dx = _dilate2d_backward(dx, stride)
+        else:
+            dx = None
+
+        # weight grads
+        if x is not None:
+            dy_pooled = _pool2d(self.xp, dy, input_size)
+            dw = oe.contract("bojkyx,biyx->oijk", dy_pooled, x, use_blas=True)
         else:
             dw = None
 

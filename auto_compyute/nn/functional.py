@@ -68,6 +68,24 @@ def conv2d(
     return y
 
 
+def conv_transpose2d(
+    x: Tensor,
+    w: Tensor,
+    b: Optional[Tensor] = None,
+    stride: int = 1,
+    padding: int = 0,
+    dilation: int = 1,
+) -> Tensor:
+    if dilation > 1:
+        w = apply_func(NNFuncs.Dilate2D, w, dilation=dilation)
+    y = apply_func(NNFuncs.ConvTranspose2D, x, w, stride=stride)
+    if padding > 0:
+        y = apply_func(NNFuncs.InvPad2D, y, padding=padding)
+    if b is not None:
+        y += b.view(*b.shape, 1, 1)
+    return y
+
+
 def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
     return apply_func(NNFuncs.Maxpool2D, x, window_size=window_size)
 

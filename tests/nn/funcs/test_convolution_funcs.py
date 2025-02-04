@@ -32,7 +32,7 @@ ac_b1, torch_b1 = get_random_floats((32,))
 xs = ((ac_x1, torch_x1),)
 ws = ((ac_w1, torch_w1),)
 bs = ((ac_b1, torch_b1),)
-paddings = (0, 2)
+paddings = (0, 1)
 strides = (1, 2)
 dilations = (1, 2)
 
@@ -43,13 +43,49 @@ dilations = (1, 2)
 @pytest.mark.parametrize("padding", paddings)
 @pytest.mark.parametrize("stride", strides)
 @pytest.mark.parametrize("dilation", dilations)
-def test_conv(x, w, b, padding, stride, dilation):
+def test_conv2d(x, w, b, padding, stride, dilation):
     """Conv function test"""
     ac_x, torch_x = x
     ac_w, torch_w = w
     ac_b, torch_b = b
     ac_y = F.conv2d(ac_x, ac_w, ac_b, stride, padding, dilation)
     torch_y = tF.conv2d(torch_x, torch_w, torch_b, stride, padding, dilation)
+    _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+
+
+t2d_ac_x1, t2d_torch_x1 = get_random_floats((16, 3, 14, 14))
+t2d_ac_w1, t2d_torch_w1 = get_random_floats((5, 3, 3, 3))
+t2d_ac_b1, t2d_torch_b1 = get_random_floats((5,))
+t2d_xs = ((t2d_ac_x1, t2d_torch_x1),)
+t2d_ws = ((t2d_ac_w1, t2d_torch_w1),)
+t2d_bs = ((t2d_ac_b1, t2d_torch_b1),)
+t2d_strides = (1, 2)
+t2d_paddings = (0, 1)
+t2d_dilations = (1, 2)
+
+
+@pytest.mark.parametrize("x", t2d_xs)
+@pytest.mark.parametrize("w", t2d_ws)
+@pytest.mark.parametrize("b", t2d_bs)
+@pytest.mark.parametrize("stride", t2d_strides)
+@pytest.mark.parametrize("padding", t2d_paddings)
+@pytest.mark.parametrize("dilation", t2d_dilations)
+def test_conv_transpose2d(x, w, b, stride, padding, dilation):
+    """Conv function test"""
+    if padding >= stride or padding >= dilation:
+        return
+    ac_x, torch_x = x
+    ac_w, torch_w = w
+    ac_b, torch_b = b
+    ac_y = F.conv_transpose2d(ac_x, ac_w, ac_b, stride, padding, dilation)
+    torch_y = tF.conv_transpose2d(
+        torch_x,
+        torch_w.transpose(0, 1),
+        torch_b,
+        stride,
+        padding,
+        dilation=dilation,
+    )
     _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
 
 

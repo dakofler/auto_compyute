@@ -32,6 +32,7 @@ __all__ = [
     "Embedding",
     "Dropout",
     "Flatten",
+    "Reshape",
 ]
 
 
@@ -212,6 +213,33 @@ class Conv2D(Module):
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
+class ConvTranspose2D(Module):
+    def __init__(
+        self,
+        in_dim: int,
+        out_dim: int,
+        kernel_size: int = 3,
+        padding: int = 0,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+    ) -> None:
+        super().__init__()
+        self.padding = padding
+        self.stride = stride
+        self.dilation = dilation
+        k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
+        self.w = Parameter(
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k)
+        )
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return F.conv_transpose2d(
+            x, self.w, self.b, self.stride, self.padding, self.dilation
+        )
+
+
 class MaxPooling2D(Module):
     def __init__(self, window_size: int = 2) -> None:
         super().__init__()
@@ -306,3 +334,12 @@ class Dropout(Module):
 class Flatten(Module):
     def forward(self, x: Tensor) -> Tensor:
         return x.view(x.shape[0], -1)
+
+
+class Reshape(Module):
+    def __init__(self, shape: ShapeLike) -> None:
+        super().__init__()
+        self.shape = shape
+
+    def forward(self, x: Tensor) -> Tensor:
+        return x.view(*self.shape)
