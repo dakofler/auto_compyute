@@ -194,14 +194,16 @@ class Conv2D(Function):
         x_pooled = _pool2d(self.xp, x, w.shape[-1], stride)
         y = oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
         self.save_to_cache(
-            (x if w_req_grad else None), (w if x_req_grad else None), stride
+            (x if w_req_grad else None),
+            (w if x_req_grad else None),
+            x.shape[-1],
+            w.shape[-1],
+            stride,
         )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, w, stride = self.retrieve_from_cache()
-        *_, input_size = x.shape
-        *_, kernel_size = w.shape
+        x, w, input_size, kernel_size, stride = self.retrieve_from_cache()
 
         # fill elements skipped by strides with zeros
         if stride > 1:
