@@ -355,28 +355,27 @@ def build_backward_queue(
     return queue
 
 
-def apply_func(function: type[Function], *args: Any, **kwargs: Any) -> Tensor:
-    # extract req_grad from tensors and handle optional tensors
-    function_args = tuple(
-        (a.data, a.req_grad) if isinstance(a, Tensor) else (None, False) for a in args
-    )
-    function_args = tuple(chain.from_iterable(function_args))
+def apply_func(
+    function: type[Function], *tensors: Optional[Tensor], **kwargs: Any
+) -> Tensor:
+    # create function args by extracting req_grad from tensors and handle optional tensors
+    f_args = [(t.data, t.req_grad) if t is not None else (None, False) for t in tensors]
+    f_args = tuple(chain(*f_args))
 
     # get tensor args
-    tensor_args = tuple(a for a in args if isinstance(a, Tensor))
-    device = tensor_args[0].device
-    ctx = function(tensor_args[0].device)
+    t_args = tuple(t for t in tensors if t is not None)
+    device = t_args[0].device
+    ctx = function(t_args[0].device)
 
-    # add autograd context to resulting node
-    if autograd_tracing_active and any(a.req_grad for a in tensor_args):
-        with device:
-            data = ctx.forward(*function_args, **kwargs)
-        return Tensor(data, ctx=ctx, parents=tensor_args, req_grad=True)
-
-    # just compute forward pass without adding context
+    # return result node with autograd context
     with device:
-        data = ctx.forward(*function_args, **kwargs)
-    return Tensor(data)
+        if autograd_tracing_active and any(a.req_grad for a in t_args):
+            data = ctx.forward(*f_args, **kwargs)
+            return Tensor(data, ctx=ctx, parents=t_args, req_grad=True)
+
+        # return result node without autograd context
+        data = ctx.forward(*f_args, **kwargs)
+        return Tensor(data)
 
 
 def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
