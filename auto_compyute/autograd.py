@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Generator
 from contextlib import contextmanager
 from itertools import chain
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from .backends import (
     Array,
@@ -378,7 +378,11 @@ def apply_func(
         return Tensor(data)
 
 
-def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
+def draw_graph(
+    root_node: Tensor,
+    orientation: Literal["LR", "TD"] = "LR",
+    save_to_file: bool = False,
+) -> Any:
     assert root_node.req_grad, "Node not in autograd graph"
 
     try:
@@ -417,7 +421,7 @@ def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
         label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
         return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
 
-    mermaid_script = f"graph LR\n{_get_mermaid_node_label(root_node)}\n"
+    mermaid_script = f"graph {orientation}\n{_get_mermaid_node_label(root_node)}\n"
 
     def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
         if not node.parents:
