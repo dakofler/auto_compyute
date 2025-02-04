@@ -175,25 +175,31 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Add, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Add, self, self.requires_grad, x, x.requires_grad)
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Sub, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Sub, self, self.requires_grad, x, x.requires_grad)
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Mul, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Mul, self, self.requires_grad, x, x.requires_grad)
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Div, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Div, self, self.requires_grad, x, x.requires_grad)
 
     def matmul(self, x: Tensor) -> Tensor:
-        return apply_func(Matmul, self, x)
+        return apply_func(Matmul, self, self.requires_grad, x, x.requires_grad)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Maximum, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Maximum, self, self.requires_grad, x, x.requires_grad)
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(Minimum, self, self.self_like(x), isinstance(x, Scalar))
+        x = self.self_like(x)
+        return apply_func(Minimum, self, self.requires_grad, x, x.requires_grad)
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -318,8 +324,9 @@ class Tensor:
         return Tensor(data, self.ctx, self.parents, self.requires_grad)
 
 
-def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
-    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
+# -------------------------------------------------------------------------------------
+# AUTOGRAD FUNCTIONS
+# -------------------------------------------------------------------------------------
 
 
 def _undo_broadcast(grad: Array, target_shape: Shape) -> Array:
@@ -353,15 +360,14 @@ def build_backward_queue(
     return queue
 
 
-def apply_func(funcion: type[Function], *args: Any, **kwargs: Any) -> Tensor:
+def apply_func(function: type[Function], *args: Any, **kwargs: Any) -> Tensor:
     tensor_args = tuple(a for a in args if isinstance(a, Tensor))
     function_args = tuple(a.data if isinstance(a, Tensor) else a for a in args)
     device = tensor_args[0].device
-    ctx = funcion(tensor_args[0].device)
+    ctx = function(tensor_args[0].device)
 
     # add autograd context to resulting node
     if autograd_tracing_active and any(a.requires_grad for a in tensor_args):
-        ctx.caching = True
         with device:
             data = ctx.forward(*function_args, **kwargs)
         return Tensor(data, ctx=ctx, parents=tensor_args, requires_grad=True)
@@ -436,14 +442,6 @@ def draw_compute_graph(root_node: Tensor, save_to_file: bool = False) -> Any:
         return mermaid_html
 
 
-def _parse_key(key: Any) -> Any:
-    if isinstance(key, tuple):
-        return tuple(k.data if isinstance(k, Tensor) else k for k in key)
-    if isinstance(key, Tensor):
-        return key.data
-    return key
-
-
 autograd_tracing_active = True
 
 
@@ -459,3 +457,20 @@ def no_autograd_tracing() -> Generator:
         yield
     finally:
         set_autograd__tracing_mode(True)
+
+
+# -------------------------------------------------------------------------------------
+# HELPER FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+def _parse_key(key: Any) -> Any:
+    if isinstance(key, tuple):
+        return tuple(k.data if isinstance(k, Tensor) else k for k in key)
+    if isinstance(key, Tensor):
+        return key.data
+    return key
+
+
+def _get_shape_diff(shape1: Shape, shape2: Shape) -> Shape:
+    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])

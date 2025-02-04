@@ -35,7 +35,7 @@ def gelu(x: Tensor) -> Tensor:
 
 
 def relu(x: Tensor) -> Tensor:
-    return apply_func(ReLU, x)
+    return apply_func(ReLU, x, x.requires_grad)
 
 
 def leaky_relu(x: Tensor, alpha: float = 0.2) -> Tensor:
@@ -60,7 +60,15 @@ def tanh(x: Tensor) -> Tensor:
 
 
 def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
-    return apply_func(Linear, x, w, b)
+    return apply_func(
+        Linear,
+        x,
+        x.requires_grad,
+        w,
+        w.requires_grad,
+        b,
+        b is not None and b.requires_grad,
+    )
 
 
 # -------------------------------------------------------------------------------------

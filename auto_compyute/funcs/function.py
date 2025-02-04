@@ -9,7 +9,6 @@ from ..backends import Array, Device
 class Function(ABC):
     def __init__(self, device: Device) -> None:
         self.xp = device.xp
-        self.caching: bool = False
         self._cache: Any = None
 
     @property
@@ -17,8 +16,7 @@ class Function(ABC):
         return self.__class__.__name__
 
     def save_to_cache(self, *args):
-        if self.caching:
-            self._cache = args
+        self._cache = args
 
     def retrieve_from_cache(self) -> Any:
         assert self._cache is not None

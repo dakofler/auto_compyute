@@ -33,11 +33,16 @@ class GELU(Function):
         return (dx,)
 
 
-class ReLU(Maximum):
-    def forward(self, x1: Array) -> Array:
-        y = self.xp.maximum(x1, 0.0)
-        self.save_to_cache(True, y == x1)
+class ReLU(Function):
+    def forward(self, x: Array, x_requires_grad: bool) -> Array:
+        y = self.xp.maximum(x, 0.0)
+        self.save_to_cache((y == x) if x_requires_grad else None)
         return y
+
+    def backward(self, dy: Array) -> tuple[Array, ...]:
+        mask = self.retrieve_from_cache()
+        dx = dy * mask
+        return (dx,)
 
 
 class LeakyReLU(Function):
@@ -85,26 +90,35 @@ class Softmax(Function):
         dx = y * (dy - (dy * y).sum(dim, keepdims=True))
         return (dx,)
 
-
-# -------------------------------------------------------------------------------------
-# LINEAR FUNCTIONS
-# -------------------------------------------------------------------------------------
+        # -------------------------------------------------------------------------------------
+        # LINEAR FUNCTIONS
+        # -------------------------------------------------------------------------------------
 
 
 class Linear(Function):
-    def forward(self, x: Array, w: Array, b: Optional[Array]) -> Array:
-        self.save_to_cache(x, w, b is None)
+    def forward(
+        self,
+        x: Array,
+        x_requires_grad: bool,
+        w: Array,
+        w_requires_grad: bool,
+        b: Optional[Array],
+        b_requires_grad: bool,
+    ) -> Array:
         y = x @ w.swapaxes(-1, -2)
         y = y if b is None else y + b
+        self.save_to_cache(
+            (x if w_requires_grad else None),
+            (w if x_requires_grad else None),
+            b is not None and b_requires_grad,
+        )
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, w, b_is_none = self.retrieve_from_cache()
-        dx = dy @ w
-        dw = (dy.swapaxes(-1, -2) @ x).sum(tuple(range(dy.ndim - 2)))
-        if b_is_none:
-            return dx, dw
-        db = dy.sum(tuple(range(dy.ndim - 1)))
+        x, w, b_requires_grad = self.retrieve_from_cache()
+        dx = None if w is None else (dy @ w)
+        dw = None if x is None else (dy.swapaxes(-1, -2) @ x)
+        db = None if not b_requires_grad else dy
         return dx, dw, db
 
 
