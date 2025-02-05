@@ -34,7 +34,7 @@ def test_expand(x, shape):
 ac_x1, torch_x1 = get_random_floats((10, 20))
 ac_x2, torch_x2 = get_random_floats((10, 20, 30))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))
-keys = (1, [1, 1, 2], ac.tensor([1, 2]))
+keys = (1, [1, 1, 2], ac.array([1, 2]))
 
 
 @pytest.mark.parametrize("x", xs)
@@ -43,7 +43,7 @@ def test_select(x, key):
     """Selection function test"""
     ac_x, torch_x = x
     ac_y = ac_x[key]
-    torch_y = torch_x[torch.tensor(key.data) if isinstance(key, ac.Tensor) else key]
+    torch_y = torch_x[torch.tensor(key.data) if isinstance(key, ac.Array) else key]
     _shape_function_verify(ac_x, torch_x, ac_y, torch_y)
 
 

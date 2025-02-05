@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ..backends import Array, Device
+from ..backends import ArrayLike, Device
 
 
 class Function(ABC):
@@ -25,7 +25,7 @@ class Function(ABC):
         return values
 
     @abstractmethod
-    def forward(self, *args, **kwargs) -> Array: ...
+    def forward(self, *args, **kwargs) -> ArrayLike: ...
 
     @abstractmethod
-    def backward(self, dy: Array) -> tuple[Array, ...]: ...
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]: ...

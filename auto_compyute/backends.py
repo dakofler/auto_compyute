@@ -8,7 +8,7 @@ import numpy  # type: ignore
 
 __all__ = ["Device"]
 
-Array: TypeAlias = cupy.ndarray | numpy.ndarray
+ArrayLike: TypeAlias = cupy.ndarray | numpy.ndarray
 Scalar: TypeAlias = int | float
 Dim = int | tuple[int, ...]
 
@@ -84,7 +84,7 @@ def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
     raise ValueError(f"Unknown device: {device_type}")
 
 
-def get_array_device(x: Array) -> Device:
+def get_array_device(x: ArrayLike) -> Device:
     return Device("cuda:0") if isinstance(x, cupy.ndarray) else Device("cpu")
 
 
@@ -94,13 +94,13 @@ def select_device(device: Optional[DeviceLike]) -> Device:
     return Device(device or "cpu")
 
 
-def move_to_device(data: Array, device: Device) -> Array:
+def move_to_device(data: ArrayLike, device: Device) -> ArrayLike:
     if device == Device("cpu"):
         return cupy.asnumpy(data)
     return cupy.asarray(data)
 
 
-def array_to_string(data: Array, prefix: str) -> str:
+def array_to_string(data: ArrayLike, prefix: str) -> str:
     device = get_array_device(data)
     return device.xp.array2string(
         data,

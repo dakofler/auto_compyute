@@ -6,7 +6,7 @@ from typing import Optional
 
 import opt_einsum as oe  # type: ignore
 
-from ..backends import Array, ShapeLike
+from ..backends import ArrayLike, ShapeLike
 from ..funcs.function import Function
 from ..funcs.shape_funcs import Select
 
@@ -17,14 +17,14 @@ from ..funcs.shape_funcs import Select
 
 class GELU(Function):
 
-    def forward(self, x: Array, x_req_grad: bool) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
         y = 0.5 * x * (1.0 + tanh_term)
         if x_req_grad:
             self.save_to_cache(x)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x = self.retrieve_from_cache()
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1.0 + 0.044715 * x * x))
         dx1 = 1.0 + tanh_term
@@ -34,62 +34,62 @@ class GELU(Function):
 
 
 class ReLU(Function):
-    def forward(self, x: Array, x_req_grad: bool) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.maximum(x, 0.0)
         if x_req_grad:
             self.save_to_cache(y == x)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         mask = self.retrieve_from_cache()
         dx = dy * mask
         return (dx,)
 
 
 class LeakyReLU(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, alpha: float) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, alpha: float) -> ArrayLike:
         y = self.xp.maximum(x, x * alpha)
         if x_req_grad:
             self.save_to_cache(alpha, y == x)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         alpha, mask = self.retrieve_from_cache()
         dx = dy * (mask + (~mask).astype(dy.dtype) * alpha)
         return (dx,)
 
 
-def _sigmoid_forward(xp: ModuleType, x: Array) -> Array:
+def _sigmoid_forward(xp: ModuleType, x: ArrayLike) -> ArrayLike:
     return 1.0 / (1.0 + xp.exp(-x))
 
 
 class Sigmoid(Function):
-    def forward(self, x: Array, x_req_grad: bool) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = _sigmoid_forward(self.xp, x)
         if x_req_grad:
             self.save_to_cache(y)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         y = self.retrieve_from_cache()
         dx = dy * y * (1.0 - y)
         return (dx,)
 
 
-def _softmax_forward(xp: ModuleType, x: Array, dim: int) -> Array:
+def _softmax_forward(xp: ModuleType, x: ArrayLike, dim: int) -> ArrayLike:
     x = xp.exp(x - x.max(dim, keepdims=True))
     x = x / x.sum(dim, keepdims=True)
     return x
 
 
 class Softmax(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, dim: int) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, dim: int) -> ArrayLike:
         y = _softmax_forward(self.xp, x, dim)
         if x_req_grad:
             self.save_to_cache(dim, y)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         dim, y = self.retrieve_from_cache()
         dx = y * (dy - (dy * y).sum(dim, keepdims=True))
         return (dx,)
@@ -103,13 +103,13 @@ class Softmax(Function):
 class Linear(Function):
     def forward(
         self,
-        x: Array,
+        x: ArrayLike,
         x_req_grad: bool,
-        w: Array,
+        w: ArrayLike,
         w_req_grad: bool,
-        b: Optional[Array],
+        b: Optional[ArrayLike],
         b_req_grad: bool,
-    ) -> Array:
+    ) -> ArrayLike:
         y = x @ w.swapaxes(-1, -2)
         y = y if b is None else y + b
         self.save_to_cache(
@@ -119,7 +119,7 @@ class Linear(Function):
         )
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x, w, b_requires_grad = self.retrieve_from_cache()
         dx = None if w is None else (dy @ w)
         dw = None if x is None else (dy.swapaxes(-1, -2) @ x)
@@ -132,30 +132,30 @@ class Linear(Function):
 # -------------------------------------------------------------------------------------
 
 
-def _pad2d_forward(xp: ModuleType, x: Array, padding: int) -> Array:
+def _pad2d_forward(xp: ModuleType, x: ArrayLike, padding: int) -> ArrayLike:
     widths = tuple([(0, 0)] * (x.ndim - 2) + [(padding, padding)] * 2)
     y = xp.pad(x, widths)
     return y
 
 
-def _pad2d_backward(dy: Array, padding: int) -> Array:
+def _pad2d_backward(dy: ArrayLike, padding: int) -> ArrayLike:
     return dy[..., padding:-padding, padding:-padding]
 
 
 class Pad2D(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, padding: int) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
         y = _pad2d_forward(self.xp, x, padding)
         if x_req_grad:
             self.save_to_cache(padding)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         padding = self.retrieve_from_cache()
         dx = _pad2d_backward(dy, padding)
         return (dx,)
 
 
-def _dilate2d_forward(xp: ModuleType, x: Array, dilation: int) -> Array:
+def _dilate2d_forward(xp: ModuleType, x: ArrayLike, dilation: int) -> ArrayLike:
     y_height = dilation * (x.shape[-2] - 1) + 1
     y_width = dilation * (x.shape[-1] - 1) + 1
     y = xp.zeros((*x.shape[:-2], y_height, y_width), dtype=x.dtype)
@@ -163,37 +163,39 @@ def _dilate2d_forward(xp: ModuleType, x: Array, dilation: int) -> Array:
     return y
 
 
-def _dilate2d_backward(dy: Array, dilation: int) -> Array:
+def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
     return dy[..., ::dilation, ::dilation]
 
 
 class InvPad2D(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, padding: int) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
         y = _pad2d_backward(x, padding)
         if x_req_grad:
             self.save_to_cache(padding)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         padding = self.retrieve_from_cache()
         dx = _pad2d_forward(self.xp, dy, padding)
         return (dx,)
 
 
 class Dilate2D(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, dilation: int) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, dilation: int) -> ArrayLike:
         y = _dilate2d_forward(self.xp, x, dilation)
         if x_req_grad:
             self.save_to_cache(dilation)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         dilation = self.retrieve_from_cache()
         dx = _dilate2d_backward(dy, dilation)
         return (dx,)
 
 
-def _pool2d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Array:
+def _pool2d(
+    xp: ModuleType, x: ArrayLike, window_size: int, stride: int = 1
+) -> ArrayLike:
     out = (x.shape[-1] - window_size) // stride + 1
     out_shape = (*x.shape[:-2], out, out, window_size, window_size)
     xstr = x.strides
@@ -202,7 +204,7 @@ def _pool2d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Arra
     return y
 
 
-def _pad_to_shape(xp: ModuleType, x: Array, shape: ShapeLike) -> Array:
+def _pad_to_shape(xp: ModuleType, x: ArrayLike, shape: ShapeLike) -> ArrayLike:
     padding = tuple((int(0), shape[i] - x.shape[i]) for i in range(x.ndim))
     y = xp.pad(x, padding)
     return y
@@ -210,8 +212,14 @@ def _pad_to_shape(xp: ModuleType, x: Array, shape: ShapeLike) -> Array:
 
 class Conv2D(Function):
     def forward(
-        self, x: Array, x_req_grad: bool, w: Array, w_req_grad: bool, *, stride: int
-    ) -> Array:
+        self,
+        x: ArrayLike,
+        x_req_grad: bool,
+        w: ArrayLike,
+        w_req_grad: bool,
+        *,
+        stride: int,
+    ) -> ArrayLike:
         x_pooled = _pool2d(self.xp, x, w.shape[-1], stride)
         y = oe.contract("biyxjk,oijk->boyx", x_pooled, w, use_blas=True)
         self.save_to_cache(
@@ -223,7 +231,7 @@ class Conv2D(Function):
         )
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x, w, input_size, kernel_size, stride = self.retrieve_from_cache()
 
         # fill elements skipped by strides with zeros
@@ -259,8 +267,14 @@ class Conv2D(Function):
 
 class ConvTranspose2D(Function):
     def forward(
-        self, x: Array, x_req_grad: bool, w: Array, w_req_grad: bool, *, stride: int
-    ) -> Array:
+        self,
+        x: ArrayLike,
+        x_req_grad: bool,
+        w: ArrayLike,
+        w_req_grad: bool,
+        *,
+        stride: int,
+    ) -> ArrayLike:
         w = self.xp.flip(w, (-2, -1))
 
         # upsample input by dilating
@@ -282,7 +296,7 @@ class ConvTranspose2D(Function):
         )
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x, w, input_size, kernel_size, stride = self.retrieve_from_cache()
 
         # full pad
@@ -308,7 +322,7 @@ class ConvTranspose2D(Function):
         return dx, dw
 
 
-def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: ShapeLike):
+def _repeat2d(xp: ModuleType, x: ArrayLike, n_repeats: int, target_shape: ShapeLike):
     repeat_shape = (*x.shape[:-1], n_repeats, x.shape[-1], n_repeats)
     repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
     y = xp.lib.stride_tricks.as_strided(x, repeat_shape, repeat_strides)
@@ -318,13 +332,13 @@ def _repeat2d(xp: ModuleType, x: Array, n_repeats: int, target_shape: ShapeLike)
 
 
 class Maxpool2D(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, window_size: int) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, window_size: int) -> ArrayLike:
         y = _pool2d(self.xp, x, window_size, window_size).max((-2, -1))
         if x_req_grad:
             self.save_to_cache(x, window_size, y)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x, window_size, y = self.retrieve_from_cache()
         mask = _repeat2d(self.xp, y, window_size, x.shape) == x
         dx = _repeat2d(self.xp, dy, window_size, x.shape) * mask
@@ -339,21 +353,21 @@ class Maxpool2D(Function):
 class Batchnorm(Function):
     def forward(
         self,
-        x: Array,
+        x: ArrayLike,
         x_req_grad: bool,
-        w: Array,
+        w: ArrayLike,
         w_req_grad: bool,
-        b: Array,
+        b: ArrayLike,
         b_req_grad: bool,
-        rmean: Array,
+        rmean: ArrayLike,
         _1: bool,  # dummy placeholders for rmean_req_grad
-        rvar: Array,
+        rvar: ArrayLike,
         _2: bool,  # dummy placeholders for rvar_req_grad
         *,
         momentum: float,
         eps: float,
         training: bool,
-    ) -> Array:
+    ) -> ArrayLike:
         b_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
         ext_shape = (1,) * (x.ndim - 2)
         n = x.size / w.size
@@ -388,7 +402,7 @@ class Batchnorm(Function):
         )
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         w, b_dims, rstd, xnorm, b_req_grad = self.retrieve_from_cache()
 
         # bias grads
@@ -414,15 +428,15 @@ class Batchnorm(Function):
 class Layernorm(Function):
     def forward(
         self,
-        x: Array,
+        x: ArrayLike,
         x_req_grad: bool,
-        w: Array,
+        w: ArrayLike,
         w_req_grad: bool,
-        b: Array,
+        b: ArrayLike,
         b_req_grad: bool,
         *,
         eps: float,
-    ) -> Array:
+    ) -> ArrayLike:
         f_dims = tuple(range(x.ndim - w.ndim, x.ndim))
 
         mean = x.mean(f_dims, keepdims=True)
@@ -441,7 +455,7 @@ class Layernorm(Function):
         )
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         w, f_dims, rstd, xnorm, b_req_grad = self.retrieve_from_cache()
         b_dims = tuple(range(dy.ndim - w.ndim))
 
@@ -471,7 +485,7 @@ class Layernorm(Function):
 
 
 class Dropout(Function):
-    def forward(self, x: Array, x_req_grad: bool, *, p: float) -> Array:
+    def forward(self, x: ArrayLike, x_req_grad: bool, *, p: float) -> ArrayLike:
         p = 1.0 - p
         dropout_mask = self.xp.random.random(x.shape) < p
         y = x * dropout_mask / p
@@ -479,7 +493,7 @@ class Dropout(Function):
             self.save_to_cache(p, dropout_mask)
         return y
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         p, dropout_mask = self.retrieve_from_cache()
         dx = dy * dropout_mask / p
         return (dx,)
@@ -500,8 +514,8 @@ class Embedding(Select): ...
 
 class MSELoss(Function):
     def forward(
-        self, x: Array, x_req_grad: bool, y: Array, _: bool, *, reduction: str
-    ) -> Array:
+        self, x: ArrayLike, x_req_grad: bool, y: ArrayLike, _: bool, *, reduction: str
+    ) -> ArrayLike:
         diff = x - y
         loss = diff * diff
         loss = loss.mean() if reduction == "mean" else loss.sum()
@@ -509,7 +523,7 @@ class MSELoss(Function):
             self.save_to_cache(x.size, diff, reduction)
         return loss
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x_size, diff, reduction = self.retrieve_from_cache()
         dx = dy * 2.0 * diff
         if reduction == "mean":
@@ -517,21 +531,21 @@ class MSELoss(Function):
         return (dx,)
 
 
-def _onehot(xp: ModuleType, x: Array, n: int, dtype: type):
+def _onehot(xp: ModuleType, x: ArrayLike, n: int, dtype: type):
     return xp.eye(n, dtype=dtype)[x]
 
 
 class CrossEntropyLoss(Function):
     def forward(
         self,
-        x: Array,
+        x: ArrayLike,
         x_req_grad: bool,
-        y: Array,
+        y: ArrayLike,
         _: bool,
         *,
         eta: float,
         reduction: str,
-    ) -> Array:
+    ) -> ArrayLike:
         probs = _softmax_forward(self.xp, x, dim=-1)
         y_onehot = _onehot(self.xp, y, x.shape[-1], probs.dtype)
         loss = -(self.xp.log(probs + eta) * y_onehot).sum(-1)
@@ -540,7 +554,7 @@ class CrossEntropyLoss(Function):
             self.save_to_cache(y, probs, reduction)
         return loss
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         y, probs, reduction = self.retrieve_from_cache()
         y = _onehot(self.xp, y, probs.shape[-1], probs.dtype)
         dx = dy * (probs - y)
@@ -551,8 +565,8 @@ class CrossEntropyLoss(Function):
 
 class BCELoss(Function):
     def forward(
-        self, x: Array, x_req_grad: bool, y: Array, _: bool, *, reduction: str
-    ) -> Array:
+        self, x: ArrayLike, x_req_grad: bool, y: ArrayLike, _: bool, *, reduction: str
+    ) -> ArrayLike:
         max_logits = self.xp.maximum(x, 0.0)
         loss = max_logits - x * y + self.xp.log(1.0 + self.xp.exp(-self.xp.abs(x)))
         loss = loss.mean() if reduction == "mean" else loss.sum()
@@ -560,7 +574,7 @@ class BCELoss(Function):
             self.save_to_cache(x, y, reduction)
         return loss
 
-    def backward(self, dy: Array) -> tuple[Array, ...]:
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         x, y, reduction = self.retrieve_from_cache()
         dx = dy * (_sigmoid_forward(self.xp, x) - y)
         if reduction == "mean":

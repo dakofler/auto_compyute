@@ -2,9 +2,9 @@
 
 from collections.abc import Iterator
 
-from ..autograd import Tensor
+from ..array_factory import arange, randperm
+from ..autograd import Array
 from ..backends import Device, DeviceLike
-from ..tensor_factory import arange, randperm
 
 __all__ = ["Dataloader"]
 
@@ -12,7 +12,7 @@ __all__ = ["Dataloader"]
 class Dataloader:
     def __init__(
         self,
-        data: tuple[Tensor, ...],
+        data: tuple[Array, ...],
         batch_size: int = 1,
         device: DeviceLike = "cpu",
         shuffle_data: bool = True,
@@ -25,7 +25,7 @@ class Dataloader:
         self.shuffle = shuffle_data
         self._additional_batch = not drop_remaining and self._n % self.batch_size > 0
 
-    def __call__(self) -> Iterator[tuple[Tensor, ...]]:
+    def __call__(self) -> Iterator[tuple[Array, ...]]:
         idx = randperm(self._n) if self.shuffle else arange(self._n)
 
         for i in range(len(self)):

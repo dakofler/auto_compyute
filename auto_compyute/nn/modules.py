@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
-from ..autograd import Tensor
+from ..array_factory import ones, randn, randu, zeros
+from ..autograd import Array
 from ..backends import Device, DeviceLike, ShapeLike
 from ..dtypes import DType
-from ..tensor_factory import ones, randn, randu, zeros
 from . import functional as F
 
 __all__ = [
@@ -37,13 +37,13 @@ __all__ = [
 ]
 
 
-class Parameter(Tensor):
-    def __init__(self, data: Tensor) -> None:
+class Parameter(Array):
+    def __init__(self, data: Array) -> None:
         super().__init__(data.data, req_grad=True)
 
 
-class Buffer(Tensor):
-    def __init__(self, data: Tensor) -> None:
+class Buffer(Array):
+    def __init__(self, data: Array) -> None:
         super().__init__(data.data)
 
 
@@ -72,7 +72,7 @@ class Module(ABC):
     # MAGIC METHODS
     # ----------------------------------------------------------------------------------
 
-    def __call__(self, x: Tensor) -> Tensor:
+    def __call__(self, x: Array) -> Array:
         return self.forward(x)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -92,7 +92,7 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     @abstractmethod
-    def forward(self, x: Tensor) -> Tensor: ...
+    def forward(self, x: Array) -> Array: ...
 
     def modules(self, recursive: bool = True) -> Iterator[Module]:
         for m in self._modules.values():
@@ -126,7 +126,7 @@ class Module(ABC):
 
     def to(self, device: DeviceLike) -> None:
         for t in vars(self).values():
-            if isinstance(t, Tensor):
+            if isinstance(t, Array):
                 t.ito(device)
 
         for module in self.modules(recursive=False):
@@ -143,19 +143,19 @@ class Sequential(Module):
         super().__init__()
         self.layers = Modulelist(layers)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         for layer in self.layers:
             x = layer(x)
         return x
 
 
 class GELU(Module):
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.gelu(x)
 
 
 class ReLU(Module):
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.relu(x)
 
 
@@ -164,17 +164,17 @@ class LeakyReLU(Module):
         super().__init__()
         self.alpha = alpha
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.leaky_relu(x, self.alpha)
 
 
 class Sigmoid(Module):
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.sigmoid(x)
 
 
 class Tanh(Module):
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.tanh(x)
 
 
@@ -185,7 +185,7 @@ class Linear(Module):
         self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k))
         self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.linear(x, self.w, self.b)
 
 
@@ -210,7 +210,7 @@ class Conv2D(Module):
         )
         self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
@@ -235,7 +235,7 @@ class ConvTranspose2D(Module):
         )
         self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.conv_transpose2d(
             x, self.w, self.b, self.stride, self.padding, self.dilation
         )
@@ -246,7 +246,7 @@ class MaxPooling2D(Module):
         super().__init__()
         self.window_size = window_size
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.maxpool2d(x, self.window_size)
 
 
@@ -255,7 +255,7 @@ class MultiHeadSelfAttention(Module):
         self,
         in_dim: int,
         n_heads: int,
-        mask: Optional[Tensor] = None,
+        mask: Optional[Array] = None,
         dropout: float = 0,
         attn_bias: bool = False,
         bias: bool = True,
@@ -267,7 +267,7 @@ class MultiHeadSelfAttention(Module):
         self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
         self.out = Linear(in_dim, in_dim, bias=bias)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         B, S, D = x.shape
         dropout = self.dropout if self._training else 0
 
@@ -296,7 +296,7 @@ class Batchnorm(Module):
         self.rmean = Buffer(zeros(in_dim))
         self.rvar = Buffer(ones(in_dim))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.batchnorm(
             x, self.rmean, self.rvar, self.w, self.b, self.m, self.eps, self._training
         )
@@ -310,7 +310,7 @@ class Layernorm(Module):
         self.w = Parameter(ones(*norm_shape))
         self.b = Parameter(zeros(*norm_shape))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.layernorm(x, self.w, self.b, self.eps)
 
 
@@ -319,7 +319,7 @@ class Embedding(Module):
         super().__init__()
         self.w = Parameter(randn(n_emb, emb_dim))
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.embedding(x, self.w)
 
 
@@ -328,12 +328,12 @@ class Dropout(Module):
         super().__init__()
         self.dropout = dropout
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return F.dropout(x, self.dropout, self._training)
 
 
 class Flatten(Module):
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return x.view(x.shape[0], -1)
 
 
@@ -342,5 +342,5 @@ class Reshape(Module):
         super().__init__()
         self.shape = shape
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, x: Array) -> Array:
         return x.view(-1, *self.shape)

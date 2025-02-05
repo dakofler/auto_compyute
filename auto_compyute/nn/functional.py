@@ -3,7 +3,7 @@
 import math
 from typing import Literal, Optional
 
-from ..autograd import Tensor, _parse_key, apply_func
+from ..autograd import Array, _parse_key, apply_func
 from ..dtypes import is_int
 from . import funcs as NNFuncs
 
@@ -12,27 +12,27 @@ from . import funcs as NNFuncs
 # -------------------------------------------------------------------------------------
 
 
-def gelu(x: Tensor) -> Tensor:
+def gelu(x: Array) -> Array:
     return apply_func(NNFuncs.GELU, x)
 
 
-def relu(x: Tensor) -> Tensor:
+def relu(x: Array) -> Array:
     return apply_func(NNFuncs.ReLU, x)
 
 
-def leaky_relu(x: Tensor, alpha: float = 0.2) -> Tensor:
+def leaky_relu(x: Array, alpha: float = 0.2) -> Array:
     return apply_func(NNFuncs.LeakyReLU, x, alpha=alpha)
 
 
-def sigmoid(x: Tensor) -> Tensor:
+def sigmoid(x: Array) -> Array:
     return apply_func(NNFuncs.Sigmoid, x)
 
 
-def softmax(x: Tensor, *, dim: int = -1) -> Tensor:
+def softmax(x: Array, *, dim: int = -1) -> Array:
     return apply_func(NNFuncs.Softmax, x, dim=dim)
 
 
-def tanh(x: Tensor) -> Tensor:
+def tanh(x: Array) -> Array:
     return x.tanh()
 
 
@@ -41,7 +41,7 @@ def tanh(x: Tensor) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
+def linear(x: Array, w: Array, b: Optional[Array]) -> Array:
     return apply_func(NNFuncs.Linear, x, w, b)
 
 
@@ -51,13 +51,13 @@ def linear(x: Tensor, w: Tensor, b: Optional[Tensor]) -> Tensor:
 
 
 def conv2d(
-    x: Tensor,
-    w: Tensor,
-    b: Optional[Tensor] = None,
+    x: Array,
+    w: Array,
+    b: Optional[Array] = None,
     stride: int = 1,
     padding: int = 0,
     dilation: int = 1,
-) -> Tensor:
+) -> Array:
     if padding > 0:
         x = apply_func(NNFuncs.Pad2D, x, padding=padding)
     if dilation > 1:
@@ -69,13 +69,13 @@ def conv2d(
 
 
 def conv_transpose2d(
-    x: Tensor,
-    w: Tensor,
-    b: Optional[Tensor] = None,
+    x: Array,
+    w: Array,
+    b: Optional[Array] = None,
     stride: int = 1,
     padding: int = 0,
     dilation: int = 1,
-) -> Tensor:
+) -> Array:
     if dilation > 1:
         w = apply_func(NNFuncs.Dilate2D, w, dilation=dilation)
     y = apply_func(NNFuncs.ConvTranspose2D, x, w, stride=stride)
@@ -86,7 +86,7 @@ def conv_transpose2d(
     return y
 
 
-def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
+def maxpool2d(x: Array, window_size: int = 2) -> Array:
     return apply_func(NNFuncs.Maxpool2D, x, window_size=window_size)
 
 
@@ -96,8 +96,8 @@ def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
 
 
 def scaled_dot_product_attention(
-    q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None, dropout_p: float = 0
-) -> Tensor:
+    q: Array, k: Array, v: Array, mask: Optional[Array] = None, dropout_p: float = 0
+) -> Array:
     *_, seq_len, head_size = q.shape
 
     attn = q @ k.T / math.sqrt(head_size)
@@ -114,11 +114,11 @@ def scaled_dot_product_attention(
 
 
 def batchnorm(
-    x: Tensor,
-    w: Tensor,
-    b: Tensor,
-    rmean: Tensor,
-    rvar: Tensor,
+    x: Array,
+    w: Array,
+    b: Array,
+    rmean: Array,
+    rvar: Array,
     momentum: float = 0.1,
     eps: float = 1e-5,
     training: bool = False,
@@ -136,7 +136,7 @@ def batchnorm(
     )
 
 
-def layernorm(x: Tensor, w: Tensor, b: Tensor, eps: float = 1e-5) -> Tensor:
+def layernorm(x: Array, w: Array, b: Array, eps: float = 1e-5) -> Array:
     return apply_func(NNFuncs.Layernorm, x, w, b, eps=eps)
 
 
@@ -145,7 +145,7 @@ def layernorm(x: Tensor, w: Tensor, b: Tensor, eps: float = 1e-5) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
+def dropout(x: Array, p: float = 0.5, training: bool = True) -> Array:
     if not training or p == 0:
         return x
     return apply_func(NNFuncs.Dropout, x, p=p)
@@ -156,7 +156,7 @@ def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
+def embedding(x: Array, emb_table: Array) -> Array:
     assert is_int(x.dtype)
     key = _parse_key(x)
     return apply_func(NNFuncs.Embedding, emb_table, key=key)
@@ -167,15 +167,13 @@ def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def mse_loss(
-    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
-):
+def mse_loss(logits: Array, targets: Array, reduction: Literal["sum", "mean"] = "mean"):
     return apply_func(NNFuncs.MSELoss, logits, targets, reduction=reduction)
 
 
 def cross_entropy_loss(
-    logits: Tensor,
-    targets: Tensor,
+    logits: Array,
+    targets: Array,
     eta: float = 1e-8,
     reduction: Literal["sum", "mean"] = "mean",
 ):
@@ -184,7 +182,5 @@ def cross_entropy_loss(
     )
 
 
-def bce_loss(
-    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
-):
+def bce_loss(logits: Array, targets: Array, reduction: Literal["sum", "mean"] = "mean"):
     return apply_func(NNFuncs.BCELoss, logits, targets, reduction=reduction)
