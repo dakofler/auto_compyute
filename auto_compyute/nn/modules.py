@@ -25,6 +25,7 @@ __all__ = [
     "Tanh",
     "Linear",
     "Conv2D",
+    "ConvTranspose2D",
     "MaxPooling2D",
     "MultiHeadSelfAttention",
     "Batchnorm",
@@ -342,4 +343,4 @@ class Reshape(Module):
         self.shape = shape
 
     def forward(self, x: Tensor) -> Tensor:
-        return x.view(*self.shape)
+        return x.view(-1, *self.shape)
