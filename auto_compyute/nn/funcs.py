@@ -132,26 +132,35 @@ class Linear(Function):
 # -------------------------------------------------------------------------------------
 
 
-def _pad2d_forward(xp: ModuleType, x: ArrayLike, padding: int) -> ArrayLike:
-    widths = tuple([(0, 0)] * (x.ndim - 2) + [(padding, padding)] * 2)
+def _pad2d_forward(
+    xp: ModuleType, x: ArrayLike, left_pad: int, right_pad: Optional[int] = None
+) -> ArrayLike:
+    right_pad = right_pad if right_pad is not None else left_pad
+    widths = tuple([(0, 0)] * (x.ndim - 2) + [(left_pad, right_pad)] * 2)
     y = xp.pad(x, widths)
     return y
 
 
-def _pad2d_backward(dy: ArrayLike, padding: int) -> ArrayLike:
-    return dy[..., padding:-padding, padding:-padding]
+def _pad2d_backward(
+    dy: ArrayLike, left_pad: int, right_pad: Optional[int] = None
+) -> ArrayLike:
+    right_pad = right_pad if right_pad is not None else left_pad
+    if right_pad <= 0:
+        return dy[..., left_pad:, left_pad:]
+    return dy[..., left_pad:-right_pad, left_pad:-right_pad]
 
 
 class Pad2D(Function):
     def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
-        y = _pad2d_forward(self.xp, x, padding)
+        widths = tuple([(0, 0)] * (x.ndim - 2) + [(padding, padding)] * 2)
+        y = self.xp.pad(x, widths)
         if x_req_grad:
             self.save_to_cache(padding)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         padding = self.retrieve_from_cache()
-        dx = _pad2d_backward(dy, padding)
+        dx = dy[..., padding:-padding, padding:-padding]
         return (dx,)
 
 
@@ -168,15 +177,17 @@ def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
 
 
 class InvPad2D(Function):
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
-        y = _pad2d_backward(x, padding)
+    def forward(
+        self, x: ArrayLike, x_req_grad: bool, *, padding: int, output_padding: int
+    ) -> ArrayLike:
+        y = _pad2d_backward(x, padding, padding - output_padding)
         if x_req_grad:
-            self.save_to_cache(padding)
+            self.save_to_cache(padding, output_padding)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        padding = self.retrieve_from_cache()
-        dx = _pad2d_forward(self.xp, dy, padding)
+        padding, output_padding = self.retrieve_from_cache()
+        dx = _pad2d_forward(self.xp, dy, padding, padding - output_padding)
         return (dx,)
 
 

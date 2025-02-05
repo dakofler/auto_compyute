@@ -74,13 +74,17 @@ def conv_transpose2d(
     b: Optional[Array] = None,
     stride: int = 1,
     padding: int = 0,
+    output_padding: int = 0,
     dilation: int = 1,
 ) -> Array:
+    assert output_padding <= padding, "Output padding must be <= padding."
     if dilation > 1:
         w = apply_func(NNFuncs.Dilate2D, w, dilation=dilation)
     y = apply_func(NNFuncs.ConvTranspose2D, x, w, stride=stride)
     if padding > 0:
-        y = apply_func(NNFuncs.InvPad2D, y, padding=padding)
+        y = apply_func(
+            NNFuncs.InvPad2D, y, padding=padding, output_padding=output_padding
+        )
     if b is not None:
         y += b.view(*b.shape, 1, 1)
     return y
