@@ -106,22 +106,22 @@ class Tensor:
         return self.mul(-1)
 
     def __eq__(self, x: Tensor | Scalar) -> Tensor:  # type: ignore
-        return Tensor(self.data == as_tensor(x).data)
+        return Tensor(self.data == self.self_like(x).data)
 
     def __neq__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data != as_tensor(x).data)
+        return Tensor(self.data != self.self_like(x).data)
 
     def __lt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data < as_tensor(x).data)
+        return Tensor(self.data < self.self_like(x).data)
 
     def __gt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data > as_tensor(x).data)
+        return Tensor(self.data > self.self_like(x).data)
 
     def __le__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data <= as_tensor(x).data)
+        return Tensor(self.data <= self.self_like(x).data)
 
     def __ge__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data >= as_tensor(x).data)
+        return Tensor(self.data >= self.self_like(x).data)
 
     def __getitem__(self, key: Any) -> Tensor:
         return self.select(key)
@@ -199,25 +199,25 @@ class Tensor:
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Add, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Add, self, self.self_like(x))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Sub, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Sub, self, self.self_like(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Mul, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Mul, self, self.self_like(x))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Div, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Div, self, self.self_like(x))
 
     def matmul(self, x: Tensor) -> Tensor:
         return apply_func(BFuncs.Matmul, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Maximum, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Maximum, self, self.self_like(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
-        return apply_func(BFuncs.Minimum, self, as_tensor(x, self.device))
+        return apply_func(BFuncs.Minimum, self, self.self_like(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -338,6 +338,11 @@ class Tensor:
     def contiguous(self) -> Tensor:
         data = self.device.xp.ascontiguousarray(self.data)
         return Tensor(data, self.ctx, self.parents, self.req_grad)
+
+    def self_like(self, x: Tensor | Scalar) -> Tensor:
+        if isinstance(x, Tensor):
+            return x.as_type(self.dtype)
+        return Tensor(self.device.xp.asarray(x, dtype=self.dtype))
 
 
 # -------------------------------------------------------------------------------------
@@ -487,13 +492,6 @@ def no_autograd_tracing() -> Generator:
 # -------------------------------------------------------------------------------------
 # HELPER FUNCTIONS
 # -------------------------------------------------------------------------------------
-
-
-def as_tensor(x: Tensor | Scalar, device: Optional[Device] = None) -> Tensor:
-    if isinstance(x, Tensor):
-        return x
-    device = select_device(device)
-    return Tensor(device.xp.asarray(x))
 
 
 def _parse_key(key: Any) -> Any:

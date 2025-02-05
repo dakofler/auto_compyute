@@ -1,6 +1,6 @@
 """Tensor functions"""
 
-from .autograd import Tensor, apply_func, as_tensor
+from .autograd import Tensor, apply_func
 from .backends import Scalar
 from .funcs.shape_funcs import Concat, Stack, Where
 
@@ -16,6 +16,5 @@ def stack(*tensors: Tensor, dim: int = 0):
 
 
 def where(condition: Tensor, x1: Tensor | Scalar, x2: Tensor | Scalar) -> Tensor:
-    device = condition.device
-    x1, x2 = as_tensor(x1, device), as_tensor(x2, device)
+    x1, x2 = condition.self_like(x1), condition.self_like(x2)
     return apply_func(Where, condition, x1, x2)
