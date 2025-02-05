@@ -141,8 +141,9 @@ class Tensor:
     # AUTOGRAD METHODS
     # ----------------------------------------------------------------------------------
 
-    def apply_grad(self, grad: Array) -> None:
-        self.grad = grad if self.grad is None else self.grad + grad
+    def apply_grad(self, dy: Array) -> None:
+        assert dy.dtype == float32, f"Grad has invalid dtype {dy.dtype}"
+        self.grad = dy if self.grad is None else self.grad + dy
 
     def backward(self, dy: Optional[Array] = None):
         assert self.req_grad, "Node not in autograd graph."
@@ -152,7 +153,7 @@ class Tensor:
         if dy is None:
             self.grad = self.device.xp.ones(self.shape, dtype=self.dtype)
         else:
-            assert isinstance(dy, Array), "Gradient must be an array."
+            assert isinstance(dy, Array), f"Gradient must be an array, got {type(dy)}"
             self.grad = dy
 
         # run backward through traced graph
@@ -442,7 +443,7 @@ def draw_graph(
         if len(n.shape) == 0:
             node_info = f"{n.item():.4g}"
         else:
-            node_info = str(n.shape)
+            node_info = str(n.shape).replace("shape", "")
 
         label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
         return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
