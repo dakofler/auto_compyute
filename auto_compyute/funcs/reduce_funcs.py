@@ -17,11 +17,13 @@ class Sum(Function):
     ) -> ArrayLike:
         y = x.sum(dim, keepdims=keepdims)
         if x_req_grad:
-            self.save_to_cache(x.shape)
+            self.save_to_cache(x.shape, dim, keepdims)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        x_shape = self.retrieve_from_cache()
+        x_shape, dim, keepdims = self.retrieve_from_cache()
+        if not keepdims and dim is not None:
+            dy = self.xp.expand_dims(dy, dim)
         dx = self.xp.broadcast_to(dy, x_shape)
         return (dx,)
 
@@ -37,11 +39,13 @@ class Mean(Function):
     ) -> ArrayLike:
         y = x.mean(dim, keepdims=keepdims)
         if x_req_grad:
-            self.save_to_cache(x.shape, x.size / y.size)
+            self.save_to_cache(x.shape, dim, keepdims, x.size / y.size)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        x_shape, size = self.retrieve_from_cache()
+        x_shape, dim, keepdims, size = self.retrieve_from_cache()
+        if not keepdims and dim is not None:
+            dy = self.xp.expand_dims(dy, dim)
         dx = self.xp.broadcast_to(dy / size, x_shape)
         return (dx,)
 

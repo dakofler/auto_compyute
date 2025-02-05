@@ -39,6 +39,8 @@ def array(
     dtype: Optional[DType] = None,
     req_grad: bool = False,
 ) -> Array:
+    if isinstance(data, Array):
+        return data
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)

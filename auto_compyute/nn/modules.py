@@ -220,14 +220,16 @@ class ConvTranspose2D(Module):
         in_dim: int,
         out_dim: int,
         kernel_size: int = 3,
-        padding: int = 0,
         stride: int = 1,
+        padding: int = 0,
+        output_padding: int = 0,
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
         super().__init__()
-        self.padding = padding
         self.stride = stride
+        self.padding = padding
+        self.output_padding = output_padding
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
@@ -237,7 +239,13 @@ class ConvTranspose2D(Module):
 
     def forward(self, x: Array) -> Array:
         return F.conv_transpose2d(
-            x, self.w, self.b, self.stride, self.padding, self.dilation
+            x,
+            self.w,
+            self.b,
+            self.stride,
+            self.padding,
+            self.output_padding,
+            self.dilation,
         )
 
 
