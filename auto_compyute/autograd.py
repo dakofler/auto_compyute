@@ -30,6 +30,18 @@ __all__ = ["Array", "no_autograd_tracing"]
 
 
 class Array:
+    """Represents a multi-dimensional array with automatic differentiation support.
+
+    Attributes:
+        data (ArrayLike): The underlying data of the array.
+        ctx (Function | None, optional): The function context for automatic differentiation.
+            Defaults to `None`.
+        parents (tuple[Array, ...] | None, optional): The parent arrays in the computation graph.
+            Defaults to `None`.
+        req_grad (bool, optional): Whether gradients should be computed for this array.
+            Defaults to `False`.
+    """
+
     def __init__(
         self,
         data: ArrayLike,
@@ -37,6 +49,7 @@ class Array:
         parents: Optional[tuple[Array, ...]] = None,
         req_grad: bool = False,
     ) -> None:
+
         self.data = data
         self.ctx = ctx
         self.parents = parents
@@ -45,26 +58,32 @@ class Array:
 
     @property
     def device(self) -> Device:
+        """Returns the device on which the array is stored."""
         return get_array_device(self.data)
 
     @property
     def dtype(self) -> DType:
+        """Returns the data type of the array."""
         return self.data.dtype
 
     @property
     def ndim(self) -> int:
+        """Returns the number of dimensions of the array."""
         return self.data.ndim
 
     @property
     def shape(self) -> Shape:
+        """Returns the shape of the array."""
         return Shape(self.data.shape)
 
     @property
     def size(self) -> int:
+        """Returns the total number of elements in the array."""
         return self.data.size
 
     @property
     def T(self) -> Array:
+        """Returns the transposed array."""
         return self.transpose(-2, -1)
 
     # ----------------------------------------------------------------------------------
@@ -141,10 +160,31 @@ class Array:
     # ----------------------------------------------------------------------------------
 
     def apply_grad(self, dy: ArrayLike) -> None:
+        """Accumulates the gradient for the current array.
+
+        Args:
+            dy (ArrayLike): The gradient to be applied.
+
+        Raises:
+            AssertionError: If `dy` does not have dtype `float32`.
+        """
         assert dy.dtype == float32, f"Grad has invalid dtype {dy.dtype}"
         self.grad = dy if self.grad is None else self.grad + dy
 
     def backward(self, dy: Optional[ArrayLike] = None):
+        """Performs backpropagation to compute gradients.
+
+        - Computes and stores gradients for all nodes in the computation graph.
+        - Clears intermediate node contexts after backpropagation.
+
+        Args:
+            dy (ArrayLike | None, optional): The gradient of the output with respect to
+                some loss. If `None`, assumes a gradient of ones with the same shape as `self`.
+
+        Raises:
+            AssertionError: If the array is not part of the autograd graph (`req_grad=False`).
+            AssertionError: If backward is called multiple times on the same node.
+        """
         assert self.req_grad, "Node not in autograd graph."
         assert self.grad is None, "Cannot run backward multiple times."
 
@@ -173,82 +213,244 @@ class Array:
             node.grad, node.ctx, node.parents = None, None, None
 
     # ----------------------------------------------------------------------------------
-    # UNARY OPS
+    # UNARY FUNCS
     # ----------------------------------------------------------------------------------
     def abs(self) -> Array:
+        """Computes the element-wise absolute value of the array.
+
+        Returns:
+            Array: An array with absolute values of the elements.
+        """
         return apply_func(UFuncs.Abs, self)
 
     def exp(self) -> Array:
+        """Computes the element-wise exponential function.
+
+        Returns:
+            Array: An array where each element is `e` raised to the power of the
+                corresponding element.
+        """
         return apply_func(UFuncs.Exp, self)
 
-    def pow(self, x: Scalar) -> Array:
-        return apply_func(UFuncs.Pow, self, exp=x)
+    def pow(self, exponent: Scalar) -> Array:
+        """Raises each element of the array to the given power.
+
+        Args:
+            exponent (Scalar): The exponent.
+
+        Returns:
+            Array: An array with each element raised to the power `x`.
+        """
+        return apply_func(UFuncs.Pow, self, exp=exponent)
 
     def sqrt(self) -> Array:
+        """Computes the element-wise square root.
+
+        Returns:
+            Array: An array with the square root of each element.
+        """
         return apply_func(UFuncs.Sqrt, self)
 
     def tanh(self) -> Array:
+        """Computes the element-wise hyperbolic tangent.
+
+        Returns:
+            Array: An array with the tanh of each element.
+        """
         return apply_func(UFuncs.Tanh, self)
 
     def tril(self, diag: int = 0) -> Array:
+        """Returns the lower triangular part of the array.
+
+        Args:
+            diag (int, optional): The diagonal above which to zero elements. Defaults to `0`.
+
+        Returns:
+            Array: The lower triangular matrix.
+        """
         return apply_func(UFuncs.Tril, self, diag=diag)
 
     def triu(self, diag: int = 0) -> Array:
+        """Returns the upper triangular part of the array.
+
+        Args:
+            diag (int, optional): The diagonal below which to zero elements. Defaults to `0`.
+
+        Returns:
+            Array: The upper triangular matrix.
+        """
         return apply_func(UFuncs.Triu, self, diag=diag)
 
     # ----------------------------------------------------------------------------------
-    # BINARY OPS
+    # BINARY FUNCS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Array | Scalar) -> Array:
+        """Performs element-wise addition.
+
+        Args:
+            x (Array | Scalar): The array or scalar to add.
+
+        Returns:
+            Array: The element-wise sum.
+        """
         return apply_func(BFuncs.Add, self, self.align(x))
 
     def sub(self, x: Array | Scalar) -> Array:
+        """Performs element-wise subtraction.
+
+        Args:
+            x (Array | Scalar): The array or scalar to subtract.
+
+        Returns:
+            Array: The element-wise difference.
+        """
         return apply_func(BFuncs.Sub, self, self.align(x))
 
     def mul(self, x: Array | Scalar) -> Array:
+        """Performs element-wise multiplication.
+
+        Args:
+            x (Array | Scalar): The array or scalar to multiply.
+
+        Returns:
+            Array: The element-wise product.
+        """
         return apply_func(BFuncs.Mul, self, self.align(x))
 
     def truediv(self, x: Array | Scalar) -> Array:
+        """Performs element-wise division.
+
+        Args:
+            x (Array | Scalar): The array or scalar to divide by.
+
+        Returns:
+            Array: The element-wise quotient.
+        """
         return apply_func(BFuncs.Div, self, self.align(x))
 
     def matmul(self, x: Array) -> Array:
+        """Performs matrix multiplication.
+
+        Args:
+            x (Array): The array to multiply with.
+
+        Returns:
+            Array: The result of the matrix multiplication.
+        """
         return apply_func(BFuncs.Matmul, self, x)
 
     def maximum(self, x: Array | Scalar) -> Array:
+        """Computes the element-wise maximum.
+
+        Args:
+            x (Array | Scalar): The array or scalar to compare with.
+
+        Returns:
+            Array: The element-wise maximum values.
+        """
         return apply_func(BFuncs.Maximum, self, self.align(x))
 
     def minimum(self, x: Array | Scalar) -> Array:
+        """Computes the element-wise minimum.
+
+        Args:
+            x (Array | Scalar): The array or scalar to compare with.
+
+        Returns:
+            Array: The element-wise minimum values.
+        """
         return apply_func(BFuncs.Minimum, self, self.align(x))
 
     # ----------------------------------------------------------------------------------
-    # REDUCE OPS
+    # REDUCE FUNCS
     # ----------------------------------------------------------------------------------
 
     def sum(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Array:
+        """Computes the sum of elements along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, sums all elements.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The sum of elements.
+        """
         return apply_func(RFuncs.Sum, self, dim=dim, keepdims=keepdims)
 
     def mean(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Array:
+        """Computes the mean of elements along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, computes mean of all
+                elements.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The mean of elements.
+        """
         return apply_func(RFuncs.Mean, self, dim=dim, keepdims=keepdims)
 
     def var(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Array:
+        """Computes the variance of elements along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, computes variance of
+                all elements.
+            ddof (int, optional): Delta degrees of freedom. Defaults to 1.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The variance of elements.
+        """
         return apply_func(RFuncs.Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def std(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
     ) -> Array:
+        """Computes the standard deviation of elements along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, computes standard
+                deviation of all elements.
+            ddof (int, optional): Delta degrees of freedom. Defaults to 1.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The standard deviation of elements.
+        """
         return apply_func(RFuncs.Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
-    def max(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Array:
+    def max(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Array:
+        """Computes the maximum value along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, finds the global
+                maximum.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The maximum values.
+        """
         return apply_func(RFuncs.Max, self, dim=dim, keepdims=keepdims)
 
-    def min(self, dim: Optional[int] = None, *, keepdims: bool = False) -> Array:
+    def min(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Array:
+        """Computes the minimum value along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, finds the global
+                minimum.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Array: The minimum values.
+        """
         return apply_func(RFuncs.Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
-    # SHAPE OPS
+    # SHAPE FUNCS
     # ----------------------------------------------------------------------------------
 
     def expand(self, *dims: int) -> Array:
