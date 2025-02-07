@@ -43,9 +43,11 @@ def array(
 
     Args:
         data (Any): Input data to be converted into an Array.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -70,11 +72,13 @@ def arange(
 
     Args:
         stop (float): The end value (exclusive).
-        start (float, optional): The start value. Defaults to 0.
-        step (float, optional): The step size. Defaults to 1.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        start (float, optional): The start value. Defaults to `0`.
+        step (float, optional): The step size. Defaults to `1`.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -95,9 +99,11 @@ def ones(
 
     Args:
         *dims (int): The dimensions of the array.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -118,9 +124,11 @@ def ones_like(
 
     Args:
         x (Array): The reference array.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -140,9 +148,11 @@ def zeros(
 
     Args:
         *dims (int): The dimensions of the array.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -163,9 +173,11 @@ def zeros_like(
 
     Args:
         x (Array): The reference array.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -187,9 +199,11 @@ def full(
     Args:
         *dims (int): The dimensions of the array.
         value (Scalar): The fill value.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -212,9 +226,11 @@ def full_like(
     Args:
         x (Array): The reference array.
         value (Scalar): The fill value.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -238,9 +254,11 @@ def randi(
         *dims (int): The dimensions of the array.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType, optional): The desired data type of the array. Defaults to int64.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -265,9 +283,11 @@ def randi_like(
         x (Array): The reference array.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType, optional): The desired data type of the array. Defaults to int64.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -291,11 +311,13 @@ def randn(
 
     Args:
         *dims (int): The dimensions of the array.
-        mean (float, optional): The mean of the distribution. Defaults to 0.
-        var (float, optional): The variance of the distribution. Defaults to 1.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        mean (float, optional): The mean of the distribution. Defaults to `0`.
+        var (float, optional): The variance of the distribution. Defaults to `1`.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -314,15 +336,18 @@ def randn_like(
     dtype: Optional[DType] = None,
     req_grad: bool = False,
 ) -> Array:
-    """Creates an array of random values from a normal distribution, matching the shape of another array.
+    """Creates an array of random values from a normal distribution, matching the shape of another
+        array.
 
     Args:
         x (Array): The reference array.
-        mean (float, optional): The mean of the distribution. Defaults to 0.
-        var (float, optional): The variance of the distribution. Defaults to 1.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        mean (float, optional): The mean of the distribution. Defaults to `0`.
+        var (float, optional): The variance of the distribution. Defaults to `1`.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -347,10 +372,12 @@ def randu(
     Args:
         *dims (int): The dimensions of the array.
         low (float, optional): The lower bound. Defaults to -1.
-        high (float, optional): The upper bound. Defaults to 1.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        high (float, optional): The upper bound. Defaults to `1`.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -369,15 +396,18 @@ def randu_like(
     dtype: Optional[DType] = None,
     req_grad: bool = False,
 ) -> Array:
-    """Creates an array of random values from a uniform distribution, matching the shape of another array.
+    """Creates an array of random values from a uniform distribution, matching the shape of another
+        array.
 
     Args:
         x (Array): The reference array.
-        mean (float, optional): The mean of the distribution. Defaults to 0.
-        var (float, optional): The variance of the distribution. Defaults to 1.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to None.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        mean (float, optional): The mean of the distribution. Defaults to `0`.
+        var (float, optional): The variance of the distribution. Defaults to `1`.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
@@ -395,13 +425,15 @@ def randperm(
     dtype: Optional[DType] = int64,
     req_grad: bool = False,
 ) -> Array:
-    """Creates an array with a random permutation of integers from 0 to n-1.
+    """Creates an array with a random permutation of integers from `0` to `n-1`.
 
     Args:
         n (int): The number of elements.
-        device (DeviceLike | None, optional): The device on which to create the array. Defaults to None.
-        dtype (DType, optional): The desired data type of the array. Defaults to int64.
-        req_grad (bool, optional): Whether the array requires gradient tracking. Defaults to False.
+        device (DeviceLike | None, optional): The device on which to create the array.
+            Defaults to `None`.
+        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
+        req_grad (bool, optional): Whether the array requires gradient tracking.
+            Defaults to `False`.
 
     Returns:
         Array: The created array.
