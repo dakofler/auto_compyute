@@ -12,7 +12,7 @@ __all__ = [
     "ones",
     "ones_like",
     "zeros",
-    "ones_like",
+    "zeros_like",
     "full",
     "full_like",
     "randi",

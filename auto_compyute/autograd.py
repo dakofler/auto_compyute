@@ -18,6 +18,7 @@ from .backends import (
     array_to_string,
     get_array_device,
     move_to_device,
+    numpy,
 )
 from .dtypes import DType, float32, int32, int64, is_float
 from .funcs import binary_funcs as BFuncs
@@ -548,6 +549,9 @@ class Array:
             return x.as_type(self.dtype)
         return Array(self.device.xp.asarray(x, dtype=self.dtype))
 
+    def to_numpy(self) -> numpy.ndarray:
+        return self.cpu().data
+
 
 # -------------------------------------------------------------------------------------
 # AUTOGRAD FUNCTIONS
@@ -583,9 +587,15 @@ def _build_backward_queue(node: Array, queue: list[Array], visited: set) -> list
     return queue
 
 
+def _all_same_device(arrays: tuple[Optional[Array], ...]) -> bool:
+    return len(set(map(type, [a.data for a in arrays if a is not None]))) == 1
+
+
 def apply_func(
     function: type[Function], *arrays: Optional[Array], **kwargs: Any
 ) -> Array:
+    assert _all_same_device(arrays), "Device mismatch!"
+
     # create function args by extracting req_grad from arrays and handle optional arrays
     f_args = [(a.data, a.req_grad) if a is not None else (None, False) for a in arrays]
     f_args = tuple(chain(*f_args))  # type: ignore

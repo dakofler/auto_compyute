@@ -116,13 +116,17 @@ class Module(ABC):
 
     def train(self) -> None:
         self._training = True
-        for module in self.modules(recursive=False):
-            module.train()
+        for p in self.parameters(recursive=False):
+            p.req_grad = True
+        for m in self.modules():
+            m.train()
 
     def eval(self) -> None:
         self._training = False
-        for module in self.modules(recursive=False):
-            module.eval()
+        for p in self.parameters(recursive=False):
+            p.req_grad = False
+        for m in self.modules():
+            m.eval()
 
     def to(self, device: DeviceLike) -> None:
         for t in vars(self).values():
