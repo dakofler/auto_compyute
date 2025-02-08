@@ -1,10 +1,12 @@
-"""Binary autograd functions"""
+"""Binary autograd functions."""
 
 from ..backends import ArrayLike
 from .function import Function
 
 
 class Add(Function):
+    """Element-wise addition."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -21,6 +23,8 @@ class Add(Function):
 
 
 class Sub(Function):
+    """Element-wise subtraction."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -37,6 +41,8 @@ class Sub(Function):
 
 
 class Mul(Function):
+    """Element-wise multiplication."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -55,6 +61,8 @@ class Mul(Function):
 
 
 class Div(Function):
+    """Element-wise division."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -73,6 +81,8 @@ class Div(Function):
 
 
 class Matmul(Function):
+    """Matrix multiplication."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -91,6 +101,8 @@ class Matmul(Function):
 
 
 class Maximum(Function):
+    """Element-wise maximum."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:
@@ -110,6 +122,8 @@ class Maximum(Function):
 
 
 class Minimum(Function):
+    """Element-wise minimum."""
+
     def forward(
         self, x1: ArrayLike, x1_req_grad: bool, x2: ArrayLike, x2_req_grad: bool
     ) -> ArrayLike:

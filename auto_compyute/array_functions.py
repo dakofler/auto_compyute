@@ -1,4 +1,4 @@
-"""Array functions"""
+"""Array functions."""
 
 from .array_factory import array
 from .autograd import Array, apply_func

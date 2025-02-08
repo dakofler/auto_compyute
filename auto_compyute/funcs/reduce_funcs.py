@@ -1,4 +1,4 @@
-"""Reduce autograd functions"""
+"""Reduce autograd functions."""
 
 from typing import Optional
 
@@ -7,6 +7,8 @@ from .function import Function
 
 
 class Sum(Function):
+    """Sum of array elements."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -29,6 +31,8 @@ class Sum(Function):
 
 
 class Mean(Function):
+    """Mean of array elements."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -51,6 +55,8 @@ class Mean(Function):
 
 
 class Var(Function):
+    """Variance of array elements."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -72,6 +78,8 @@ class Var(Function):
 
 
 class Std(Function):
+    """Standard deviation of array elements."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -94,6 +102,8 @@ class Std(Function):
 
 
 class Max(Function):
+    """Maximum of array elements."""
+
     def forward(
         self, x: ArrayLike, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
     ) -> ArrayLike:
@@ -111,6 +121,8 @@ class Max(Function):
 
 
 class Min(Function):
+    """Minimum of array elements."""
+
     def forward(
         self, x: ArrayLike, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
     ) -> ArrayLike:

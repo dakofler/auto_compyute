@@ -1,4 +1,4 @@
-"""Shape autograd functions"""
+"""Shape autograd functions."""
 
 from itertools import accumulate
 from typing import Any
@@ -8,6 +8,8 @@ from .function import Function
 
 
 class Concat(Function):
+    """Concatinates arrays."""
+
     def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
         arrays = arrays_and_req_grads[::2]
         req_grads = arrays_and_req_grads[1::2]
@@ -23,6 +25,8 @@ class Concat(Function):
 
 
 class Expand(Function):
+    """Broadcasts array elements."""
+
     def forward(self, x: ArrayLike, _: bool, *, shape: ShapeLike) -> ArrayLike:
         y = self.xp.broadcast_to(x, shape)
         return y
@@ -32,6 +36,8 @@ class Expand(Function):
 
 
 class Select(Function):
+    """Selects array elements."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, key: Any) -> ArrayLike:
         y = x[key]
         if x_req_grad:
@@ -45,10 +51,13 @@ class Select(Function):
         return (dx,)
 
 
-class Split(Select): ...
+class Split(Select):
+    """Splits arrays."""
 
 
 class Stack(Function):
+    """Stacks arrays."""
+
     def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
         arrays = arrays_and_req_grads[::2]
         req_grads = arrays_and_req_grads[1::2]
@@ -63,6 +72,8 @@ class Stack(Function):
 
 
 class Transpose(Function):
+    """Transposes an array."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dim1, dim2) -> ArrayLike:
         y = x.swapaxes(dim1, dim2)
         if x_req_grad:
@@ -76,6 +87,8 @@ class Transpose(Function):
 
 
 class View(Function):
+    """Reshapes an array."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, shape: ShapeLike) -> ArrayLike:
         y = self.xp.reshape(x, shape)
         if x_req_grad:
@@ -88,10 +101,13 @@ class View(Function):
         return (dx,)
 
 
-class Squeeze(View): ...
+class Squeeze(View):
+    """Removes singular dimensions of an array."""
 
 
 class Where(Function):
+    """Selects array elements based on a condition."""
+
     def forward(
         self,
         condition: ArrayLike,

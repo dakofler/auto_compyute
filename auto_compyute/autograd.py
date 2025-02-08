@@ -1,4 +1,4 @@
-"""Autograd engine"""
+"""Autograd engine."""
 
 from __future__ import annotations
 
@@ -36,12 +36,10 @@ class Array:
 
     Attributes:
         data (ArrayLike): The underlying data of the array.
-        ctx (Function | None, optional): The function context for automatic differentiation.
-            Defaults to `None`.
-        parents (tuple[Array, ...] | None, optional): The parent arrays in the computation graph.
-            Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this array.
-            Defaults to `False`.
+        ctx (Function | None): The function context for automatic differentiation.
+        parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
+        req_grad (bool): Whether gradients should be computed for this array.
+        grad (ArrayLike | None): Corresponding gradients of the array data.
     """
 
     def __init__(
@@ -51,7 +49,17 @@ class Array:
         parents: Optional[tuple[Array, ...]] = None,
         req_grad: bool = False,
     ) -> None:
+        """Represents a multi-dimensional array with automatic differentiation support.
 
+        Args:
+            data (Array): The underlying data of the array.
+            ctx (Function | None, optional): The function context for automatic differentiation.
+                Defaults to `None`.
+            parents (tuple[Array, ...] | None, optional): The parent arrays in the computation
+                graph. Defaults to `None`.
+            req_grad (bool, optional): Whether gradients should be computed for this array.
+                Defaults to `False`.
+        """
         self.data = data
         self.ctx = ctx
         self.parents = parents

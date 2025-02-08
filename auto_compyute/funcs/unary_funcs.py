@@ -5,6 +5,8 @@ from .function import Function
 
 
 class Abs(Function):
+    """Element-wise absolute value."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.absolute(x)
         if x_req_grad:
@@ -19,6 +21,8 @@ class Abs(Function):
 
 
 class Exp(Function):
+    """Element-wise exponential."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.exp(x)
         if x_req_grad:
@@ -32,6 +36,8 @@ class Exp(Function):
 
 
 class Pow(Function):
+    """Element-wise power."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, exp: Scalar) -> ArrayLike:
         y = x**exp
         if x_req_grad:
@@ -45,6 +51,8 @@ class Pow(Function):
 
 
 class Sqrt(Function):
+    """Element-wise square root."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.sqrt(x)
         if x_req_grad:
@@ -58,6 +66,8 @@ class Sqrt(Function):
 
 
 class Tanh(Function):
+    """Element-wise hyperbolic tangent."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.tanh(x)
         if x_req_grad:
@@ -71,6 +81,8 @@ class Tanh(Function):
 
 
 class Tril(Function):
+    """Sets lower diagonal elements to `0`."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:
         y = self.xp.tril(x, diag)
         if x_req_grad:
@@ -84,6 +96,8 @@ class Tril(Function):
 
 
 class Triu(Function):
+    """Sets upper diagonal elements to `0`."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:
         y = self.xp.triu(x, diag)
         if x_req_grad:

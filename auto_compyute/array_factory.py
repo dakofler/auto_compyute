@@ -1,4 +1,4 @@
-"""Tensor factory functions"""
+"""Array factory functions."""
 
 from typing import Any, Optional
 
@@ -76,7 +76,7 @@ def arange(
         step (float, optional): The step size. Defaults to `1`.
         device (DeviceLike | None, optional): The device on which to create the array.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
+        dtype (DType | None, optional): The desired data type of the array. Defaults to `int64`.
         req_grad (bool, optional): Whether the array requires gradient tracking.
             Defaults to `False`.
 

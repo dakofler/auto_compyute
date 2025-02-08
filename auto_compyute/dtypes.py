@@ -1,4 +1,4 @@
-"""Array data types"""
+"""Array data types."""
 
 from typing import Optional, TypeAlias
 
