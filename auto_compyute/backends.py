@@ -28,20 +28,41 @@ ShapeLike: TypeAlias = Shape | tuple[int, ...]
 
 
 def get_available_devices() -> list[str]:
+    """Returns a list of available devices, including CPU and CUDA GPUs.
+
+    Returns:
+        list[str]: A list of device names (e.g., ["cpu", "cuda:0", "cuda:1", ...]).
+    """
     return ["cpu"] + [f"cuda:{i}" for i in range(cupy.cuda.runtime.getDeviceCount())]
 
 
 def gpu_available():
+    """Checks if a GPU is available.
+
+    Returns:
+        bool: `True` if a CUDA-compatible GPU is available, otherwise `False`.
+    """
     return cupy.cuda.is_available()
 
 
 def set_random_seed(seed: int):
+    """Sets the random seed for reproducibility on all devices.
+
+    Args:
+        seed (int): The seed value to set.
+    """
     numpy.random.seed(seed)
     if gpu_available():
         cupy.random.seed(seed)
 
 
 class Device:
+    """Represents a computing device.
+
+    Attributes:
+        dev_type (str): The type and optionally the id of device (e.g. "cpu" or "cuda:0").
+    """
+
     def __init__(self, dev_type: str):
         dev_type, dev_id = _get_type_and_id(dev_type)
         self.dev_type = dev_type
@@ -85,26 +106,68 @@ def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
 
 
 def get_array_device(x: ArrayLike) -> Device:
+    """Determines the device of the given array.
+
+    Args:
+        x (ArrayLike): The input array.
+
+    Returns:
+        Device: A Device instance representing either CPU or CUDA.
+    """
     return Device("cuda:0") if isinstance(x, cupy.ndarray) else Device("cpu")
 
 
 def select_device(device: Optional[DeviceLike]) -> Device:
+    """Selects a device, defaulting to CPU if none is provided.
+
+    Args:
+        device (DeviceLike | None): The device to select.
+
+    Returns:
+        Device: A Device instance corresponding to the selected device.
+    """
     if isinstance(device, Device):
         return device
     return Device(device or "cpu")
 
 
 def parse_device(device: DeviceLike) -> Device:
+    """Parses a device-like input into a Device instance.
+
+    Args:
+        device (DeviceLike): The device to parse.
+
+    Returns:
+        Device: A parsed Device instance.
+    """
     return device if isinstance(device, Device) else Device(device)
 
 
 def move_to_device(data: ArrayLike, device: Device) -> ArrayLike:
+    """Moves an array to the specified device.
+
+    Args:
+        data (ArrayLike): The array to move.
+        device (Device): The target device.
+
+    Returns:
+        ArrayLike: The array moved to the specified device.
+    """
     if device == Device("cpu"):
         return cupy.asnumpy(data)
     return cupy.asarray(data)
 
 
 def array_to_string(data: ArrayLike, prefix: str) -> str:
+    """Converts an array to a formatted string.
+
+    Args:
+        data (ArrayLike): The array to convert.
+        prefix (str): A prefix for formatting the output.
+
+    Returns:
+        str: A string representation of the array.
+    """
     device = get_array_device(data)
     return device.xp.array2string(
         data,
