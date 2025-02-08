@@ -40,6 +40,7 @@ class Array:
         parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
         req_grad (bool): Whether gradients should be computed for this array.
         grad (ArrayLike | None): Corresponding gradients of the array data.
+        label (str): Array label.
     """
 
     def __init__(
@@ -48,6 +49,7 @@ class Array:
         ctx: Optional[Function] = None,
         parents: Optional[tuple[Array, ...]] = None,
         req_grad: bool = False,
+        label: Optional[str] = None,
     ) -> None:
         """Represents a multi-dimensional array with automatic differentiation support.
 
@@ -64,7 +66,17 @@ class Array:
         self.ctx = ctx
         self.parents = parents
         self.req_grad = req_grad
+        self._label = label
         self.grad: Optional[ArrayLike] = None
+
+    @property
+    def label(self) -> str:
+        """Returns the array label."""
+        if self._label:
+            return self._label
+        if self.ctx is not None:
+            return self.ctx.name
+        return self.__class__.__name__
 
     @property
     def device(self) -> Device:
@@ -730,12 +742,7 @@ def apply_func(
 
     Returns:
         Array: The resulting array after calling the functions `forward` method.
-
-    Raises:
-        AssertionError: If the input arrays are on different devices.
     """
-    assert _all_same_device(arrays), "Device mismatch!"
-
     # create function args by extracting req_grad from arrays and handle optional arrays
     f_args = [(a.data, a.req_grad) if a is not None else (None, False) for a in arrays]
     f_args = tuple(chain(*f_args))  # type: ignore
@@ -791,19 +798,13 @@ def draw_graph(
 
     def _get_mermaid_node_label(n: Array) -> str:
 
-        # constant
-        if not n.req_grad:
-            node_name = ""
+        node_name = n.label
+
+        if not n.req_grad:  # constant
             fill_color, stroke_color = colors["const"]
-
-        # leaf node
-        elif n.ctx is None:
-            node_name = ""
+        elif n.ctx is None:  # leaf node
             fill_color, stroke_color = colors["leaf"]
-
-        # function
-        else:
-            node_name = n.ctx.name + "<br>"
+        else:  # function
             fill_color, stroke_color = colors["func"]
 
         if len(n.shape) == 0:
@@ -811,7 +812,7 @@ def draw_graph(
         else:
             node_info = str(n.shape).replace("shape", "")
 
-        label = f"{node_name}{node_info}<br>{str(n.dtype)}"
+        label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
         return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
 
     mermaid_script = f"graph {orientation}\n{_get_mermaid_node_label(root_node)}\n"

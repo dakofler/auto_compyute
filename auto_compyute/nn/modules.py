@@ -38,13 +38,13 @@ __all__ = [
 
 
 class Parameter(Array):
-    def __init__(self, data: Array) -> None:
-        super().__init__(data.data, req_grad=True)
+    def __init__(self, data: Array, label: Optional[str] = None) -> None:
+        super().__init__(data.data, req_grad=True, label=label)
 
 
 class Buffer(Array):
-    def __init__(self, data: Array) -> None:
-        super().__init__(data.data)
+    def __init__(self, data: Array, label: Optional[str] = None) -> None:
+        super().__init__(data.data, label=label)
 
 
 class Module(ABC):
@@ -202,8 +202,10 @@ class Linear(Module):
     def __init__(self, in_dim: int, out_dim: int, bias: bool = True) -> None:
         super().__init__()
         k = 1 / math.sqrt(in_dim)
-        self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k))
-        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
+        self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k), "Weights")
+        self.b = (
+            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
+        )
 
     def forward(self, x: Array) -> Array:
         return F.linear(x, self.w, self.b)
@@ -226,9 +228,11 @@ class Conv2D(Module):
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k)
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Weights"
         )
-        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
+        self.b = (
+            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
+        )
 
     def forward(self, x: Array) -> Array:
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
@@ -253,9 +257,11 @@ class ConvTranspose2D(Module):
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k)
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Weights"
         )
-        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k))
+        self.b = (
+            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
+        )
 
     def forward(self, x: Array) -> Array:
         return F.conv_transpose2d(
@@ -290,7 +296,7 @@ class MultiHeadSelfAttention(Module):
     ) -> None:
         super().__init__()
         self.n_heads = n_heads
-        self.mask = Buffer(mask) if mask is not None else None
+        self.mask = Buffer(mask, "Mask") if mask is not None else None
         self.dropout = dropout
         self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
         self.out = Linear(in_dim, in_dim, bias=bias)
@@ -319,10 +325,10 @@ class Batchnorm(Module):
         super().__init__()
         self.m = m
         self.eps = eps
-        self.w = Parameter(ones(in_dim))
-        self.b = Parameter(zeros(in_dim))
-        self.rmean = Buffer(zeros(in_dim))
-        self.rvar = Buffer(ones(in_dim))
+        self.w = Parameter(ones(in_dim), "Weights")
+        self.b = Parameter(zeros(in_dim), "Biases")
+        self.rmean = Buffer(zeros(in_dim), "Run. Mean")
+        self.rvar = Buffer(ones(in_dim), "Run. Var")
 
     def forward(self, x: Array) -> Array:
         return F.batchnorm(
@@ -335,8 +341,8 @@ class Layernorm(Module):
         super().__init__()
         self.eps = eps
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
-        self.w = Parameter(ones(*norm_shape))
-        self.b = Parameter(zeros(*norm_shape))
+        self.w = Parameter(ones(*norm_shape), "Weights")
+        self.b = Parameter(zeros(*norm_shape), "Biases")
 
     def forward(self, x: Array) -> Array:
         return F.layernorm(x, self.w, self.b, self.eps)
@@ -345,7 +351,7 @@ class Layernorm(Module):
 class Embedding(Module):
     def __init__(self, n_emb: int, emb_dim: int) -> None:
         super().__init__()
-        self.w = Parameter(randn(n_emb, emb_dim))
+        self.w = Parameter(randn(n_emb, emb_dim), "Embeds.")
 
     def forward(self, x: Array) -> Array:
         return F.embedding(x, self.w)
