@@ -1,4 +1,4 @@
-"""Neural network functions"""
+"""Neural network functions."""
 
 import math
 from typing import Literal, Optional
@@ -83,7 +83,7 @@ def conv_transpose2d(
     y = apply_func(NNFuncs.ConvTranspose2D, x, w, stride=stride)
     if padding > 0:
         y = apply_func(
-            NNFuncs.InvPad2D, y, padding=padding, output_padding=output_padding
+            NNFuncs.OutPad2D, y, padding=padding, output_padding=output_padding
         )
     if b is not None:
         y += b.view(*b.shape, 1, 1)

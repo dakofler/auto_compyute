@@ -1,4 +1,4 @@
-"""Neural network autograd functions"""
+"""Neural network autograd functions."""
 
 import math
 from types import ModuleType
@@ -16,6 +16,7 @@ from ..funcs.shape_funcs import Select
 
 
 class GELU(Function):
+    """Gaussian error linear unit activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
@@ -34,6 +35,8 @@ class GELU(Function):
 
 
 class ReLU(Function):
+    """Rectified linear unit activation function."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = self.xp.maximum(x, 0.0)
         if x_req_grad:
@@ -47,6 +50,8 @@ class ReLU(Function):
 
 
 class LeakyReLU(Function):
+    """Leaky rectified linear unit activation function."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, alpha: float) -> ArrayLike:
         y = self.xp.maximum(x, x * alpha)
         if x_req_grad:
@@ -64,6 +69,8 @@ def _sigmoid_forward(xp: ModuleType, x: ArrayLike) -> ArrayLike:
 
 
 class Sigmoid(Function):
+    """Sigmoid activation function."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
         y = _sigmoid_forward(self.xp, x)
         if x_req_grad:
@@ -83,6 +90,8 @@ def _softmax_forward(xp: ModuleType, x: ArrayLike, dim: int) -> ArrayLike:
 
 
 class Softmax(Function):
+    """Softmax activation function."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dim: int) -> ArrayLike:
         y = _softmax_forward(self.xp, x, dim)
         if x_req_grad:
@@ -101,6 +110,8 @@ class Softmax(Function):
 
 
 class Linear(Function):
+    """Linear projection."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -151,6 +162,8 @@ def _pad2d_backward(
 
 
 class Pad2D(Function):
+    """2D padding."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
         widths = tuple([(0, 0)] * (x.ndim - 2) + [(padding, padding)] * 2)
         y = self.xp.pad(x, widths)
@@ -176,7 +189,9 @@ def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
     return dy[..., ::dilation, ::dilation]
 
 
-class InvPad2D(Function):
+class OutPad2D(Function):
+    """2D output padding."""
+
     def forward(
         self, x: ArrayLike, x_req_grad: bool, *, padding: int, output_padding: int
     ) -> ArrayLike:
@@ -192,6 +207,8 @@ class InvPad2D(Function):
 
 
 class Dilate2D(Function):
+    """2D dilation."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dilation: int) -> ArrayLike:
         y = _dilate2d_forward(self.xp, x, dilation)
         if x_req_grad:
@@ -222,6 +239,8 @@ def _pad_to_shape(xp: ModuleType, x: ArrayLike, shape: ShapeLike) -> ArrayLike:
 
 
 class Conv2D(Function):
+    """2D convolution."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -277,6 +296,8 @@ class Conv2D(Function):
 
 
 class ConvTranspose2D(Function):
+    """2D transposed convolution."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -343,6 +364,8 @@ def _repeat2d(xp: ModuleType, x: ArrayLike, n_repeats: int, target_shape: ShapeL
 
 
 class Maxpool2D(Function):
+    """2D max pooling."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, window_size: int) -> ArrayLike:
         y = _pool2d(self.xp, x, window_size, window_size).max((-2, -1))
         if x_req_grad:
@@ -362,6 +385,8 @@ class Maxpool2D(Function):
 
 
 class Batchnorm(Function):
+    """Batch normalization."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -437,6 +462,8 @@ class Batchnorm(Function):
 
 
 class Layernorm(Function):
+    """Layer normalization."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -496,6 +523,8 @@ class Layernorm(Function):
 
 
 class Dropout(Function):
+    """Dropout regularization."""
+
     def forward(self, x: ArrayLike, x_req_grad: bool, *, p: float) -> ArrayLike:
         p = 1.0 - p
         dropout_mask = self.xp.random.random(x.shape) < p
@@ -515,7 +544,8 @@ class Dropout(Function):
 # -------------------------------------------------------------------------------------
 
 
-class Embedding(Select): ...
+class Embedding(Select):
+    """Lookup Embedding."""
 
 
 # -------------------------------------------------------------------------------------
@@ -524,6 +554,8 @@ class Embedding(Select): ...
 
 
 class MSELoss(Function):
+    """Mean squared error loss function."""
+
     def forward(
         self, x: ArrayLike, x_req_grad: bool, y: ArrayLike, _: bool, *, reduction: str
     ) -> ArrayLike:
@@ -547,6 +579,8 @@ def _onehot(xp: ModuleType, x: ArrayLike, n: int, dtype: type):
 
 
 class CrossEntropyLoss(Function):
+    """Cross entropy loss function."""
+
     def forward(
         self,
         x: ArrayLike,
@@ -575,6 +609,8 @@ class CrossEntropyLoss(Function):
 
 
 class BCELoss(Function):
+    """Binary cross entropy loss function."""
+
     def forward(
         self, x: ArrayLike, x_req_grad: bool, y: ArrayLike, _: bool, *, reduction: str
     ) -> ArrayLike:
