@@ -94,6 +94,10 @@ def select_device(device: Optional[DeviceLike]) -> Device:
     return Device(device or "cpu")
 
 
+def parse_device(device: DeviceLike) -> Device:
+    return device if isinstance(device, Device) else Device(device)
+
+
 def move_to_device(data: ArrayLike, device: Device) -> ArrayLike:
     if device == Device("cpu"):
         return cupy.asnumpy(data)

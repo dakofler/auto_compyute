@@ -19,6 +19,7 @@ from .backends import (
     get_array_device,
     move_to_device,
     numpy,
+    parse_device,
 )
 from .dtypes import DType, float32, int32, int64, is_float
 from .funcs import binary_funcs as BFuncs
@@ -455,9 +456,25 @@ class Array:
     # ----------------------------------------------------------------------------------
 
     def expand(self, *dims: int) -> Array:
+        """Expands the array to the specified shape.
+
+        Args:
+            *dims (int): The target shape dimensions.
+
+        Returns:
+            Array: A new array with the expanded shape.
+        """
         return apply_func(SFuncs.Expand, self, shape=dims)
 
     def select(self, key: Any) -> Array:
+        """Selects elements from the array based on the given key.
+
+        Args:
+            key (Any): The selection key (e.g., indices or masks).
+
+        Returns:
+            Array: A new array containing the selected elements.
+        """
         key = _parse_key(key)
         return apply_func(SFuncs.Select, self, key=key)
 
@@ -466,6 +483,15 @@ class Array:
         return apply_func(SFuncs.Split, self, key=key)
 
     def split(self, split_size: int, *, dim: int = -1) -> list[Array]:
+        """Splits the array into smaller chunks along a specified dimension.
+
+        Args:
+            split_size (int): The size of each split.
+            dim (int, optional): The dimension to split along. Defaults to `-1`.
+
+        Returns:
+            list[Array]: A list of split arrays.
+        """
         dim = dim % self.ndim
         pre_dim_slice = (slice(None),) * dim
         post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
@@ -475,15 +501,37 @@ class Array:
         ]
 
     def squeeze(self) -> Array:
+        """Removes singleton dimensions from the array.
+
+        Returns:
+            Array: A new array with singleton dimensions removed.
+        """
         non_singular_dims = tuple(d for d in self.shape if d > 1)
         if len(non_singular_dims) == self.ndim:
             return self
         return apply_func(SFuncs.Squeeze, self, shape=non_singular_dims)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Array:
+        """Swaps two dimensions of the array.
+
+        Args:
+            dim1 (int, optional): The first dimension to swap. Defaults to -1.
+            dim2 (int, optional): The second dimension to swap. Defaults to -2.
+
+        Returns:
+            Array: A new array with the dimensions transposed.
+        """
         return apply_func(SFuncs.Transpose, self, dim1=dim1, dim2=dim2)
 
     def view(self, *dims: int) -> Array:
+        """Reshapes the array without changing its data.
+
+        Args:
+            *dims (int): The target shape dimensions.
+
+        Returns:
+            Array: A new array with the specified shape.
+        """
         if dims == self.shape:
             return self
         return apply_func(SFuncs.View, self, shape=dims)
@@ -493,6 +541,14 @@ class Array:
     # ----------------------------------------------------------------------------------
 
     def as_type(self, dtype: DType) -> Array:
+        """Casts the array to a specified data type.
+
+        Args:
+            dtype (DType): The target data type.
+
+        Returns:
+            Array: A new array with the specified data type.
+        """
         if self.dtype == dtype:
             return self
         data: ArrayLike = self.data.astype(dtype)
@@ -505,17 +561,42 @@ class Array:
         return Array(data)
 
     def int(self) -> Array:
+        """Casts the array to a 32-bit integer.
+
+        Returns:
+            Array: A new array with `int32` data type.
+        """
         return self.as_type(int32)
 
     def long(self) -> Array:
+        """Casts the array to a 64-bit integer.
+
+        Returns:
+            Array: A new array with `int64` data type.
+        """
         return self.as_type(int64)
 
     def float(self) -> Array:
+        """Casts the array to a 32-bit floating point.
+
+        Returns:
+            Array: A new array with `float32` data type.
+        """
         return self.as_type(float32)
 
     def to(self, device: DeviceLike) -> Array:
-        device = device if isinstance(device, Device) else Device(device)
-        data = self.data if self.device == device else move_to_device(self.data, device)
+        """Moves the array to the specified device.
+
+        Args:
+            device (DeviceLike): The target device.
+
+        Returns:
+            Array: A new array on the specified device.
+        """
+        device = parse_device(device)
+        if device == self.device:
+            return self
+        data = move_to_device(self.data, device)
         if self.req_grad:
             arr = Array(data, self.ctx, self.parents, self.req_grad)
             if self.grad is not None:
@@ -524,13 +605,28 @@ class Array:
         return Array(data)
 
     def cpu(self) -> Array:
+        """Moves the array to CPU memory.
+
+        Returns:
+            Array: A new array on the CPU.
+        """
         return self.to("cpu")
 
     def cuda(self) -> Array:
+        """Moves the array to the default GPU memory.
+
+        Returns:
+            Array: A new array on the default CUDA device.
+        """
         return self.to("cuda")
 
     def ito(self, device: DeviceLike) -> None:
-        device = device if isinstance(device, Device) else Device(device)
+        """In-place move of the array to a specified device.
+
+        Args:
+            device (DeviceLike): The target device.
+        """
+        device = parse_device(device)
         if self.device == device:
             return
         self.data = move_to_device(self.data, device)
@@ -538,18 +634,41 @@ class Array:
             self.grad = move_to_device(self.grad, device)
 
     def item(self) -> Any:
+        """Returns the scalar value if the array contains a single element.
+
+        Returns:
+            Any: The single element contained in the array.
+        """
         return self.data.item()
 
     def contiguous(self) -> Array:
+        """Returns a contiguous copy of the array.
+
+        Returns:
+            Array: A new contiguous array.
+        """
         data = self.device.xp.ascontiguousarray(self.data)
         return Array(data, self.ctx, self.parents, self.req_grad)
 
     def align(self, x: Array | Scalar) -> Array:
+        """Aligns the input to match the array's data type.
+
+        Args:
+            x (Array | Scalar): The input array or scalar.
+
+        Returns:
+            Array: A new array with the aligned data type.
+        """
         if isinstance(x, Array):
             return x.as_type(self.dtype)
         return Array(self.device.xp.asarray(x, dtype=self.dtype))
 
     def to_numpy(self) -> numpy.ndarray:
+        """Converts the array to a NumPy array.
+
+        Returns:
+            numpy.ndarray: The NumPy representation of the array.
+        """
         return self.cpu().data
 
 
@@ -594,6 +713,19 @@ def _all_same_device(arrays: tuple[Optional[Array], ...]) -> bool:
 def apply_func(
     function: type[Function], *arrays: Optional[Array], **kwargs: Any
 ) -> Array:
+    """Applies a function to one or more arrays, handling autograd if needed.
+
+    Args:
+        function (type[Function]): The function to apply.
+        *arrays (Array | None): Input arrays to which the function is applied.
+        **kwargs (Any): Additional keyword arguments for the function.
+
+    Returns:
+        Array: The resulting array after calling the functions `forward` method.
+
+    Raises:
+        AssertionError: If the input arrays are on different devices.
+    """
     assert _all_same_device(arrays), "Device mismatch!"
 
     # create function args by extracting req_grad from arrays and handle optional arrays
@@ -621,6 +753,21 @@ def draw_graph(
     orientation: Literal["LR", "TD"] = "LR",
     save_to_file: bool = False,
 ) -> Any:
+    """Draws the compute graph based on a root node.
+
+    Args:
+        root_node (Array): Root node of the compute graph.
+        orientation (Literal["LR", "TD"]): Layout of the drawn graph (LR=left-to-right,
+            TD=top-to-bottom). Defaults to `LR`.
+        save_to_file (bool): Whether to save the graph to an HTML-file. Defaults to `False`.
+
+    Returns:
+        Mermaid: The resulting Mermaid diagram, if `save_to_file=False`.
+
+    Raises:
+        AssertionError: If the root node is not part of a compute graph.
+        ModuleNotFoundError: If `mermaid-python` is not installed.
+    """
     assert root_node.req_grad, "Node not in autograd graph"
 
     try:
@@ -687,18 +834,19 @@ def draw_graph(
 autograd_tracing_active = True
 
 
-def set_autograd__tracing_mode(active: bool) -> None:
+def _set_autograd_tracing_mode(active: bool) -> None:
     global autograd_tracing_active
     autograd_tracing_active = active
 
 
 @contextmanager
 def no_autograd_tracing() -> Generator:
-    set_autograd__tracing_mode(False)
+    """Context manager for disabling autograd tracing."""
+    _set_autograd_tracing_mode(False)
     try:
         yield
     finally:
-        set_autograd__tracing_mode(True)
+        _set_autograd_tracing_mode(True)
 
 
 # -------------------------------------------------------------------------------------
