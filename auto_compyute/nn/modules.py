@@ -73,6 +73,14 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     def __call__(self, x: Array) -> Array:
+        """Computes the forward pass of the module.
+
+        Args:
+            x (Array): The input array.
+
+        Returns:
+            ArrayLike: The result of the forward pass.
+        """
         return self.forward(x)
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -92,7 +100,15 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     @abstractmethod
-    def forward(self, x: Array) -> Array: ...
+    def forward(self, x: Array) -> Array:
+        """Computes the forward pass of the module.
+
+        Args:
+            x (Array): The input array.
+
+        Returns:
+            ArrayLike: The result of the forward pass.
+        """
 
     def modules(self, recursive: bool = True) -> Iterator[Module]:
         for m in self._modules.values():

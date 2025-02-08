@@ -50,12 +50,12 @@ class Function(ABC):
         return values
 
     @abstractmethod
-    def forward(self, *args, **kwargs) -> ArrayLike:
+    def forward(self, *args: Any, **kwargs: Any) -> ArrayLike:
         """Computes the forward pass of the function.
 
         Args:
-            *args: The input values.
-            **kwargs: Additional keyword arguments.
+            *args (Any): The input values.
+            **kwargs (Any): Additional keyword arguments.
 
         Returns:
             ArrayLike: The result of the forward pass.
