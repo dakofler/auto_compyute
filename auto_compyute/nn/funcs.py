@@ -147,9 +147,8 @@ def _pad2d_forward(
     xp: ModuleType, x: ArrayLike, left_pad: int, right_pad: Optional[int] = None
 ) -> ArrayLike:
     right_pad = right_pad if right_pad is not None else left_pad
-    widths = tuple([(0, 0)] * (x.ndim - 2) + [(left_pad, right_pad)] * 2)
-    y = xp.pad(x, widths)
-    return y
+    paddings = tuple([(0, 0)] * (x.ndim - 2) + [(left_pad, right_pad)] * 2)
+    return xp.pad(x, paddings)
 
 
 def _pad2d_backward(
@@ -177,18 +176,6 @@ class Pad2D(Function):
         return (dx,)
 
 
-def _dilate2d_forward(xp: ModuleType, x: ArrayLike, dilation: int) -> ArrayLike:
-    y_height = dilation * (x.shape[-2] - 1) + 1
-    y_width = dilation * (x.shape[-1] - 1) + 1
-    y = xp.zeros((*x.shape[:-2], y_height, y_width), dtype=x.dtype)
-    y[..., ::dilation, ::dilation] = x
-    return y
-
-
-def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
-    return dy[..., ::dilation, ::dilation]
-
-
 class OutPad2D(Function):
     """2D output padding."""
 
@@ -204,6 +191,18 @@ class OutPad2D(Function):
         padding, output_padding = self.retrieve_from_cache()
         dx = _pad2d_forward(self.xp, dy, padding, padding - output_padding)
         return (dx,)
+
+
+def _dilate2d_forward(xp: ModuleType, x: ArrayLike, dilation: int) -> ArrayLike:
+    y_size = dilation * (x.shape[-1] - 1) + 1
+    y_shape = (*x.shape[:-2], y_size, y_size)
+    y = xp.zeros(y_shape, dtype=x.dtype)
+    y[..., ::dilation, ::dilation] = x
+    return y
+
+
+def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
+    return dy[..., ::dilation, ::dilation]
 
 
 class Dilate2D(Function):

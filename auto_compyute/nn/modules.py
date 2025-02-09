@@ -220,11 +220,14 @@ class Module(ABC):
         for m in self.modules():
             m.eval()
 
-    def to(self, device: DeviceLike) -> None:
+    def to(self, device: DeviceLike) -> Module:
         """Moves the module and its contents to the specified device.
 
         Args:
             device (DeviceLike): The target device for computation.
+
+        Returns:
+            Module: The modules with contents on the specified device.
         """
         for t in vars(self).values():
             if isinstance(t, Array):
@@ -232,6 +235,8 @@ class Module(ABC):
 
         for module in self.modules(recursive=False):
             module.to(device)
+
+        return self
 
 
 class Modulelist(list):

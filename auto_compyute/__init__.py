@@ -25,4 +25,6 @@ from .autograd import *
 from .backends import *
 from .dtypes import *
 
-__version__ = pathlib.Path("auto_compyute/VERSION").read_text(encoding="utf-8")
+__version__ = (pathlib.Path(__file__).parents[0] / "VERSION").read_text(
+    encoding="utf-8"
+)
