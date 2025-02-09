@@ -16,7 +16,7 @@ def gelu(x: Array) -> Array:
     """Applies the Gaussian Error Linear Unit (GELU) activation function.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
 
     Returns:
         Array: Output after applying GELU.
@@ -28,7 +28,7 @@ def relu(x: Array) -> Array:
     """Applies the Rectified Linear Unit (ReLU) activation function.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
 
     Returns:
         Array: Output after applying ReLU.
@@ -40,7 +40,7 @@ def leaky_relu(x: Array, alpha: float = 0.2) -> Array:
     """Applies the Leaky ReLU activation function.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         alpha (float, optional): Slope for negative values. Defaults to `0.2`.
 
     Returns:
@@ -53,7 +53,7 @@ def sigmoid(x: Array) -> Array:
     """Applies the sigmoid activation function.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
 
     Returns:
         Array: Output after applying sigmoid.
@@ -65,7 +65,7 @@ def softmax(x: Array, *, dim: int = -1) -> Array:
     """Applies the softmax activation function along a specified dimension.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         dim (int, optional): Dimension along which softmax is computed. Defaults to `-1`.
 
     Returns:
@@ -78,7 +78,7 @@ def tanh(x: Array) -> Array:
     """Applies the hyperbolic tangent (tanh) activation function.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
 
     Returns:
         Array: Output after applying tanh.
@@ -92,10 +92,10 @@ def tanh(x: Array) -> Array:
 
 
 def linear(x: Array, w: Array, b: Optional[Array] = None) -> Array:
-    """Applies a linear transformation to the input.
+    """Applies a linear transformation.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         w (Array): Weight matrix.
         b (Array | None, optional): Bias vector. Defaults to `None`.
 
@@ -121,12 +121,12 @@ def conv2d(
     """Applies a 2D convolution operation.
 
     Args:
-        x (Array): Input array.
-        w (Array): Filter weights.
+        x (Array): Input tensor.
+        w (Array): Kernel weight tensor.
         b (Array | None, optional): Bias vector. Defaults to `None`.
         stride (int, optional): Stride of the convolution. Defaults to `1`.
-        padding (int, optional): Zero-padding added to both sides. Defaults to `0`.
-        dilation (int, optional): Dilation factor for the filter. Defaults to `1`.
+        padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+        dilation (int, optional): Dilation factor for the kernel. Defaults to `1`.
 
     Returns:
         Array: Output after applying the 2D convolution.
@@ -153,13 +153,13 @@ def conv_transpose2d(
     """Applies a 2D transposed convolution operation.
 
     Args:
-        x (Array): Input array.
-        w (Array): Filter weights.
+        x (Array): Input tensor.
+        w (Array): Kernel weight tensor.
         b (Array | None, optional): Bias vector. Defaults to `None`.
         stride (int, optional): Stride of the transposed convolution. Defaults to `1`.
         padding (int, optional): Zero-padding added to both sides. Defaults to `0`.
         output_padding (int, optional): Additional size added to the output shape. Defaults to `0`.
-        dilation (int, optional): Dilation factor for the filter. Defaults to `1`.
+        dilation (int, optional): Dilation factor for the kernel. Defaults to `1`.
 
     Returns:
         Array: Output after applying the 2D transposed convolution.
@@ -181,7 +181,7 @@ def maxpool2d(x: Array, window_size: int = 2) -> Array:
     """Applies a 2D max pooling operation.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         window_size (int, optional): Size of the pooling window. Defaults to `2`.
 
     Returns:
@@ -235,17 +235,16 @@ def batchnorm(
     eps: float = 1e-5,
     training: bool = False,
 ) -> Array:
-    """
-    Applies batch normalization.
+    """Applies batch normalization.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         w (Array): Scale parameter (gamma).
         b (Array): Shift parameter (beta).
         rmean (Array): Running mean.
         rvar (Array): Running variance.
         momentum (float, optional): Momentum for updating running stats. Defaults to `0.1`.
-        eps (float, optional): Small constant for numerical stability. Defaults to `1e-5`.
+        eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
         training (bool, optional): Whether to run in training mode. Defaults to `False`.
             If `training == True`, the running statistics are updated inplace.
 
@@ -272,10 +271,10 @@ def layernorm(x: Array, w: Array, b: Array, eps: float = 1e-5) -> Array:
     """Applies layer normalization.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         w (Array): Scale parameter (gamma).
         b (Array): Shift parameter (beta).
-        eps (float, optional): Small constant for numerical stability. Defaults to `1e-5`.
+        eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
 
     Returns:
         Array: Output after applying layer normalization.
@@ -292,7 +291,7 @@ def dropout(x: Array, p: float = 0.5, training: bool = True) -> Array:
     """Applies dropout regularization.
 
     Args:
-        x (Array): Input array.
+        x (Array): Input tensor.
         p (float, optional): Dropout probability. Defaults to `0.5`.
         training (bool, optional): Whether the layer is in training mode. Defaults to `True`.
 
@@ -362,7 +361,7 @@ def cross_entropy_loss(
     Args:
         logits (Array): Predicted logits.
         targets (Array): Ground truth labels.
-        eta (float, optional): Small constant for numerical stability. Defaults to `1e-8`.
+        eta (float, optional): Small constant added for numerical stability. Defaults to `1e-8`.
         reduction (Literal["sum", "mean"], optional): Specifies the reduction method.
             Defaults to "mean".
 

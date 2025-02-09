@@ -40,7 +40,7 @@ class Array:
         parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
         req_grad (bool): Whether gradients should be computed for this array.
         grad (ArrayLike | None): Corresponding gradients of the array data.
-        label (str): Array label.
+        label (str): A label for the array.
     """
 
     def __init__(
@@ -61,6 +61,7 @@ class Array:
                 graph. Defaults to `None`.
             req_grad (bool, optional): Whether gradients should be computed for this array.
                 Defaults to `False`.
+            label (str): An optional label for the array. Defaults to `None`.
         """
         self.data = data
         self.ctx = ctx

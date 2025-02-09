@@ -1,4 +1,4 @@
-"""Neural network modules"""
+"""Neural network modules."""
 
 from __future__ import annotations
 
@@ -38,16 +38,55 @@ __all__ = [
 
 
 class Parameter(Array):
+    """Represents a trainable parameter array in a neural network.
+
+    Attributes:
+        data (Array): The underlying data of the array.
+        ctx (Function | None): The function context for automatic differentiation.
+        parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
+        req_grad (bool): Whether gradients should be computed for this array.
+        grad (ArrayLike | None): Corresponding gradients of the array data.
+        label (str): A label for the array.
+    """
+
     def __init__(self, data: Array, label: Optional[str] = None) -> None:
+        """Represents a trainable parameter array in a neural network.
+
+        Args:
+            data (Array): The underlying data of the array.
+            label (str | None, optional): An optional label for the array. Defaults to `None`.
+        """
         super().__init__(data.data, req_grad=True, label=label)
 
 
 class Buffer(Array):
+    """Represents a non-trainable array in a neural network.
+
+    Attributes:
+        data (Array): The underlying data of the array.
+        ctx (Function | None): The function context for automatic differentiation.
+        parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
+        req_grad (bool): Whether gradients should be computed for this array.
+        grad (ArrayLike | None): Corresponding gradients of the array data.
+        label (str): A label for the array.
+    """
+
     def __init__(self, data: Array, label: Optional[str] = None) -> None:
+        """Represents a non-trainable array in a neural network.
+
+        Args:
+            data (Array): The underlying data of the array.
+            label (str | None, optional): An optional label for the array. Defaults to `None`.
+        """
         super().__init__(data.data, label=label)
 
 
 class Module(ABC):
+    """
+    Base class for all neural network modules. Implements a structure to hold trainable
+    parameters, buffers, and submodules.
+    """
+
     def __init__(self) -> None:
         self._training = True
         self._parameters: OrderedDict[str, Parameter] = OrderedDict()
@@ -56,6 +95,7 @@ class Module(ABC):
 
     @property
     def device(self) -> Device:
+        """Returns the device on which the module parameters and buffers are stored."""
         try:
             return next(self.parameters()).device
         except StopIteration as e:
@@ -63,6 +103,7 @@ class Module(ABC):
 
     @property
     def dtype(self) -> DType:
+        """Returns the dtype of the module parameters and buffers."""
         try:
             return next(self.parameters()).dtype
         except StopIteration as e:
@@ -111,12 +152,30 @@ class Module(ABC):
         """
 
     def modules(self, recursive: bool = True) -> Iterator[Module]:
+        """Returns an iterator over submodules.
+
+        Args:
+            recursive (bool, optional): If `True`, recursively iterates through all submodules.
+                Defaults to `True`.
+
+        Yields:
+            Iterator[Module]: An iterator over the submodules.
+        """
         for m in self._modules.values():
             yield m
             if recursive:
                 yield from m.modules()
 
     def parameters(self, recursive: bool = True) -> Iterator[Parameter]:
+        """Returns an iterator over parameters.
+
+        Args:
+            recursive (bool, optional): If `True`, includes parameters from all submodules.
+                Defaults to `True`.
+
+        Yields:
+            Iterator[Parameter]: An iterator over the parameters.
+        """
         for p in self._parameters.values():
             yield p
         if recursive:
@@ -124,6 +183,15 @@ class Module(ABC):
                 yield from m.parameters(recursive=False)
 
     def buffers(self, recursive: bool = True) -> Iterator[Buffer]:
+        """Returns an iterator over buffers.
+
+        Args:
+            recursive (bool, optional): If `True`, includes buffers from all submodules.
+                Defaults to `True`.
+
+        Yields:
+            Iterator[Buffer]: An iterator over the buffers.
+        """
         for b in self._buffers.values():
             yield b
         if recursive:
@@ -131,6 +199,10 @@ class Module(ABC):
                 yield from m.buffers(recursive=False)
 
     def train(self) -> None:
+        """
+        Sets the module and its parameters to training mode. Enables gradient computation for
+        parameters.
+        """
         self._training = True
         for p in self.parameters(recursive=False):
             p.req_grad = True
@@ -138,6 +210,10 @@ class Module(ABC):
             m.train()
 
     def eval(self) -> None:
+        """
+        Sets the module and its parameters to evaluation mode. Disables gradient computation for
+        parameters.
+        """
         self._training = False
         for p in self.parameters(recursive=False):
             p.req_grad = False
@@ -145,6 +221,11 @@ class Module(ABC):
             m.eval()
 
     def to(self, device: DeviceLike) -> None:
+        """Moves the module and its contents to the specified device.
+
+        Args:
+            device (DeviceLike): The target device for computation.
+        """
         for t in vars(self).values():
             if isinstance(t, Array):
                 t.ito(device)
@@ -154,12 +235,34 @@ class Module(ABC):
 
 
 class Modulelist(list):
+    """
+    A container for storing and managing a list of modules. Inherits from the built-in list and is
+    used to store submodules.
+    """
+
     def __init__(self, modules: Iterable[Module]) -> None:
+        """A container for storing and managing a list of modules. Inherits from the built-in list
+        and is used to store submodules.
+
+        Args:
+            modules (Iterable[Module]): An iterable of modules to be stored.
+        """
         super().__init__(modules)
 
 
 class Sequential(Module):
+    """A sequential container of modules. Modules are applied in order.
+
+    Attributes:
+        layers (Modulelist): A sequence of modules to apply sequentially.
+    """
+
     def __init__(self, *layers: Module) -> None:
+        """A sequential container of modules. Modules are applied in order.
+
+        Args:
+            *layers (Module): A sequence of modules to apply sequentially.
+        """
         super().__init__()
         self.layers = Modulelist(layers)
 
@@ -170,17 +273,32 @@ class Sequential(Module):
 
 
 class GELU(Module):
+    """Applies the Gaussian Error Linear Unit (GELU) activation function."""
+
     def forward(self, x: Array) -> Array:
         return F.gelu(x)
 
 
 class ReLU(Module):
+    """Applies the Rectified Linear Unit (ReLU) activation function."""
+
     def forward(self, x: Array) -> Array:
         return F.relu(x)
 
 
 class LeakyReLU(Module):
-    def __init__(self, alpha) -> None:
+    """Applies the Leaky ReLU activation function.
+
+    Attributes:
+        alpha (float): Slope for negative values.
+    """
+
+    def __init__(self, alpha: float = 0.2) -> None:
+        """Applies the Leaky ReLU activation function.
+
+        Args:
+            alpha (float, optional): Slope for negative values. Defaults to `0.2`.
+        """
         super().__init__()
         self.alpha = alpha
 
@@ -189,17 +307,35 @@ class LeakyReLU(Module):
 
 
 class Sigmoid(Module):
+    """Applies the sigmoid activation function."""
+
     def forward(self, x: Array) -> Array:
         return F.sigmoid(x)
 
 
 class Tanh(Module):
+    """Applies the hyperbolic tangent (tanh) activation function."""
+
     def forward(self, x: Array) -> Array:
         return F.tanh(x)
 
 
 class Linear(Module):
+    """Applies a linear transformation.
+
+    Attributes:
+        w (Parameter): Weight matrix of shape (out_dim, in_dim).
+        b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
+    """
+
     def __init__(self, in_dim: int, out_dim: int, bias: bool = True) -> None:
+        """Applies a linear transformation to the input.
+
+        Args:
+            in_dim (int): Input feature dimension.
+            out_dim (int): Output feature dimension.
+            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+        """
         super().__init__()
         k = 1 / math.sqrt(in_dim)
         self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k), "Weights")
@@ -212,19 +348,40 @@ class Linear(Module):
 
 
 class Conv2D(Module):
+    """Applies a 2D convolution operation.
+
+    Attributes:
+        w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size, kernel_size).
+        b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
+        stride (int): Stride of the convolution.
+        padding (int): Zero-padding added to all sides.
+        dilation (int): Dilation rate of the kernel.
+    """
+
     def __init__(
         self,
         in_dim: int,
         out_dim: int,
         kernel_size: int = 3,
-        padding: int = 0,
         stride: int = 1,
+        padding: int = 0,
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
+        """Applies a 2D convolution operation.
+
+        Args:
+            in_dim (int): Input feature dimension (number of input channels).
+            out_dim (int): Output feature dimension (number of kernels).
+            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+            stride (int, optional): Stride of the convolution. Defaults to `1`.
+            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+        """
         super().__init__()
-        self.padding = padding
         self.stride = stride
+        self.padding = padding
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
@@ -239,6 +396,17 @@ class Conv2D(Module):
 
 
 class ConvTranspose2D(Module):
+    """Applies a transposed 2D convolution (deconvolution) operation.
+
+    Attributes:
+        w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size, kernel_size).
+        b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
+        stride (int): Stride of the convolution.
+        padding (int): Zero-padding added to all sides.
+        output_padding (int): Additional size added to the output.
+        dilation (int): Dilation rate of the kernel.
+    """
+
     def __init__(
         self,
         in_dim: int,
@@ -250,6 +418,18 @@ class ConvTranspose2D(Module):
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
+        """Applies a transposed 2D convolution (deconvolution) operation.
+
+        Args:
+            in_dim (int): Input feature dimension (number of input channels).
+            out_dim (int): Output feature dimension (number of kernels).
+            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+            stride (int, optional): Stride of the convolution. Defaults to `1`.
+            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+            output_padding (int, optional): Additional size added to the output. Defaults to `0`.
+            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+        """
         super().__init__()
         self.stride = stride
         self.padding = padding
@@ -276,7 +456,18 @@ class ConvTranspose2D(Module):
 
 
 class MaxPooling2D(Module):
+    """Applies a 2D max pooling operation.
+
+    Attributes:
+        window_size (int): Pooling window size.
+    """
+
     def __init__(self, window_size: int = 2) -> None:
+        """Applies a 2D max pooling operation.
+
+        Args:
+            window_size (int, optional): Pooling window size. Defaults to `2`.
+        """
         super().__init__()
         self.window_size = window_size
 
@@ -285,6 +476,16 @@ class MaxPooling2D(Module):
 
 
 class MultiHeadSelfAttention(Module):
+    """Implements multi-head self-attention.
+
+    Attributes:
+        n_heads (int): Number of attention heads.
+        mask (Buffer | None): Attention mask if provided.
+        dropout (float): Dropout probability.
+        qkv (Linear): Linear layer for computing query, key, and value projections.
+        out (Linear): Output projection layer.
+    """
+
     def __init__(
         self,
         in_dim: int,
@@ -294,6 +495,18 @@ class MultiHeadSelfAttention(Module):
         attn_bias: bool = False,
         bias: bool = True,
     ) -> None:
+        """Implements multi-head self-attention.
+
+        Args:
+            in_dim (int): Input feature dimension.
+            n_heads (int): Number of attention heads.
+            mask (Array | None, optional): Optional attention mask. Defaults to `None`.
+            dropout (float, optional): Dropout probability. Defaults to `0`.
+            attn_bias (bool, optional): If `True`, includes bias in attention projections. Defaults
+                to `False`.
+            bias (bool, optional): If `True`, includes bias in the output projection. Defaults to
+                `True`.
+        """
         super().__init__()
         self.n_heads = n_heads
         self.mask = Buffer(mask, "Mask") if mask is not None else None
@@ -321,9 +534,27 @@ class MultiHeadSelfAttention(Module):
 
 
 class Batchnorm(Module):
-    def __init__(self, in_dim: int, m: float = 0.1, eps: float = 1e-5) -> None:
+    """Applies batch normalization.
+
+    Attributes:
+        momentum (float): Momentum for updating running stats.
+        eps (float): Small constant added for numerical stability.
+        w (Parameter): Scale parameter (gamma) of shape (in_dim,).
+        b (Parameter): Shift parameter (beta) of shape (in_dim,).
+        rmean (Buffer): Running mean of shape (in_dim,).
+        rvar (Buffer): Running variance of shape (in_dim),.
+    """
+
+    def __init__(self, in_dim: int, momentum: float = 0.1, eps: float = 1e-5) -> None:
+        """Applies batch normalization.
+
+        Args:
+            in_dim (int): Number of input features.
+            momentum (float, optional): Momentum for updating running stats. Defaults to `0.1`.
+            eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
+        """
         super().__init__()
-        self.m = m
+        self.momentum = momentum
         self.eps = eps
         self.w = Parameter(ones(in_dim), "Weights")
         self.b = Parameter(zeros(in_dim), "Biases")
@@ -332,12 +563,33 @@ class Batchnorm(Module):
 
     def forward(self, x: Array) -> Array:
         return F.batchnorm(
-            x, self.rmean, self.rvar, self.w, self.b, self.m, self.eps, self._training
+            x,
+            self.rmean,
+            self.rvar,
+            self.w,
+            self.b,
+            self.momentum,
+            self.eps,
+            self._training,
         )
 
 
 class Layernorm(Module):
+    """Applies layer normalization.
+
+    Attributes:
+        eps (float): Small constant added for numerical stability.
+        w (Parameter): Scale parameter (gamma) of shape (norm_shape).
+        b (Parameter): Shift parameter (beta) of shape (norm_shape).
+    """
+
     def __init__(self, norm_shape: int | ShapeLike, eps: float = 1e-5) -> None:
+        """Applies layer normalization.
+
+        Args:
+            norm_shape (int | ShapeLike): Shape of the normalization dimension(s).
+            eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
+        """
         super().__init__()
         self.eps = eps
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
@@ -348,31 +600,67 @@ class Layernorm(Module):
         return F.layernorm(x, self.w, self.b, self.eps)
 
 
-class Embedding(Module):
-    def __init__(self, n_emb: int, emb_dim: int) -> None:
+class Dropout(Module):
+    """Applies dropout regularization.
+
+    Attributes:
+        p (float): Dropout probability.
+    """
+
+    def __init__(self, p: float = 0.5) -> None:
+        """Applies dropout regularization.
+
+        Args:
+            p (float, optional): Dropout probability. Defaults to `0.5`.
+        """
         super().__init__()
-        self.w = Parameter(randn(n_emb, emb_dim), "Embeds.")
+        self.p = p
+
+    def forward(self, x: Array) -> Array:
+        return F.dropout(x, self.p, self._training)
+
+
+class Embedding(Module):
+    """Maps discrete indices to continuous embeddings.
+
+    Attributes:
+        w (Parameter): Embedding matrix of shape (n_emb, emb_dim).
+    """
+
+    def __init__(self, n_emb: int, emb_dim: int) -> None:
+        """Maps discrete indices to continuous embeddings.
+
+        Args:
+            n_emb (int): Number of embedding vectors.
+            emb_dim (int): Dimension of each embedding vector.
+        """
+        super().__init__()
+        self.w = Parameter(randn(n_emb, emb_dim), "Embeddings")
 
     def forward(self, x: Array) -> Array:
         return F.embedding(x, self.w)
 
 
-class Dropout(Module):
-    def __init__(self, dropout: float = 0.5) -> None:
-        super().__init__()
-        self.dropout = dropout
-
-    def forward(self, x: Array) -> Array:
-        return F.dropout(x, self.dropout, self._training)
-
-
 class Flatten(Module):
+    """Flattens the input tensor while preserving the batch dimension."""
+
     def forward(self, x: Array) -> Array:
         return x.view(x.shape[0], -1)
 
 
 class Reshape(Module):
+    """Reshapes the input tensor to the specified shape.
+
+    Attributes:
+        shape (ShapeLike): Desired output shape.
+    """
+
     def __init__(self, shape: ShapeLike) -> None:
+        """Reshapes the input tensor to the specified shape.
+
+        Args:
+            shape (ShapeLike): Target shape (excluding the batch dimension).
+        """
         super().__init__()
         self.shape = shape
 
