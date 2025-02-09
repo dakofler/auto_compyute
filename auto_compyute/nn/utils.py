@@ -1,4 +1,4 @@
-"""Neural network utils"""
+"""Neural network utils."""
 
 from collections.abc import Iterator
 
@@ -10,6 +10,17 @@ __all__ = ["Dataloader"]
 
 
 class Dataloader:
+    """DataLoader to yield batched data for training and inference.
+
+    Attributes:
+        data (tuple[Array, ...]): Data batches are created from.
+        batch_size (int): Size of returned batches.
+        device (Device): Device the batches are loaded to.
+        shuffle_data (bool): Whether to shuffle the data each time before creating batches.
+        drop_remaining (bool): Whether to drop remaining data if the number of samples is not
+            divisible by `batch_size`.
+    """
+
     def __init__(
         self,
         data: tuple[Array, ...],
@@ -18,6 +29,17 @@ class Dataloader:
         shuffle_data: bool = True,
         drop_remaining: bool = False,
     ) -> None:
+        """DataLoader to yield batched data for training and inference.
+
+        Args:
+            data (tuple[Array, ...]): Data batches are created from.
+            batch_size (int, optional): Size of returned batches. Defaults to `1`.
+            device (DeviceLike, optional): Device the batches are loaded to. Defaults to "cpu".
+            shuffle_data (bool, optional): Whether to shuffle the data each time before creating
+                batches. Defaults to ``True``.
+            drop_remaining (bool, optional): Whether to drop remaining data if the number of samples
+                is not divisible by `batch_size`. Defaults to ``False``.
+        """
         self.data = data
         self._n = len(self.data[0])
         self.batch_size = min(batch_size, self._n)
