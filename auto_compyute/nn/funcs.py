@@ -85,8 +85,11 @@ class Sigmoid(Function):
 
 def _softmax_forward(xp: ModuleType, x: ArrayLike, dim: int) -> ArrayLike:
     x = xp.exp(x - x.max(dim, keepdims=True))
-    x = x / x.sum(dim, keepdims=True)
-    return x
+    return x / x.sum(dim, keepdims=True)
+
+
+def _softmax_backward(y: ArrayLike, dy: ArrayLike, dim: int) -> ArrayLike:
+    return y * (dy - (dy * y).sum(dim, keepdims=True))
 
 
 class Softmax(Function):
@@ -100,7 +103,7 @@ class Softmax(Function):
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         dim, y = self.retrieve_from_cache()
-        dx = y * (dy - (dy * y).sum(dim, keepdims=True))
+        dx = _softmax_backward(y, dy, dim)
         return (dx,)
 
 
@@ -227,14 +230,12 @@ def _pool2d(
     out_shape = (*x.shape[:-2], out, out, window_size, window_size)
     xstr = x.strides
     out_strides = (*xstr[:-2], xstr[-2] * stride, xstr[-1] * stride, *xstr[-2:])
-    y = xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
-    return y
+    return xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
 
 
 def _pad_to_shape(xp: ModuleType, x: ArrayLike, shape: ShapeLike) -> ArrayLike:
     padding = tuple((int(0), shape[i] - x.shape[i]) for i in range(x.ndim))
-    y = xp.pad(x, padding)
-    return y
+    return xp.pad(x, padding)
 
 
 class Conv2D(Function):
@@ -358,8 +359,7 @@ def _repeat2d(xp: ModuleType, x: ArrayLike, n_repeats: int, target_shape: ShapeL
     repeat_strides = (*x.strides[:-1], 0, x.strides[-1], 0)
     y = xp.lib.stride_tricks.as_strided(x, repeat_shape, repeat_strides)
     y = y.reshape((*y.shape[:-4], y.shape[-4] * n_repeats, y.shape[-2] * n_repeats))
-    y = y if y.shape == target_shape else _pad_to_shape(xp, y, target_shape)
-    return y
+    return y if y.shape == target_shape else _pad_to_shape(xp, y, target_shape)
 
 
 class Maxpool2D(Function):
@@ -379,6 +379,67 @@ class Maxpool2D(Function):
 
 
 # -------------------------------------------------------------------------------------
+# ATTENTION FUNCTIONS
+# -------------------------------------------------------------------------------------
+
+
+class ScaledDotProductAttention(Function):
+    """Scaled dot-product attention."""
+
+    def forward(
+        self,
+        q: ArrayLike,
+        q_req_grad: bool,
+        k: ArrayLike,
+        k_req_grad: bool,
+        v: ArrayLike,
+        v_req_grad: bool,
+        attn_mask: ArrayLike,
+        _1: bool,  # dummy placehodler for mask_req_grad
+        *,
+        p: float,
+    ) -> ArrayLike:
+        *_, seq_len, head_size = q.shape
+
+        attn = q @ k.swapaxes(-1, -2) / math.sqrt(head_size)
+        if attn_mask is not None:
+            attn += attn_mask[:seq_len, :seq_len]
+        attnw = _softmax_forward(self.xp, x=attn, dim=-1)
+        drop_mask = None if p == 0 else _get_dropout_mask(self.xp, attn.shape, p)
+        drop_attnw = attnw if p == 0 else _dropout_forward(attnw, drop_mask, p)
+        y = drop_attnw @ v
+
+        self.save_to_cache(
+            (q if k_req_grad else None),
+            (k if q_req_grad else None),
+            (v if q_req_grad or k_req_grad else None),
+            drop_attnw,
+            p,
+            drop_mask,
+            v_req_grad,
+        )
+        return y
+
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
+        q, k, v, drop_attnw, p, drop_mask, v_req_grad = self.retrieve_from_cache()
+        head_size = q.shape[-1]
+
+        # attention gradients
+        dattn_weights = dy @ v.swapaxes(-1, -2)
+        if p > 0:
+            dattn_weights = _dropout_backward(dattn_weights, drop_mask, p)
+        dattn_weights = _softmax_backward(drop_attnw, dattn_weights, -1)
+        dattn_weights /= math.sqrt(head_size)
+
+        # query, key, value gradients
+        dq = None if k is None else (dattn_weights @ k)
+        dk = None if q is None else (dattn_weights.swapaxes(-1, -2) @ q)
+        dv = None if not v_req_grad else (drop_attnw.swapaxes(-1, -2) @ dy)
+
+        return dq, dk, dv
+
+
+# -------------------------------------------------------------------------------------
 # NORMALIZATION FUNCTIONS
 # -------------------------------------------------------------------------------------
 
@@ -395,9 +456,9 @@ class Batchnorm(Function):
         b: ArrayLike,
         b_req_grad: bool,
         rmean: ArrayLike,
-        _1: bool,  # dummy placeholders for rmean_req_grad
+        _1: bool,  # dummy placeholder for rmean_req_grad
         rvar: ArrayLike,
-        _2: bool,  # dummy placeholders for rvar_req_grad
+        _2: bool,  # dummy placeholder for rvar_req_grad
         *,
         momentum: float,
         eps: float,
@@ -521,20 +582,31 @@ class Layernorm(Function):
 # -------------------------------------------------------------------------------------
 
 
+def _get_dropout_mask(xp: ModuleType, shape: ShapeLike, p: float) -> ArrayLike:
+    return xp.random.rand(*shape) > p
+
+
+def _dropout_forward(x: ArrayLike, dropout_mask: ArrayLike, p: float) -> ArrayLike:
+    return x * dropout_mask / (1.0 - p)
+
+
+def _dropout_backward(dy: ArrayLike, dropout_mask: ArrayLike, p: float) -> ArrayLike:
+    return dy * dropout_mask / (1.0 - p)
+
+
 class Dropout(Function):
     """Dropout regularization."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, p: float) -> ArrayLike:
-        p = 1.0 - p
-        dropout_mask = self.xp.random.random(x.shape) < p
-        y = x * dropout_mask / p
+        dropout_mask = _get_dropout_mask(self.xp, x.shape, p)
+        y = _dropout_forward(x, dropout_mask, p)
         if x_req_grad:
             self.save_to_cache(p, dropout_mask)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         p, dropout_mask = self.retrieve_from_cache()
-        dx = dy * dropout_mask / p
+        dx = _dropout_backward(dy, dropout_mask, p)
         return (dx,)
 
 

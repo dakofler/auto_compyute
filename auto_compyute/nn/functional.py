@@ -210,14 +210,7 @@ def scaled_dot_product_attention(
     Returns:
         Array: Output after applying scaled dot-product attention.
     """
-    *_, seq_len, head_size = q.shape
-
-    attn = q @ k.T / math.sqrt(head_size)
-    if mask is not None:
-        attn += mask[:seq_len, :seq_len]
-    attn = softmax(attn, dim=-1)
-    attn = dropout(attn, dropout_p)
-    return attn @ v
+    return apply_func(NNFuncs.ScaledDotProductAttention, q, k, v, mask, p=dropout_p)
 
 
 # -------------------------------------------------------------------------------------
