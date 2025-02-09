@@ -271,7 +271,7 @@ class Sequential(Module):
         super().__init__()
         self.layers = Modulelist(layers)
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         for layer in self.layers:
             x = layer(x)
         return x
@@ -280,14 +280,14 @@ class Sequential(Module):
 class GELU(Module):
     """Applies the Gaussian Error Linear Unit (GELU) activation function."""
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.gelu(x)
 
 
 class ReLU(Module):
     """Applies the Rectified Linear Unit (ReLU) activation function."""
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.relu(x)
 
 
@@ -307,21 +307,21 @@ class LeakyReLU(Module):
         super().__init__()
         self.alpha = alpha
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.leaky_relu(x, self.alpha)
 
 
 class Sigmoid(Module):
     """Applies the sigmoid activation function."""
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.sigmoid(x)
 
 
 class Tanh(Module):
     """Applies the hyperbolic tangent (tanh) activation function."""
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.tanh(x)
 
 
@@ -348,7 +348,7 @@ class Linear(Module):
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.linear(x, self.w, self.b)
 
 
@@ -390,13 +390,13 @@ class Conv2D(Module):
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Weights"
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
         )
         self.b = (
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
@@ -442,13 +442,13 @@ class ConvTranspose2D(Module):
         self.dilation = dilation
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Weights"
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
         )
         self.b = (
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.conv_transpose2d(
             x,
             self.w,
@@ -476,7 +476,7 @@ class MaxPooling2D(Module):
         super().__init__()
         self.window_size = window_size
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.maxpool2d(x, self.window_size)
 
 
@@ -519,7 +519,7 @@ class MultiHeadSelfAttention(Module):
         self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
         self.out = Linear(in_dim, in_dim, bias=bias)
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         B, S, D = x.shape
         dropout = self.dropout if self._training else 0
 
@@ -561,12 +561,12 @@ class Batchnorm(Module):
         super().__init__()
         self.momentum = momentum
         self.eps = eps
-        self.w = Parameter(ones(in_dim), "Weights")
-        self.b = Parameter(zeros(in_dim), "Biases")
+        self.w = Parameter(ones(in_dim), "Gamma")
+        self.b = Parameter(zeros(in_dim), "Beta")
         self.rmean = Buffer(zeros(in_dim), "Run. Mean")
         self.rvar = Buffer(ones(in_dim), "Run. Var")
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.batchnorm(
             x,
             self.rmean,
@@ -598,10 +598,10 @@ class Layernorm(Module):
         super().__init__()
         self.eps = eps
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
-        self.w = Parameter(ones(*norm_shape), "Weights")
-        self.b = Parameter(zeros(*norm_shape), "Biases")
+        self.w = Parameter(ones(*norm_shape), "Gamma")
+        self.b = Parameter(zeros(*norm_shape), "Beta")
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.layernorm(x, self.w, self.b, self.eps)
 
 
@@ -621,7 +621,7 @@ class Dropout(Module):
         super().__init__()
         self.p = p
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.dropout(x, self.p, self._training)
 
 
@@ -642,14 +642,14 @@ class Embedding(Module):
         super().__init__()
         self.w = Parameter(randn(n_emb, emb_dim), "Embeddings")
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return F.embedding(x, self.w)
 
 
 class Flatten(Module):
     """Flattens the input tensor while preserving the batch dimension."""
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return x.view(x.shape[0], -1)
 
 
@@ -669,5 +669,5 @@ class Reshape(Module):
         super().__init__()
         self.shape = shape
 
-    def forward(self, x: Array) -> Array:
+    def forward(self, x: Array) -> Array:  # type: ignore
         return x.view(-1, *self.shape)

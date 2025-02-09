@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from itertools import chain
 from typing import Any, Literal, Optional
@@ -689,6 +689,21 @@ class Array:
             numpy.ndarray: The NumPy representation of the array.
         """
         return self.cpu().data
+
+    def iter_dim(self, dim: int) -> Iterator[Array]:
+        """Iterates over a specified dimension and yields chunks of the array.
+
+        Args:
+            dim (int): Dimension to iterate over.
+
+        Yields:
+            Iterator[Array]: An iterator over array chunks.
+        """
+        dim = dim % self.ndim
+        pre_dim_slice = (slice(None),) * dim
+        post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
+        for i in range(self.shape[dim]):
+            yield self[pre_dim_slice + (i,) + post_dim_slice]
 
 
 # -------------------------------------------------------------------------------------
