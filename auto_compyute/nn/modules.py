@@ -113,16 +113,16 @@ class Module(ABC):
     # MAGIC METHODS
     # ----------------------------------------------------------------------------------
 
-    def __call__(self, x: Array) -> Array:
+    def __call__(self, *arrays: Array) -> Array:
         """Computes the forward pass of the module.
 
         Args:
-            x (Array): The input array.
+            *arrays (Array): Input arrays.
 
         Returns:
             ArrayLike: The result of the forward pass.
         """
-        return self.forward(x)
+        return self.forward(*arrays)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if isinstance(value, Parameter):
@@ -141,11 +141,11 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     @abstractmethod
-    def forward(self, x: Array) -> Array:
+    def forward(self, *arrays: Array) -> Array:
         """Computes the forward pass of the module.
 
         Args:
-            x (Array): The input array.
+            *arrays (Array): Input arrays.
 
         Returns:
             ArrayLike: The result of the forward pass.
