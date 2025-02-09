@@ -215,9 +215,7 @@ class Array:
         if dy is None:
             self.grad = self.device.xp.ones(self.shape, dtype=self.dtype)
         else:
-            assert isinstance(
-                dy, ArrayLike
-            ), f"Gradient must be an array, got {type(dy)}"
+            assert isinstance(dy, ArrayLike), "Gradient must be an array."
             self.grad = dy
 
         # run backward through traced graph
@@ -727,10 +725,6 @@ def _build_backward_queue(node: Array, queue: list[Array], visited: set) -> list
     return queue
 
 
-def _all_same_device(arrays: tuple[Optional[Array], ...]) -> bool:
-    return len(set(map(type, [a.data for a in arrays if a is not None]))) == 1
-
-
 def apply_func(
     function: type[Function], *arrays: Optional[Array], **kwargs: Any
 ) -> Array:
@@ -746,18 +740,18 @@ def apply_func(
     """
     # create function args by extracting req_grad from arrays and handle optional arrays
     f_args = [(a.data, a.req_grad) if a is not None else (None, False) for a in arrays]
-    f_args = tuple(chain(*f_args))  # type: ignore
+    f_args = tuple(chain(*f_args))  # type: ignore  # flatten tuple of tuples
 
     # get array args
-    t_args = tuple(t for t in arrays if t is not None)
-    device = t_args[0].device
-    ctx = function(t_args[0].device)
+    arr_args = tuple(a for a in arrays if a is not None)
+    device = arr_args[0].device
+    ctx = function(device)
 
     # return result node with autograd context
     with device:
-        if autograd_tracing_active and any(a.req_grad for a in t_args):
+        if autograd_tracing_active and any(a.req_grad for a in arr_args):
             data = ctx.forward(*f_args, **kwargs)
-            return Array(data, ctx=ctx, parents=t_args, req_grad=True)
+            return Array(data, ctx=ctx, parents=arr_args, req_grad=True)
 
         # return result node without autograd context
         data = ctx.forward(*f_args, **kwargs)
