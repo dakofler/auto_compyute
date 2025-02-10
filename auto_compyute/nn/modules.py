@@ -527,13 +527,13 @@ class LSTM(Module):
     Attributes:
         hidden_dim (int): Dimension of the hidden state.
         return_seq (bool): Flag indicating whether to return the full sequence.
-        W_xi (Linear): Linear transformation for input to input gate.
         W_xf (Linear): Linear transformation for input to forget gate.
-        W_xg (Linear): Linear transformation for input to cell gate.
+        W_xi (Linear): Linear transformation for input to input gate.
+        W_xc (Linear): Linear transformation for input to candidate cell state.
         W_xo (Linear): Linear transformation for input to output gate.
-        W_hi (Linear): Linear transformation for hidden-to-hidden input gate.
         W_hf (Linear): Linear transformation for hidden-to-hidden forget gate.
-        W_hg (Linear): Linear transformation for hidden-to-hidden cell gate.
+        W_hi (Linear): Linear transformation for hidden-to-hidden input gate.
+        W_hc (Linear): Linear transformation for hidden-to-hidden candidate cell state.
         W_ho (Linear): Linear transformation for hidden-to-hidden output gate.
     """
 
@@ -550,14 +550,14 @@ class LSTM(Module):
         self.hidden_dim = hidden_dim
         self.return_seq = return_seq
 
-        self.W_xi = Linear(in_dim, hidden_dim)
         self.W_xf = Linear(in_dim, hidden_dim)
-        self.W_xg = Linear(in_dim, hidden_dim)
+        self.W_xi = Linear(in_dim, hidden_dim)
+        self.W_xc = Linear(in_dim, hidden_dim)
         self.W_xo = Linear(in_dim, hidden_dim)
 
-        self.W_hi = Linear(hidden_dim, hidden_dim)
         self.W_hf = Linear(hidden_dim, hidden_dim)
-        self.W_hg = Linear(hidden_dim, hidden_dim)
+        self.W_hi = Linear(hidden_dim, hidden_dim)
+        self.W_hc = Linear(hidden_dim, hidden_dim)
         self.W_ho = Linear(hidden_dim, hidden_dim)
 
     def forward(self, x: Array) -> Array:  # type: ignore
@@ -566,11 +566,11 @@ class LSTM(Module):
         h_t = zeros(B, self.hidden_dim, device=x.device)
         c_t = zeros(B, self.hidden_dim, device=x.device)
         for t in range(T):
-            i_t = F.sigmoid(self.W_xi(x[:, t]) + self.W_hi(h_t))
-            f_t = F.sigmoid(self.W_xf(x[:, t]) + self.W_hf(h_t))
-            g_t = F.tanh(self.W_xg(x[:, t]) + self.W_hg(h_t))
-            o_t = F.sigmoid(self.W_xo(x[:, t]) + self.W_ho(h_t))
-            c_t = f_t * c_t + i_t * g_t
+            f_t = F.sigmoid(self.W_xf(x[:, t]) + self.W_hf(h_t))  # forget gate
+            i_t = F.sigmoid(self.W_xi(x[:, t]) + self.W_hi(h_t))  # input gate
+            cand_t = F.tanh(self.W_xc(x[:, t]) + self.W_hc(h_t))  # candidate cell state
+            o_t = F.sigmoid(self.W_xo(x[:, t]) + self.W_ho(h_t))  # output gate
+            c_t = f_t * c_t + i_t * cand_t
             h_t = o_t * F.tanh(c_t)
             if self.return_seq:
                 h.append(h_t)
@@ -617,9 +617,9 @@ class GRU(Module):
         h = []
         h_t = zeros(B, self.hidden_dim, device=x.device)
         for t in range(T):
-            r_t = F.sigmoid(self.W_xr(x[:, t]) + self.W_hr(h_t))
-            z_t = F.sigmoid(self.W_xz(x[:, t]) + self.W_hz(h_t))
-            n_t = F.tanh(self.W_xn(x[:, t]) + r_t * self.W_hn(h_t))
+            r_t = F.sigmoid(self.W_xr(x[:, t]) + self.W_hr(h_t))  # reset gate
+            z_t = F.sigmoid(self.W_xz(x[:, t]) + self.W_hz(h_t))  # update gate
+            n_t = F.tanh(self.W_xn(x[:, t]) + r_t * self.W_hn(h_t))  # cand. next state
             h_t = z_t * h_t + (1.0 - z_t) * n_t
             if self.return_seq:
                 h.append(h_t)
