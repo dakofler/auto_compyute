@@ -169,7 +169,8 @@ class Array:
 
     def __repr__(self) -> str:
         prefix = f"{self.__class__.__name__}("
-        suffix = f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
+        suffix = f", dtype={self.dtype}, device={self.device}"
+        suffix += f", grad_fn={self.ctx.name})" if self.ctx is not None else ")"
         return prefix + array_to_string(self.data, prefix) + suffix
 
     def __len__(self) -> int:

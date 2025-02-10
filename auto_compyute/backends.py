@@ -89,6 +89,10 @@ class Device:
         id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
         return f"device('{self.dev_type}{id_suffix}')"
 
+    def __str__(self) -> str:
+        id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
+        return f"{self.dev_type}{id_suffix}"
+
     def __enter__(self) -> None:
         if self.dev_type == "cpu":
             return None

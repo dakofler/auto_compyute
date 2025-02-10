@@ -528,7 +528,7 @@ class ScaledDotProductAttention(Function):
         k_req_grad: bool,
         v: ArrayLike,
         v_req_grad: bool,
-        attn_mask: ArrayLike,
+        attn_mask: Optional[ArrayLike],
         _1: bool,  # dummy placehodler for mask_req_grad
         *,
         p: float,
@@ -617,7 +617,7 @@ class Batchnorm(Function):
             xshift = x - mean
             var = rvar.reshape(*rvar.shape, *ext_shape)
 
-        rstd = (var + eps) ** -0.5
+        rstd = 1.0 / self.xp.sqrt(var + eps)
         xnorm = xshift * rstd
         w = w.reshape(*w.shape, *ext_shape)
         b = b.reshape(*b.shape, *ext_shape)
@@ -642,15 +642,15 @@ class Batchnorm(Function):
         dw = None if xnorm is None else (dy * xnorm).sum(b_dims)
 
         # input grads
-        if rstd is not None:
+        if rstd is None:
+            dx = None
+        else:
             dxnorm = dy * w
             dx = rstd * (
                 dxnorm
                 - dxnorm.mean(b_dims, keepdims=True)
                 - xnorm * (dxnorm * xnorm).mean(b_dims, keepdims=True)
             )
-        else:
-            dx = None
 
         return dx, dw, db
 
@@ -674,7 +674,7 @@ class Layernorm(Function):
         mean = x.mean(f_dims, keepdims=True)
         xshift = x - mean
         var = (xshift * xshift).mean(f_dims, keepdims=True)
-        rstd = (var + eps) ** -0.5
+        rstd = 1.0 / self.xp.sqrt(var + eps)
         xnorm = xshift * rstd
         y = xnorm * w + b
 
@@ -698,15 +698,15 @@ class Layernorm(Function):
         dw = None if xnorm is None else (dy * xnorm).sum(b_dims)
 
         # input grads
-        if rstd is not None:
+        if rstd is None:
+            dx = None
+        else:
             dxnorm = dy * w
             dx = rstd * (
                 dxnorm
                 - dxnorm.mean(f_dims, keepdims=True)
                 - xnorm * (dxnorm * xnorm).mean(f_dims, keepdims=True)
             )
-        else:
-            dx = None
 
         return dx, dw, db
 
