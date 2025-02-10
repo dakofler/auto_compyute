@@ -8,6 +8,7 @@ from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..array_factory import ones, randn, randu, zeros
+from ..array_functions import stack
 from ..autograd import Array
 from ..backends import Device, DeviceLike, ShapeLike
 from ..dtypes import DType
@@ -27,6 +28,9 @@ __all__ = [
     "Conv2D",
     "ConvTranspose2D",
     "MaxPooling2D",
+    "RNN",
+    "LSTM",
+    "GRU",
     "MultiHeadSelfAttention",
     "Batchnorm",
     "Layernorm",
@@ -478,6 +482,148 @@ class MaxPooling2D(Module):
 
     def forward(self, x: Array) -> Array:  # type: ignore
         return F.maxpool2d(x, self.window_size)
+
+
+class RNN(Module):
+    """Simple Recurrent Neural Network (RNN) module.
+
+    Attributes:
+        hidden_dim (int): Dimension of the hidden state.
+        return_seq (bool): Flag indicating whether to return the full sequence.
+        W_xh (Linear): Linear transformation for input to hidden state.
+        W_hh (Linear): Linear transformation for hidden-to-hidden recurrence.
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
+        """Simple Recurrent Neural Network (RNN) module.
+
+        Args:
+            in_dim (int): Input feature dimension.
+            hidden_dim (int): Hidden state dimension.
+            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+                If `False`, returns only the last hidden state. Defaults to `False`.
+        """
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.return_seq = return_seq
+
+        self.W_xh = Linear(in_dim, hidden_dim)
+        self.W_hh = Linear(hidden_dim, hidden_dim)
+
+    def forward(self, x: Array) -> Array:  # type: ignore
+        B, T, _ = x.shape
+        h = []
+        h_t = zeros(B, self.hidden_dim, device=x.device)
+        for t in range(T):
+            h_t = F.tanh(self.W_xh(x[:, t]) + self.W_hh(h_t))
+            if self.return_seq:
+                h.append(h_t)
+        return stack(*h, dim=1) if self.return_seq else h_t
+
+
+class LSTM(Module):
+    """Long Short-Term Memory (LSTM) module.
+
+    Attributes:
+        hidden_dim (int): Dimension of the hidden state.
+        return_seq (bool): Flag indicating whether to return the full sequence.
+        W_xi (Linear): Linear transformation for input to input gate.
+        W_xf (Linear): Linear transformation for input to forget gate.
+        W_xg (Linear): Linear transformation for input to cell gate.
+        W_xo (Linear): Linear transformation for input to output gate.
+        W_hi (Linear): Linear transformation for hidden-to-hidden input gate.
+        W_hf (Linear): Linear transformation for hidden-to-hidden forget gate.
+        W_hg (Linear): Linear transformation for hidden-to-hidden cell gate.
+        W_ho (Linear): Linear transformation for hidden-to-hidden output gate.
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
+        """Long Short-Term Memory (LSTM) module.
+
+        Args:
+            in_dim (int): Input feature dimension.
+            hidden_dim (int): Hidden state dimension.
+            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+                If `False`, returns only the last hidden state. Defaults to `False`.
+        """
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.return_seq = return_seq
+
+        self.W_xi = Linear(in_dim, hidden_dim)
+        self.W_xf = Linear(in_dim, hidden_dim)
+        self.W_xg = Linear(in_dim, hidden_dim)
+        self.W_xo = Linear(in_dim, hidden_dim)
+
+        self.W_hi = Linear(hidden_dim, hidden_dim)
+        self.W_hf = Linear(hidden_dim, hidden_dim)
+        self.W_hg = Linear(hidden_dim, hidden_dim)
+        self.W_ho = Linear(hidden_dim, hidden_dim)
+
+    def forward(self, x: Array) -> Array:  # type: ignore
+        B, T, _ = x.shape
+        h = []
+        h_t = zeros(B, self.hidden_dim, device=x.device)
+        c_t = zeros(B, self.hidden_dim, device=x.device)
+        for t in range(T):
+            i_t = F.sigmoid(self.W_xi(x[:, t]) + self.W_hi(h_t))
+            f_t = F.sigmoid(self.W_xf(x[:, t]) + self.W_hf(h_t))
+            g_t = F.tanh(self.W_xg(x[:, t]) + self.W_hg(h_t))
+            o_t = F.sigmoid(self.W_xo(x[:, t]) + self.W_ho(h_t))
+            c_t = f_t * c_t + i_t * g_t
+            h_t = o_t * F.tanh(c_t)
+            if self.return_seq:
+                h.append(h_t)
+        return stack(*h, dim=1) if self.return_seq else h_t
+
+
+class GRU(Module):
+    """Gated Recurrent Unit (GRU) module.
+
+    Attributes:
+        hidden_dim (int): Dimension of the hidden state.
+        return_seq (bool): Flag indicating whether to return the full sequence.
+        W_xr (Linear): Linear transformation for input to reset gate.
+        W_xz (Linear): Linear transformation for input to update gate.
+        W_xn (Linear): Linear transformation for input to candidate activation.
+        W_hr (Linear): Linear transformation for hidden-to-hidden reset gate.
+        W_hz (Linear): Linear transformation for hidden-to-hidden update gate.
+        W_hn (Linear): Linear transformation for hidden-to-hidden candidate activation.
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
+        """Gated Recurrent Unit (GRU) module.
+
+        Args:
+            in_dim (int): Input feature dimension.
+            hidden_dim (int): Hidden state dimension.
+            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+                If `False`, returns only the last hidden state. Defaults to `False`.
+        """
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.return_seq = return_seq
+
+        self.W_xr = Linear(in_dim, hidden_dim)
+        self.W_xz = Linear(in_dim, hidden_dim)
+        self.W_xn = Linear(in_dim, hidden_dim)
+
+        self.W_hr = Linear(hidden_dim, hidden_dim)
+        self.W_hz = Linear(hidden_dim, hidden_dim)
+        self.W_hn = Linear(hidden_dim, hidden_dim)
+
+    def forward(self, x: Array) -> Array:  # type: ignore
+        B, T, _ = x.shape
+        h = []
+        h_t = zeros(B, self.hidden_dim, device=x.device)
+        for t in range(T):
+            r_t = F.sigmoid(self.W_xr(x[:, t]) + self.W_hr(h_t))
+            z_t = F.sigmoid(self.W_xz(x[:, t]) + self.W_hz(h_t))
+            n_t = F.tanh(self.W_xn(x[:, t]) + r_t * self.W_hn(h_t))
+            h_t = z_t * h_t + (1.0 - z_t) * n_t
+            if self.return_seq:
+                h.append(h_t)
+        return stack(*h, dim=1) if self.return_seq else h_t
 
 
 class MultiHeadSelfAttention(Module):
