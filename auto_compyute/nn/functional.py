@@ -110,6 +110,37 @@ def linear(x: Array, w: Array, b: Optional[Array] = None) -> Array:
 # -------------------------------------------------------------------------------------
 
 
+def conv1d(
+    x: Array,
+    w: Array,
+    b: Optional[Array] = None,
+    stride: int = 1,
+    padding: int = 0,
+    dilation: int = 1,
+) -> Array:
+    """Applies a 1D convolution operation.
+
+    Args:
+        x (Array): Input tensor.
+        w (Array): Kernel weight tensor.
+        b (Array | None, optional): Bias vector. Defaults to `None`.
+        stride (int, optional): Stride of the convolution. Defaults to `1`.
+        padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+        dilation (int, optional): Dilation factor for the kernel. Defaults to `1`.
+
+    Returns:
+        Array: Output after applying the 1D convolution.
+    """
+    if padding > 0:
+        x = apply_func(NNFuncs.Pad1D, x, padding=padding)
+    if dilation > 1:
+        w = apply_func(NNFuncs.Dilate1D, w, dilation=dilation)
+    y = apply_func(NNFuncs.Conv1D, x, w, stride=stride)
+    if b is not None:
+        y += b.view(*b.shape, 1)
+    return y
+
+
 def conv2d(
     x: Array,
     w: Array,

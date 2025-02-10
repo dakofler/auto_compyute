@@ -25,6 +25,7 @@ __all__ = [
     "Sigmoid",
     "Tanh",
     "Linear",
+    "Conv1D",
     "Conv2D",
     "ConvTranspose2D",
     "MaxPooling2D",
@@ -359,6 +360,54 @@ class Linear(Module):
 
     def forward(self, x: Array) -> Array:  # type: ignore
         return F.linear(x, self.w, self.b)
+
+
+class Conv1D(Module):
+    """Applies a 1D convolution operation.
+
+    Attributes:
+        w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size).
+        b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
+        stride (int): Stride of the convolution.
+        padding (int): Zero-padding added to all sides.
+        dilation (int): Dilation rate of the kernel.
+    """
+
+    def __init__(
+        self,
+        in_dim: int,
+        out_dim: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 0,
+        dilation: int = 1,
+        bias: bool = True,
+    ) -> None:
+        """Applies a 1D convolution operation.
+
+        Args:
+            in_dim (int): Input feature dimension (number of input channels).
+            out_dim (int): Output feature dimension (number of kernels).
+            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+            stride (int, optional): Stride of the convolution. Defaults to `1`.
+            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+        """
+        super().__init__()
+        self.stride = stride
+        self.padding = padding
+        self.dilation = dilation
+        k = 1 / math.sqrt(in_dim * kernel_size)
+        self.w = Parameter(
+            randu(out_dim, in_dim, kernel_size, low=-k, high=k), "Kernel"
+        )
+        self.b = (
+            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
+        )
+
+    def forward(self, x: Array) -> Array:  # type: ignore
+        return F.conv1d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
 class Conv2D(Module):
