@@ -3,20 +3,17 @@
 import re
 from typing import Any, Optional, TypeAlias
 
-import cupy  # type: ignore
 import numpy  # type: ignore
 
 __all__ = ["Device"]
 
-ArrayLike: TypeAlias = cupy.ndarray | numpy.ndarray
+
+# -------------------------------------------------------------------------------------
+# GENERAL
+# -------------------------------------------------------------------------------------
+
 Scalar: TypeAlias = int | float
 Dim = int | tuple[int, ...]
-
-MAX_LINE_WIDTH = 200
-PREC = 4
-FLOATMODE = "maxprec_equal"
-numpy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
-cupy.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 
 
 class Shape(tuple):
@@ -29,13 +26,32 @@ class Shape(tuple):
 ShapeLike: TypeAlias = Shape | tuple[int, ...]
 
 
-def get_available_devices() -> list[str]:
-    """Returns a list of available devices, including CPU and CUDA GPUs.
+# -------------------------------------------------------------------------------------
+# BACKENDS
+# -------------------------------------------------------------------------------------
 
-    Returns:
-        list[str]: A list of device names (e.g., ["cpu", "cuda:0", "cuda:1", ...]).
-    """
-    return ["cpu"] + [f"cuda:{i}" for i in range(cupy.cuda.runtime.getDeviceCount())]
+
+MAX_LINE_WIDTH = 200
+PREC = 4
+FLOATMODE = "maxprec_equal"
+
+CPU_BACKEND = numpy
+CPU_BACKEND.set_printoptions(
+    precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+)
+
+try:
+    import cupy  # type: ignore
+
+    GPU_BACKEND = cupy  # type: ignore
+    GPU_BACKEND.set_printoptions(
+        precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
+    )
+
+except ImportError:
+    GPU_BACKEND = None
+
+ArrayLike: TypeAlias = numpy.ndarray
 
 
 def gpu_available():
@@ -44,7 +60,7 @@ def gpu_available():
     Returns:
         bool: `True` if a CUDA-compatible GPU is available, otherwise `False`.
     """
-    return cupy.cuda.is_available()
+    return GPU_BACKEND is not None and GPU_BACKEND.cuda.is_available()
 
 
 def set_random_seed(seed: int):
@@ -53,9 +69,46 @@ def set_random_seed(seed: int):
     Args:
         seed (int): The seed value to set.
     """
-    numpy.random.seed(seed)
+    CPU_BACKEND.random.seed(seed)
     if gpu_available():
-        cupy.random.seed(seed)
+        GPU_BACKEND.random.seed(seed)
+
+
+def array_to_string(data: ArrayLike, prefix: str) -> str:
+    """Converts an array to a formatted string.
+
+    Args:
+        data (ArrayLike): The array to convert.
+        prefix (str): A prefix for formatting the output.
+
+    Returns:
+        str: A string representation of the array.
+    """
+    device = get_array_device(data)
+    return device.xp.array2string(
+        data,
+        max_line_width=MAX_LINE_WIDTH,
+        precision=PREC,
+        separator=", ",
+        prefix=prefix,
+        floatmode=FLOATMODE,
+    )
+
+
+# -------------------------------------------------------------------------------------
+# DEVICE
+# -------------------------------------------------------------------------------------
+
+
+def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
+    match = re.match(r"(?P<type>cpu|cuda)(?::(?P<id>\d+))?", device_type)
+    if match:
+        device_type = match.group("type")
+        if device_type == "cuda":
+            assert gpu_available(), "GPUs are not available."
+        device_id = match.group("id")
+        return (device_type, None if device_id is None else int(device_id))
+    raise ValueError(f"Unknown device: {device_type}")
 
 
 class Device:
@@ -76,7 +129,7 @@ class Device:
         dev_type, dev_id = _get_type_and_id(dev_type)
         self.dev_type = dev_type
         self.dev_id = dev_id
-        self.xp = numpy if dev_type == "cpu" else cupy
+        self.xp = CPU_BACKEND if dev_type == "cpu" else GPU_BACKEND
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -96,26 +149,29 @@ class Device:
     def __enter__(self) -> None:
         if self.dev_type == "cpu":
             return None
-        return cupy.cuda.Device(self.dev_id).__enter__()
+        return GPU_BACKEND.cuda.Device(self.dev_id).__enter__()
 
     def __exit__(self, *args: Any) -> None:
         if self.dev_type == "cpu":
             return None
-        return cupy.cuda.Device(self.dev_id).__exit__(*args)
+        return GPU_BACKEND.cuda.Device(self.dev_id).__exit__(*args)
 
 
 DeviceLike: TypeAlias = Device | str
 
 
-def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
-    match = re.match(r"(?P<type>cpu|cuda)(?::(?P<id>\d+))?", device_type)
-    if match:
-        device_type = match.group("type")
-        if device_type == "cuda":
-            assert gpu_available()
-        device_id = match.group("id")
-        return (device_type, None if device_id is None else int(device_id))
-    raise ValueError(f"Unknown device: {device_type}")
+def get_available_devices() -> list[str]:
+    """Returns a list of available devices, including CPU and CUDA GPUs.
+
+    Returns:
+        list[str]: A list of device names (e.g., ["cpu", "cuda:0", "cuda:1", ...]).
+    """
+    devices = ["cpu"]
+    if GPU_BACKEND is not None:
+        num_gpu_devices = GPU_BACKEND.cuda.runtime.getDeviceCount()
+        gpu_devices = [f"cuda:{i}" for i in range(num_gpu_devices)]
+        devices.extend(gpu_devices)
+    return devices
 
 
 def get_array_device(x: ArrayLike) -> Device:
@@ -127,7 +183,7 @@ def get_array_device(x: ArrayLike) -> Device:
     Returns:
         Device: A Device instance representing either CPU or CUDA.
     """
-    return Device("cuda:0") if isinstance(x, cupy.ndarray) else Device("cpu")
+    return Device("cpu") if isinstance(x, CPU_BACKEND.ndarray) else Device("cuda:0")
 
 
 def select_device(device: Optional[DeviceLike]) -> Device:
@@ -167,26 +223,6 @@ def move_to_device(data: ArrayLike, device: Device) -> ArrayLike:
         ArrayLike: The array moved to the specified device.
     """
     if device == Device("cpu"):
-        return cupy.asnumpy(data)
+        return GPU_BACKEND.asnumpy(data)
+    assert gpu_available(), "GPUs are not available."
     return cupy.asarray(data)
-
-
-def array_to_string(data: ArrayLike, prefix: str) -> str:
-    """Converts an array to a formatted string.
-
-    Args:
-        data (ArrayLike): The array to convert.
-        prefix (str): A prefix for formatting the output.
-
-    Returns:
-        str: A string representation of the array.
-    """
-    device = get_array_device(data)
-    return device.xp.array2string(
-        data,
-        max_line_width=MAX_LINE_WIDTH,
-        precision=PREC,
-        separator=", ",
-        prefix=prefix,
-        floatmode=FLOATMODE,
-    )

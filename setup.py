@@ -31,12 +31,12 @@ setup(
     ],
     python_requires=">=3.12",
     install_requires=[
-        "cupy_cuda12x>=13.0.0",
         "numpy>=1.26.4",
         "opt_einsum>=3.4.0",
         "mermaid-python>=0.1",
     ],
     extras_require={
+        "cuda": ["cupy_cuda12x>=13.0.0"],
         "dev": [
             "mypy>=1.11.2",
             "pytest>=8.2.0",
@@ -46,7 +46,7 @@ setup(
             "wheel>=0.43.0",
             "Sphinx>=7.4.7",
             "pydata_sphinx_theme>=0.15.4",
-        ]
+        ],
     },
     packages=find_packages(exclude=["tests", ".github", ".venv", "docs"]),
     include_package_data=True,
