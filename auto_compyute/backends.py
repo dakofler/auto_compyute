@@ -183,7 +183,7 @@ def get_array_device(x: ArrayLike) -> Device:
     Returns:
         Device: A Device instance representing either CPU or CUDA.
     """
-    return Device("cpu") if isinstance(x, CPU_BACKEND.ndarray) else Device("cuda:0")
+    return Device("cpu") if "numpy" in str(type(x)) else Device("cuda:0")
 
 
 def select_device(device: Optional[DeviceLike]) -> Device:
