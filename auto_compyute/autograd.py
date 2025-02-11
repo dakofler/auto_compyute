@@ -226,10 +226,9 @@ class Array:
             assert node.parents is not None, "Node has no parent nodes."
             grads = node.ctx.backward(node.grad)
             for parent, grad in zip(node.parents, grads):
-                if not parent.req_grad:
-                    continue
-                grad = _undo_broadcast(grad, parent.shape)
-                parent.apply_grad(grad)
+                if parent.req_grad:
+                    grad = _undo_broadcast(grad, parent.shape)
+                    parent.apply_grad(grad)
 
             # clear context of intermediate nodes
             node.grad, node.ctx, node.parents = None, None, None
@@ -734,9 +733,8 @@ def _build_backward_queue(node: Array, queue: list[Array], visited: set) -> list
         if not node.parents:
             return []
         for p in node.parents:
-            if p.req_grad is False:
-                continue
-            _ = _build_backward_queue(p, queue, visited)
+            if p.req_grad:
+                _ = _build_backward_queue(p, queue, visited)
         queue.append(node)
     return queue
 
@@ -755,7 +753,7 @@ def apply_func(
         Array: The resulting array after calling the functions `forward` method.
     """
     # create function args by extracting req_grad from arrays and handle optional arrays
-    f_args = [(a.data, a.req_grad) if a is not None else (None, False) for a in arrays]
+    f_args = [(None, False) if a is None else (a.data, a.req_grad) for a in arrays]
     f_args = tuple(chain(*f_args))  # type: ignore  # flatten tuple of tuples
 
     # get array args
@@ -763,15 +761,15 @@ def apply_func(
     device = arr_args[0].device
     ctx = function(device)
 
-    # return result node with autograd context
     with device:
-        if autograd_tracing_active and any(a.req_grad for a in arr_args):
-            data = ctx.forward(*f_args, **kwargs)
-            return Array(data, ctx=ctx, parents=arr_args, req_grad=True)
-
-        # return result node without autograd context
         data = ctx.forward(*f_args, **kwargs)
-        return Array(data)
+
+    # return result node with autograd context
+    if autograd_tracing_active and any(a.req_grad for a in arr_args):
+        return Array(data, ctx=ctx, parents=arr_args, req_grad=True)
+
+    # return result node without autograd context
+    return Array(data)
 
 
 def draw_graph(
