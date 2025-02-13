@@ -1,4 +1,4 @@
-"""Tests for normalization functions"""
+"""Tests for normalization operations."""
 
 import pytest
 import torch.nn.functional as tF

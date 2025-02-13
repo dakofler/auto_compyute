@@ -1,4 +1,4 @@
-"""Tests for attention functions"""
+"""Tests for attention operations."""
 
 import pytest
 import torch

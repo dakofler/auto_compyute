@@ -1,4 +1,4 @@
-"""Tests for loss functions"""
+"""Tests for loss function operations."""
 
 import pytest
 import torch.nn.functional as tF

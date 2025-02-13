@@ -1,10 +1,10 @@
-"""Binary autograd functions."""
+"""Binary operations."""
 
 from ..backends import ArrayLike
-from .function import Function
+from .op import Op
 
 
-class Add(Function):
+class Add(Op):
     """Element-wise addition."""
 
     def forward(
@@ -22,7 +22,7 @@ class Add(Function):
         return dx1, dx2
 
 
-class Sub(Function):
+class Sub(Op):
     """Element-wise subtraction."""
 
     def forward(
@@ -40,7 +40,7 @@ class Sub(Function):
         return dx1, dx2
 
 
-class Mul(Function):
+class Mul(Op):
     """Element-wise multiplication."""
 
     def forward(
@@ -60,7 +60,7 @@ class Mul(Function):
         return dx1, dx2
 
 
-class Div(Function):
+class Div(Op):
     """Element-wise division."""
 
     def forward(
@@ -80,7 +80,7 @@ class Div(Function):
         return (dx1, dx2)
 
 
-class Matmul(Function):
+class Matmul(Op):
     """Matrix multiplication."""
 
     def forward(
@@ -100,7 +100,7 @@ class Matmul(Function):
         return dx1, dx2
 
 
-class Maximum(Function):
+class Maximum(Op):
     """Element-wise maximum."""
 
     def forward(
@@ -121,7 +121,7 @@ class Maximum(Function):
         return dx1, dx2
 
 
-class Minimum(Function):
+class Minimum(Op):
     """Element-wise minimum."""
 
     def forward(

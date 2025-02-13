@@ -1,4 +1,4 @@
-"""Tests for unary functions"""
+"""Tests for unary operations."""
 
 import pytest
 import torch

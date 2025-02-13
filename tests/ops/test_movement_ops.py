@@ -1,4 +1,4 @@
-"""Tests for shape functions"""
+"""Tests for movement operations."""
 
 import pytest
 import torch

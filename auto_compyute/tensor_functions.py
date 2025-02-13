@@ -4,7 +4,7 @@ from .tensor_factory import tensor
 from .autograd import Tensor, apply_func
 from .backends import Scalar
 from .dtypes import float32
-from .funcs.shape_funcs import Concat, Stack, Where
+from .ops.movement_ops import Concat, Stack, Where
 
 __all__ = ["concat", "stack", "where"]
 

@@ -4,7 +4,7 @@ from typing import Literal, Optional
 
 from ..autograd import Tensor, _parse_key, apply_func
 from ..dtypes import is_int
-from . import funcs as NNFuncs
+from . import ops as NNFuncs
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTIONS

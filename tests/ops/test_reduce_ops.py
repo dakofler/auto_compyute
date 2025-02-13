@@ -1,4 +1,4 @@
-"""Tests for reduce functions"""
+"""Tests for reduce operations."""
 
 import pytest
 

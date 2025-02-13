@@ -1,4 +1,4 @@
-"""Neural network autograd functions."""
+"""Neural network differentiable operations."""
 
 import math
 from types import ModuleType
@@ -7,15 +7,15 @@ from typing import Optional
 from opt_einsum import contract as einsum  # type: ignore
 
 from ..backends import ArrayLike, ShapeLike
-from ..funcs.function import Function
-from ..funcs.shape_funcs import Select
+from ..ops.op import Op
+from ..ops.movement_ops import Select
 
 # -------------------------------------------------------------------------------------
-# ACTIVATION FUNCTIONS
+# ACTIVATION FUNCTION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
-class GELU(Function):
+class GELU(Op):
     """Gaussian error linear unit activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -34,7 +34,7 @@ class GELU(Function):
         return (dx,)
 
 
-class ReLU(Function):
+class ReLU(Op):
     """Rectified linear unit activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -49,7 +49,7 @@ class ReLU(Function):
         return (dx,)
 
 
-class LeakyReLU(Function):
+class LeakyReLU(Op):
     """Leaky rectified linear unit activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, alpha: float) -> ArrayLike:
@@ -68,7 +68,7 @@ def _sigmoid_forward(xp: ModuleType, x: ArrayLike) -> ArrayLike:
     return 1.0 / (1.0 + xp.exp(-x))
 
 
-class Sigmoid(Function):
+class Sigmoid(Op):
     """Sigmoid activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -92,7 +92,7 @@ def _softmax_backward(y: ArrayLike, dy: ArrayLike, dim: int) -> ArrayLike:
     return y * (dy - (dy * y).sum(dim, keepdims=True))
 
 
-class Softmax(Function):
+class Softmax(Op):
     """Softmax activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dim: int) -> ArrayLike:
@@ -108,11 +108,11 @@ class Softmax(Function):
 
 
 # -------------------------------------------------------------------------------------
-# LINEAR FUNCTIONS
+# LINEAR OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
-class Linear(Function):
+class Linear(Op):
     """Linear projection."""
 
     def forward(
@@ -142,7 +142,7 @@ class Linear(Function):
 
 
 # -------------------------------------------------------------------------------------
-# CONVOLUTION FUNCTIONS
+# CONVOLUTION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
@@ -163,7 +163,7 @@ def _pad1d_backward(
     return dy[..., left_pad:-right_pad]
 
 
-class Pad1D(Function):
+class Pad1D(Op):
     """1D padding."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
@@ -190,7 +190,7 @@ def _dilate1d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
     return dy[..., ::dilation]
 
 
-class Dilate1D(Function):
+class Dilate1D(Op):
     """1D dilation."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dilation: int) -> ArrayLike:
@@ -224,7 +224,7 @@ def _windowed_view_1d(
     return xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
 
 
-class Conv1D(Function):
+class Conv1D(Op):
     """1D convolution."""
 
     def forward(
@@ -298,7 +298,7 @@ def _pad2d_backward(
     return dy[..., left_pad:-right_pad, left_pad:-right_pad]
 
 
-class Pad2D(Function):
+class Pad2D(Op):
     """2D padding."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, padding: int) -> ArrayLike:
@@ -313,7 +313,7 @@ class Pad2D(Function):
         return (dx,)
 
 
-class OutPad2D(Function):
+class OutPad2D(Op):
     """2D output padding."""
 
     def forward(
@@ -342,7 +342,7 @@ def _dilate2d_backward(dy: ArrayLike, dilation: int) -> ArrayLike:
     return dy[..., ::dilation, ::dilation]
 
 
-class Dilate2D(Function):
+class Dilate2D(Op):
     """2D dilation."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dilation: int) -> ArrayLike:
@@ -371,7 +371,7 @@ def _windowed_view_2d(
     return xp.lib.stride_tricks.as_strided(x, out_shape, out_strides)
 
 
-class Conv2D(Function):
+class Conv2D(Op):
     """2D convolution."""
 
     def forward(
@@ -428,7 +428,7 @@ class Conv2D(Function):
         return dx, dw
 
 
-class ConvTranspose2D(Function):
+class ConvTranspose2D(Op):
     """2D transposed convolution."""
 
     def forward(
@@ -495,7 +495,7 @@ def _repeat2d(xp: ModuleType, x: ArrayLike, n_repeats: int, target_shape: ShapeL
     return y if y.shape == target_shape else _pad_to_shape(xp, y, target_shape)
 
 
-class Maxpool2D(Function):
+class Maxpool2D(Op):
     """2D max pooling."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, window_size: int) -> ArrayLike:
@@ -513,11 +513,11 @@ class Maxpool2D(Function):
 
 
 # -------------------------------------------------------------------------------------
-# ATTENTION FUNCTIONS
+# ATTENTION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
-class ScaledDotProductAttention(Function):
+class ScaledDotProductAttention(Op):
     """Scaled dot-product attention."""
 
     def forward(
@@ -574,11 +574,11 @@ class ScaledDotProductAttention(Function):
 
 
 # -------------------------------------------------------------------------------------
-# NORMALIZATION FUNCTIONS
+# NORMALIZATION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
-class Batchnorm(Function):
+class Batchnorm(Op):
     """Batch normalization."""
 
     def forward(
@@ -655,7 +655,7 @@ class Batchnorm(Function):
         return dx, dw, db
 
 
-class Layernorm(Function):
+class Layernorm(Op):
     """Layer normalization."""
 
     def forward(
@@ -712,7 +712,7 @@ class Layernorm(Function):
 
 
 # -------------------------------------------------------------------------------------
-# REGULARIZATION FUNCTIONS
+# REGULARIZATION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
@@ -728,7 +728,7 @@ def _dropout_backward(dy: ArrayLike, dropout_mask: ArrayLike, p: float) -> Array
     return dy * dropout_mask / (1.0 - p)
 
 
-class Dropout(Function):
+class Dropout(Op):
     """Dropout regularization."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, p: float) -> ArrayLike:
@@ -745,7 +745,7 @@ class Dropout(Function):
 
 
 # -------------------------------------------------------------------------------------
-# EMBEDDING FUNCTIONS
+# EMBEDDING OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
@@ -754,11 +754,11 @@ class Embedding(Select):
 
 
 # -------------------------------------------------------------------------------------
-# LOSS FUNCTIONS
+# LOSS FUNCTION OPERATIONS
 # -------------------------------------------------------------------------------------
 
 
-class MSELoss(Function):
+class MSELoss(Op):
     """Mean squared error loss function."""
 
     def forward(
@@ -783,7 +783,7 @@ def _onehot(xp: ModuleType, x: ArrayLike, n: int, dtype: type):
     return xp.eye(n, dtype=dtype)[x]
 
 
-class CrossEntropyLoss(Function):
+class CrossEntropyLoss(Op):
     """Cross entropy loss function."""
 
     def forward(
@@ -813,7 +813,7 @@ class CrossEntropyLoss(Function):
         return (dx,)
 
 
-class BCELoss(Function):
+class BCELoss(Op):
     """Binary cross entropy loss function."""
 
     def forward(

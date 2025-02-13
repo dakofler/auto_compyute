@@ -1,4 +1,4 @@
-"""Tests for binary functions"""
+"""Tests for binary operations."""
 
 import pytest
 import torch

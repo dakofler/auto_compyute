@@ -1,4 +1,4 @@
-"""Autograd function base class."""
+"""Differentiable operation base class."""
 
 from abc import ABC, abstractmethod
 from typing import Any
@@ -6,15 +6,15 @@ from typing import Any
 from ..backends import ArrayLike, Device
 
 
-class Function(ABC):
-    """Base class for an autograd function.
+class Op(ABC):
+    """Base class for a differentiable operation.
 
     Attributes:
         xp (ModuleType): The module used for computations.
     """
 
     def __init__(self, device: Device) -> None:
-        """Base class for an autograd function.
+        """Base class for a differentiable operation.
 
         Args:
             device (Device): The device used for computations.
@@ -24,7 +24,7 @@ class Function(ABC):
 
     @property
     def name(self) -> str:
-        """Returns the function name."""
+        """Returns the operation name."""
         return self.__class__.__name__
 
     def save_to_cache(self, *args):
@@ -51,7 +51,7 @@ class Function(ABC):
 
     @abstractmethod
     def forward(self, *args: Any, **kwargs: Any) -> ArrayLike:
-        """Computes the forward pass of the function.
+        """Computes the forward pass of the operation.
 
         Args:
             *args (Any): The input values.
@@ -63,7 +63,7 @@ class Function(ABC):
 
     @abstractmethod
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        """Computes the backward pass (gradients) of the function.
+        """Computes the backward pass (gradients) of the operation.
 
         Args:
             dy (ArrayLike): The gradient of the loss with respect to the output.

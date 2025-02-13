@@ -1,13 +1,13 @@
-"""Shape autograd functions."""
+"""Movement operations."""
 
 from itertools import accumulate
 from typing import Any
 
 from ..backends import ArrayLike, ShapeLike
-from .function import Function
+from .op import Op
 
 
-class Concat(Function):
+class Concat(Op):
     """Concatinates arrays."""
 
     def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
@@ -24,7 +24,7 @@ class Concat(Function):
         return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
 
 
-class Expand(Function):
+class Expand(Op):
     """Broadcasts array elements."""
 
     def forward(self, x: ArrayLike, _: bool, *, shape: ShapeLike) -> ArrayLike:
@@ -35,7 +35,7 @@ class Expand(Function):
         return (dy,)
 
 
-class Select(Function):
+class Select(Op):
     """Selects array elements."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, key: Any) -> ArrayLike:
@@ -55,7 +55,7 @@ class Split(Select):
     """Splits arrays."""
 
 
-class Stack(Function):
+class Stack(Op):
     """Stacks arrays."""
 
     def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
@@ -71,7 +71,7 @@ class Stack(Function):
         return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
 
 
-class Transpose(Function):
+class Transpose(Op):
     """Transposes an array."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, dim1, dim2) -> ArrayLike:
@@ -86,7 +86,7 @@ class Transpose(Function):
         return (dx,)
 
 
-class View(Function):
+class View(Op):
     """Reshapes an array."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, shape: ShapeLike) -> ArrayLike:
@@ -105,7 +105,7 @@ class Squeeze(View):
     """Removes singular dimensions of an array."""
 
 
-class Where(Function):
+class Where(Op):
     """Selects array elements based on a condition."""
 
     def forward(

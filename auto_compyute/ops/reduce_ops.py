@@ -1,12 +1,12 @@
-"""Reduce autograd functions."""
+"""Reduce operations."""
 
 from typing import Optional
 
 from ..backends import ArrayLike
-from .function import Function
+from .op import Op
 
 
-class Sum(Function):
+class Sum(Op):
     """Sum of array elements."""
 
     def forward(
@@ -30,7 +30,7 @@ class Sum(Function):
         return (dx,)
 
 
-class Mean(Function):
+class Mean(Op):
     """Mean of array elements."""
 
     def forward(
@@ -54,7 +54,7 @@ class Mean(Function):
         return (dx,)
 
 
-class Var(Function):
+class Var(Op):
     """Variance of array elements."""
 
     def forward(
@@ -77,7 +77,7 @@ class Var(Function):
         return (dx,)
 
 
-class Std(Function):
+class Std(Op):
     """Standard deviation of array elements."""
 
     def forward(
@@ -101,7 +101,7 @@ class Std(Function):
         return (dx,)
 
 
-class Max(Function):
+class Max(Op):
     """Maximum of array elements."""
 
     def forward(
@@ -120,7 +120,7 @@ class Max(Function):
         return (dx,)
 
 
-class Min(Function):
+class Min(Op):
     """Minimum of array elements."""
 
     def forward(

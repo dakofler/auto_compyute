@@ -1,10 +1,10 @@
-"""Multiary autograd functions"""
+"""Unary operations."""
 
 from ..backends import ArrayLike, Scalar
-from .function import Function
+from .op import Op
 
 
-class Abs(Function):
+class Abs(Op):
     """Element-wise absolute value."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -20,7 +20,7 @@ class Abs(Function):
         return (dx,)
 
 
-class Exp(Function):
+class Exp(Op):
     """Element-wise exponential."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -35,7 +35,7 @@ class Exp(Function):
         return (dx,)
 
 
-class Pow(Function):
+class Pow(Op):
     """Element-wise power."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, exp: Scalar) -> ArrayLike:
@@ -50,7 +50,7 @@ class Pow(Function):
         return (dx,)
 
 
-class Sqrt(Function):
+class Sqrt(Op):
     """Element-wise square root."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -65,7 +65,7 @@ class Sqrt(Function):
         return (dx,)
 
 
-class Tanh(Function):
+class Tanh(Op):
     """Element-wise hyperbolic tangent."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
@@ -80,7 +80,7 @@ class Tanh(Function):
         return (dx,)
 
 
-class Tril(Function):
+class Tril(Op):
     """Sets lower diagonal elements to `0`."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:
@@ -95,7 +95,7 @@ class Tril(Function):
         return (dx,)
 
 
-class Triu(Function):
+class Triu(Op):
     """Sets upper diagonal elements to `0`."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:

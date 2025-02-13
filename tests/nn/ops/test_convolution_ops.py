@@ -1,4 +1,4 @@
-"""Tests for convolution functions"""
+"""Tests for convolution operations."""
 
 import pytest
 import torch.nn.functional as tF
