@@ -1,13 +1,13 @@
-"""Array factory functions."""
+"""Tensor factory functions."""
 
 from typing import Any, Optional
 
-from .autograd import Array
+from .autograd import Tensor
 from .backends import Device, DeviceLike, Scalar, select_device
 from .dtypes import DType, int64, select_dtype
 
 __all__ = [
-    "array",
+    "tensor",
     "arange",
     "ones",
     "ones_like",
@@ -33,31 +33,31 @@ def _parse_factory_kwargs(
     return device, dtype
 
 
-def array(
+def tensor(
     data: Any,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array from the given data.
+) -> Tensor:
+    """Creates an tensor from the given data.
 
     Args:
-        data (Any): Input data to be converted into an Array.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        data (Any): The underlying data of the tensor.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
-    if isinstance(data, Array):
+    if isinstance(data, Tensor):
         return data
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def arange(
@@ -67,26 +67,26 @@ def arange(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array with values in the given range.
+) -> Tensor:
+    """Creates an tensor with values in the given range.
 
     Args:
         stop (float): The end value (exclusive).
         start (float, optional): The start value. Defaults to `0`.
         step (float, optional): The step size. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `int64`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `int64`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.arange(start, stop, step, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def ones(
@@ -94,44 +94,44 @@ def ones(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of ones.
+) -> Tensor:
+    """Creates an tensor of ones.
 
     Args:
-        *dims (int): The dimensions of the array.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        *dims (int): The dimensions of the tensor.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.ones(dims, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def ones_like(
-    x: Array,
+    x: Tensor,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of ones, matching the shape of another array.
+) -> Tensor:
+    """Creates an tensor of ones, matching the shape of another tensor.
 
     Args:
-        x (Array): The reference array.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        x (Tensor): The reference tensor.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -143,44 +143,44 @@ def zeros(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of zeros.
+) -> Tensor:
+    """Creates an tensor of zeros.
 
     Args:
-        *dims (int): The dimensions of the array.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        *dims (int): The dimensions of the tensor.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.zeros(dims, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def zeros_like(
-    x: Array,
+    x: Tensor,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of zeros, matching the shape of another array.
+) -> Tensor:
+    """Creates an tensor of zeros, matching the shape of another tensor.
 
     Args:
-        x (Array): The reference array.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        x (Tensor): The reference tensor.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -193,47 +193,47 @@ def full(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array filled with a specified value.
+) -> Tensor:
+    """Creates an tensor filled with a specified value.
 
     Args:
-        *dims (int): The dimensions of the array.
+        *dims (int): The dimensions of the tensor.
         value (Scalar): The fill value.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.full(dims, value, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def full_like(
-    x: Array,
+    x: Tensor,
     value: Scalar,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array filled with a specified value, matching the shape of another array.
+) -> Tensor:
+    """Creates an tensor filled with a specified value, matching the shape of another tensor.
 
     Args:
-        x (Array): The reference array.
+        x (Tensor): The reference tensor.
         value (Scalar): The fill value.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -247,50 +247,50 @@ def randi(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random integers within a given range.
+) -> Tensor:
+    """Creates an tensor of random integers within a given range.
 
     Args:
-        *dims (int): The dimensions of the array.
+        *dims (int): The dimensions of the tensor.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.randint(low, high, dims, dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randi_like(
-    x: Array,
+    x: Tensor,
     low: int,
     high: int,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random integers within a range, matching the shape of another array.
+) -> Tensor:
+    """Creates an tensor of random integers within a range, matching the shape of another tensor.
 
     Args:
-        x (Array): The reference array.
+        x (Tensor): The reference tensor.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -306,51 +306,51 @@ def randn(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random values from a normal distribution.
+) -> Tensor:
+    """Creates an tensor of random values from a normal distribution.
 
     Args:
-        *dims (int): The dimensions of the array.
+        *dims (int): The dimensions of the tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.normal(mean, var, dims).astype(dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randn_like(
-    x: Array,
+    x: Tensor,
     mean: float = 0,
     var: float = 1,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random values from a normal distribution, matching the shape of another
-        array.
+) -> Tensor:
+    """Creates an tensor of random values from a normal distribution, matching the shape of another
+        tensor.
 
     Args:
-        x (Array): The reference array.
+        x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -366,51 +366,51 @@ def randu(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random values from a uniform distribution.
+) -> Tensor:
+    """Creates an tensor of random values from a uniform distribution.
 
     Args:
-        *dims (int): The dimensions of the array.
+        *dims (int): The dimensions of the tensor.
         low (float, optional): The lower bound. Defaults to -1.
         high (float, optional): The upper bound. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.uniform(low, high, dims).astype(dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)
 
 
 def randu_like(
-    x: Array,
+    x: Tensor,
     low: float = -1,
     high: float = 1,
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = None,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array of random values from a uniform distribution, matching the shape of another
-        array.
+) -> Tensor:
+    """Creates an tensor of random values from a uniform distribution, matching the shape of another
+        tensor.
 
     Args:
-        x (Array): The reference array.
+        x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the array. Defaults to `None`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device = device if device is not None else x.device
     dtype = dtype if dtype is not None else x.dtype
@@ -424,21 +424,21 @@ def randperm(
     device: Optional[DeviceLike] = None,
     dtype: Optional[DType] = int64,
     req_grad: bool = False,
-) -> Array:
-    """Creates an array with a random permutation of integers from `0` to `n-1`.
+) -> Tensor:
+    """Creates an tensor with a random permutation of integers from `0` to `n-1`.
 
     Args:
         n (int): The number of elements.
-        device (DeviceLike | None, optional): The device on which to create the array.
+        device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
-        dtype (DType, optional): The desired data type of the array. Defaults to `int64`.
-        req_grad (bool, optional): Whether the array requires gradient tracking.
+        dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
+        req_grad (bool, optional): Whether the tensor requires autograd tracing.
             Defaults to `False`.
 
     Returns:
-        Array: The created array.
+        Tensor: The created tensor.
     """
     device, dtype = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.random.permutation(n).astype(dtype)
-    return Array(data, req_grad=req_grad)
+    return Tensor(data, req_grad=req_grad)

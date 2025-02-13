@@ -2,8 +2,8 @@
 
 from collections.abc import Iterator
 
-from ..array_factory import arange, randperm
-from ..autograd import Array
+from ..tensor_factory import arange, randperm
+from ..autograd import Tensor
 from ..backends import Device, DeviceLike
 
 __all__ = ["Dataloader"]
@@ -13,7 +13,7 @@ class Dataloader:
     """DataLoader to yield batched data for training and inference.
 
     Attributes:
-        data (tuple[Array, ...]): Data batches are created from.
+        data (tuple[Tensor, ...]): Data batches are created from.
         batch_size (int): Size of returned batches.
         device (Device): Device the batches are loaded to.
         shuffle_data (bool): Whether to shuffle the data each time before creating batches.
@@ -23,7 +23,7 @@ class Dataloader:
 
     def __init__(
         self,
-        data: tuple[Array, ...],
+        data: tuple[Tensor, ...],
         batch_size: int = 1,
         device: DeviceLike = "cpu",
         shuffle_data: bool = True,
@@ -32,7 +32,7 @@ class Dataloader:
         """DataLoader to yield batched data for training and inference.
 
         Args:
-            data (tuple[Array, ...]): Data batches are created from.
+            data (tuple[Tensor, ...]): Data batches are created from.
             batch_size (int, optional): Size of returned batches. Defaults to `1`.
             device (DeviceLike, optional): Device the batches are loaded to. Defaults to "cpu".
             shuffle_data (bool, optional): Whether to shuffle the data each time before creating
@@ -47,7 +47,7 @@ class Dataloader:
         self.shuffle = shuffle_data
         self._additional_batch = not drop_remaining and self._n % self.batch_size > 0
 
-    def __call__(self) -> Iterator[tuple[Array, ...]]:
+    def __call__(self) -> Iterator[tuple[Tensor, ...]]:
         idx = randperm(self._n) if self.shuffle else arange(self._n)
 
         for i in range(len(self)):

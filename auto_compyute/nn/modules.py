@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
-from ..array_factory import ones, randn, randu, zeros
-from ..array_functions import stack
-from ..autograd import Array
+from ..tensor_factory import ones, randn, randu, zeros
+from ..tensor_functions import stack
+from ..autograd import Tensor
 from ..backends import Device, DeviceLike, ShapeLike
 from ..dtypes import DType
 from . import functional as F
@@ -42,46 +42,46 @@ __all__ = [
 ]
 
 
-class Parameter(Array):
-    """Represents a trainable parameter array in a neural network.
+class Parameter(Tensor):
+    """Represents a trainable parameter tensor in a neural network.
 
     Attributes:
-        data (Array): The underlying data of the array.
+        data (Tensor): The underlying data of the tensor.
         ctx (Function | None): The function context for automatic differentiation.
-        parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
-        req_grad (bool): Whether gradients should be computed for this array.
-        grad (ArrayLike | None): Corresponding gradients of the array data.
-        label (str): A label for the array.
+        parents (tuple[Tensor, ...] | None): The parent tensors in the computation graph.
+        req_grad (bool): Whether gradients should be computed for this tensor.
+        grad (TensorLike | None): Corresponding gradients of the tensor data.
+        label (str): A label for the tensor.
     """
 
-    def __init__(self, data: Array, label: Optional[str] = None) -> None:
-        """Represents a trainable parameter array in a neural network.
+    def __init__(self, data: Tensor, label: Optional[str] = None) -> None:
+        """Represents a trainable parameter tensor in a neural network.
 
         Args:
-            data (Array): The underlying data of the array.
-            label (str | None, optional): An optional label for the array. Defaults to `None`.
+            data (Tensor): The underlying data of the tensor.
+            label (str | None, optional): An optional label for the tensor. Defaults to `None`.
         """
         super().__init__(data.data, req_grad=True, label=label)
 
 
-class Buffer(Array):
-    """Represents a non-trainable array in a neural network.
+class Buffer(Tensor):
+    """Represents a non-trainable tensor in a neural network.
 
     Attributes:
-        data (Array): The underlying data of the array.
+        data (Tensor): The underlying data of the tensor.
         ctx (Function | None): The function context for automatic differentiation.
-        parents (tuple[Array, ...] | None): The parent arrays in the computation graph.
-        req_grad (bool): Whether gradients should be computed for this array.
-        grad (ArrayLike | None): Corresponding gradients of the array data.
-        label (str): A label for the array.
+        parents (tuple[Tensor, ...] | None): The parent tensors in the computation graph.
+        req_grad (bool): Whether gradients should be computed for this tensor.
+        grad (TensorLike | None): Corresponding gradients of the tensor data.
+        label (str): A label for the tensor.
     """
 
-    def __init__(self, data: Array, label: Optional[str] = None) -> None:
-        """Represents a non-trainable array in a neural network.
+    def __init__(self, data: Tensor, label: Optional[str] = None) -> None:
+        """Represents a non-trainable tensor in a neural network.
 
         Args:
-            data (Array): The underlying data of the array.
-            label (str | None, optional): An optional label for the array. Defaults to `None`.
+            data (Tensor): The underlying data of the tensor.
+            label (str | None, optional): An optional label for the tensor. Defaults to `None`.
         """
         super().__init__(data.data, label=label)
 
@@ -123,16 +123,16 @@ class Module(ABC):
     # MAGIC METHODS
     # ----------------------------------------------------------------------------------
 
-    def __call__(self, *arrays: Array) -> Array:
+    def __call__(self, *tensors: Tensor) -> Tensor:
         """Computes the forward pass of the module.
 
         Args:
-            *arrays (Array): Input arrays.
+            *tensors (Tensor): Input tensors.
 
         Returns:
-            ArrayLike: The result of the forward pass.
+            TensorLike: The result of the forward pass.
         """
-        return self.forward(*arrays)
+        return self.forward(*tensors)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if isinstance(value, Parameter):
@@ -151,14 +151,14 @@ class Module(ABC):
     # ----------------------------------------------------------------------------------
 
     @abstractmethod
-    def forward(self, *arrays: Array) -> Array:
+    def forward(self, *tensors: Tensor) -> Tensor:
         """Computes the forward pass of the module.
 
         Args:
-            *arrays (Array): Input arrays.
+            *tensors (Tensor): Input tensors.
 
         Returns:
-            ArrayLike: The result of the forward pass.
+            TensorLike: The result of the forward pass.
         """
 
     def modules(self, recursive: bool = True) -> Iterator[Module]:
@@ -240,7 +240,7 @@ class Module(ABC):
             Module: The modules with contents on the specified device.
         """
         for t in vars(self).values():
-            if isinstance(t, Array):
+            if isinstance(t, Tensor):
                 t.ito(device)
 
         for module in self.modules(recursive=False):
@@ -281,7 +281,7 @@ class Sequential(Module):
         super().__init__()
         self.layers = Modulelist(layers)
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         for layer in self.layers:
             x = layer(x)
         return x
@@ -290,14 +290,14 @@ class Sequential(Module):
 class GELU(Module):
     """Applies the Gaussian Error Linear Unit (GELU) activation function."""
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.gelu(x)
 
 
 class ReLU(Module):
     """Applies the Rectified Linear Unit (ReLU) activation function."""
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.relu(x)
 
 
@@ -317,21 +317,21 @@ class LeakyReLU(Module):
         super().__init__()
         self.alpha = alpha
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.leaky_relu(x, self.alpha)
 
 
 class Sigmoid(Module):
     """Applies the sigmoid activation function."""
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.sigmoid(x)
 
 
 class Tanh(Module):
     """Applies the hyperbolic tangent (tanh) activation function."""
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.tanh(x)
 
 
@@ -358,7 +358,7 @@ class Linear(Module):
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.linear(x, self.w, self.b)
 
 
@@ -406,7 +406,7 @@ class Conv1D(Module):
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv1d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
@@ -454,7 +454,7 @@ class Conv2D(Module):
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
 
 
@@ -506,7 +506,7 @@ class ConvTranspose2D(Module):
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
         )
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv_transpose2d(
             x,
             self.w,
@@ -534,7 +534,7 @@ class MaxPooling2D(Module):
         super().__init__()
         self.window_size = window_size
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.maxpool2d(x, self.window_size)
 
 
@@ -563,7 +563,7 @@ class RNN(Module):
         self.W_xh = Linear(in_dim, hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, hidden_dim)
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         B, T, _ = x.shape
         h = []
         h_t = zeros(B, self.hidden_dim, device=x.device)
@@ -609,7 +609,7 @@ class LSTM(Module):
         self.W_xh = Linear(in_dim, 4 * hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, 4 * hidden_dim)
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         B, T, _ = x.shape
         h = []
         h_t = zeros(B, self.hidden_dim, device=x.device)
@@ -662,7 +662,7 @@ class GRU(Module):
         self.W_xh = Linear(in_dim, 3 * hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, 3 * hidden_dim)
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         B, T, _ = x.shape
         h = []
         h_t = zeros(B, self.hidden_dim, device=x.device)
@@ -702,7 +702,7 @@ class MultiHeadSelfAttention(Module):
         self,
         in_dim: int,
         n_heads: int,
-        mask: Optional[Array] = None,
+        mask: Optional[Tensor] = None,
         dropout: float = 0,
         attn_bias: bool = False,
         bias: bool = True,
@@ -712,7 +712,7 @@ class MultiHeadSelfAttention(Module):
         Args:
             in_dim (int): Input feature dimension.
             n_heads (int): Number of attention heads.
-            mask (Array | None, optional): Optional attention mask. Defaults to `None`.
+            mask (Tensor | None, optional): Optional attention mask. Defaults to `None`.
             dropout (float, optional): Dropout probability. Defaults to `0`.
             attn_bias (bool, optional): If `True`, includes bias in attention projections. Defaults
                 to `False`.
@@ -726,7 +726,7 @@ class MultiHeadSelfAttention(Module):
         self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
         self.out = Linear(in_dim, in_dim, bias=bias)
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         B, S, D = x.shape
         dropout = self.dropout if self._training else 0
 
@@ -773,7 +773,7 @@ class Batchnorm(Module):
         self.rmean = Buffer(zeros(in_dim), "Run. Mean")
         self.rvar = Buffer(ones(in_dim), "Run. Var")
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.batchnorm(
             x,
             self.rmean,
@@ -808,7 +808,7 @@ class Layernorm(Module):
         self.w = Parameter(ones(*norm_shape), "Gamma")
         self.b = Parameter(zeros(*norm_shape), "Beta")
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.layernorm(x, self.w, self.b, self.eps)
 
 
@@ -828,7 +828,7 @@ class Dropout(Module):
         super().__init__()
         self.p = p
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.dropout(x, self.p, self._training)
 
 
@@ -849,14 +849,14 @@ class Embedding(Module):
         super().__init__()
         self.w = Parameter(randn(n_emb, emb_dim), "Embeddings")
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.embedding(x, self.w)
 
 
 class Flatten(Module):
     """Flattens the input tensor while preserving the batch dimension."""
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return x.view(x.shape[0], -1)
 
 
@@ -876,5 +876,5 @@ class Reshape(Module):
         super().__init__()
         self.shape = shape
 
-    def forward(self, x: Array) -> Array:  # type: ignore
+    def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return x.view(-1, *self.shape)

@@ -19,8 +19,8 @@ library offers a pure Python solution with a streamlined API.
 import pathlib
 
 from . import nn
-from .array_factory import *
-from .array_functions import *
+from .tensor_factory import *
+from .tensor_functions import *
 from .autograd import *
 from .backends import *
 from .dtypes import *
