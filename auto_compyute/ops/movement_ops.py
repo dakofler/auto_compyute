@@ -96,7 +96,7 @@ class View(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        x_shape = self.retrieve_from_cache()
+        (x_shape,) = self.retrieve_from_cache()
         dx = dy.reshape(x_shape)
         return (dx,)
 

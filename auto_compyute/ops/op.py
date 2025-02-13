@@ -35,18 +35,17 @@ class Op(ABC):
         """
         self._cache = args
 
-    def retrieve_from_cache(self) -> Any:
+    def retrieve_from_cache(self) -> tuple[Any, ...]:
         """Retrieves the cached values and resets the cache afterwards.
 
         Returns:
-            Any: The cached values, either as a tuple or single item.
+            tuple[Any, ...]: The cached values.
 
         Raises:
             AssertionError: If no values are cached.
         """
         assert self._cache is not None
-        values = self._cache if len(self._cache) > 1 else self._cache[0]
-        self._cache = None
+        values, self._cache = self._cache, None  # reset cache to None
         return values
 
     @abstractmethod

@@ -26,7 +26,7 @@ class GELU(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        x = self.retrieve_from_cache()
+        (x,) = self.retrieve_from_cache()
         tanh_term = self.xp.tanh(x * 0.7978845608 * (1.0 + 0.044715 * x * x))
         dx1 = 1.0 + tanh_term
         dx2 = x * (1.0 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
@@ -44,7 +44,7 @@ class ReLU(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        mask = self.retrieve_from_cache()
+        (mask,) = self.retrieve_from_cache()
         dx = dy * mask
         return (dx,)
 
@@ -78,7 +78,7 @@ class Sigmoid(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        y = self.retrieve_from_cache()
+        (y,) = self.retrieve_from_cache()
         dx = dy * y * (1.0 - y)
         return (dx,)
 
@@ -173,7 +173,7 @@ class Pad1D(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        padding = self.retrieve_from_cache()
+        (padding,) = self.retrieve_from_cache()
         dx = _pad1d_backward(dy, padding, padding)
         return (dx,)
 
@@ -200,7 +200,7 @@ class Dilate1D(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        dilation = self.retrieve_from_cache()
+        (dilation,) = self.retrieve_from_cache()
         dx = _dilate1d_backward(dy, dilation)
         return (dx,)
 
@@ -308,7 +308,7 @@ class Pad2D(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        padding = self.retrieve_from_cache()
+        (padding,) = self.retrieve_from_cache()
         dx = _pad2d_backward(dy, padding, padding)
         return (dx,)
 
@@ -352,7 +352,7 @@ class Dilate2D(Op):
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        dilation = self.retrieve_from_cache()
+        (dilation,) = self.retrieve_from_cache()
         dx = _dilate2d_backward(dy, dilation)
         return (dx,)
 
