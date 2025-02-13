@@ -253,6 +253,14 @@ class Tensor:
         """
         return apply_func(UOps.Exp, self)
 
+    def log(self) -> Tensor:
+        """Computes the element-wise natural logarithm.
+
+        Returns:
+            Tensor: A tensor with the natural logarithm of the elements.
+        """
+        return apply_func(UOps.Log, self)
+
     def pow(self, exponent: Scalar) -> Tensor:
         """Raises each element of the tensor to the given power.
 
@@ -667,7 +675,7 @@ class Tensor:
         Returns:
             Tensor: A new contiguous tensor.
         """
-        data = self.device.xp.ascontiguoustensor(self.data)
+        data = self.device.xp.ascontiguousarray(self.data)
         return Tensor(data, self.ctx, self.parents, self.req_grad)
 
     def align(self, x: Tensor | Scalar) -> Tensor:
@@ -683,7 +691,7 @@ class Tensor:
             return x.as_type(self.dtype)
         return Tensor(self.device.xp.asarray(x, dtype=self.dtype))
 
-    def numpy(self) -> numpy.ndtensor:
+    def numpy(self) -> numpy.ndarray:
         """Returns the tensor data as a NumPy array.
 
         Returns:

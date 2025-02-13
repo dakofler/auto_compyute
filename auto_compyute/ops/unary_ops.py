@@ -35,6 +35,21 @@ class Exp(Op):
         return (dx,)
 
 
+class Log(Op):
+    """Element-wise natural logarithm."""
+
+    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+        y = self.xp.log(x)
+        if x_req_grad:
+            self.save_to_cache(x)
+        return y
+
+    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
+        x = self.retrieve_from_cache()
+        dx = dy / x
+        return (dx,)
+
+
 class Pow(Op):
     """Element-wise power."""
 
