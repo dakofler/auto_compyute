@@ -37,8 +37,8 @@ class Tensor:
     Attributes:
         data (ArrayLike): The underlying data of the tensor.
         ctx (Op | None): The function context for automatic differentiation.
-        parents (tuple[Tensor, ...] | None): The parent nodes in the computation graph.
-        req_grad (bool): Whether the tensor requires autograd tracing .
+        ctx (tuple[Tensor, ...] | None): Tensors used to create this tensor.
+        req_grad (bool): Whether the tensor requires autograd tracing.
         grad (ArrayLike | None): Corresponding gradients of the tensor data.
         label (str): A label for the tensor.
     """
@@ -47,7 +47,7 @@ class Tensor:
         self,
         data: ArrayLike,
         ctx: Optional[Op] = None,
-        parents: Optional[tuple[Tensor, ...]] = None,
+        src: Optional[tuple[Tensor, ...]] = None,
         req_grad: bool = False,
         label: Optional[str] = None,
     ) -> None:
@@ -57,15 +57,15 @@ class Tensor:
             data (Tensor): The underlying data of the tensor.
             ctx (Op | None, optional): The function context for automatic differentiation.
                 Defaults to `None`.
-            parents (tuple[Tensor, ...] | None, optional): The parent tensors in the computation
-                graph. Defaults to `None`.
-            req_grad (bool, optional): Whether the tensor requires autograd tracing .
+            src (tuple[Tensor, ...] | None, optional): Tensors used to create this
+                tensor. Defaults to `None`.
+            req_grad (bool, optional): Whether the tensor requires autograd tracing.
                 Defaults to `False`.
             label (str): An optional label for the tensor. Defaults to `None`.
         """
         self.data = data
         self.ctx = ctx
-        self.parents = parents
+        self.src = src
         self.req_grad = req_grad
         self._label = label
         self.grad: Optional[ArrayLike] = None
@@ -223,15 +223,15 @@ class Tensor:
         node_queue = _build_backward_queue(self, [], set())
         for node in reversed(node_queue):
             assert node.ctx is not None, "Node has no function context."
-            assert node.parents is not None, "Node has no parent nodes."
+            assert node.src is not None, "Node has no source nodes."
             grads = node.ctx.backward(node.grad)
-            for parent, grad in zip(node.parents, grads):
-                if parent.req_grad:
-                    grad = _undo_broadcast(grad, parent.shape)
-                    parent.accumulate_grad(grad)
+            for src_tensor, grad in zip(node.src, grads):
+                if src_tensor.req_grad:
+                    grad = _undo_broadcast(grad, src_tensor.shape)
+                    src_tensor.accumulate_grad(grad)
 
             # clear context of intermediate nodes
-            node.grad, node.ctx, node.parents = None, None, None
+            node.grad, node.ctx, node.src = None, None, None
 
     # ----------------------------------------------------------------------------------
     # UNARY FUNCS
@@ -582,7 +582,7 @@ class Tensor:
         data: ArrayLike = self.data.astype(dtype)
         if self.req_grad:
             assert is_float(dtype), "Cannot change autograd node dtype to non float."
-            arr = Tensor(data, self.ctx, self.parents, self.req_grad)
+            arr = Tensor(data, self.ctx, self.src, self.req_grad)
             if self.grad is not None:
                 arr.grad = self.grad.astype(dtype)
             return arr
@@ -626,7 +626,7 @@ class Tensor:
             return self
         data = move_to_device(self.data, device)
         if self.req_grad:
-            arr = Tensor(data, self.ctx, self.parents, self.req_grad)
+            arr = Tensor(data, self.ctx, self.src, self.req_grad)
             if self.grad is not None:
                 arr.grad = move_to_device(self.grad, device)
             return arr
@@ -676,7 +676,7 @@ class Tensor:
             Tensor: A new contiguous tensor.
         """
         data = self.device.xp.ascontiguousarray(self.data)
-        return Tensor(data, self.ctx, self.parents, self.req_grad)
+        return Tensor(data, self.ctx, self.src, self.req_grad)
 
     def align(self, x: Tensor | Scalar) -> Tensor:
         """Aligns the input to match the tensor's data type.
@@ -741,9 +741,9 @@ def _build_backward_queue(
 ) -> list[Tensor]:
     if node not in visited:
         visited.add(node)
-        if not node.parents:
+        if not node.src:
             return []
-        for p in node.parents:
+        for p in node.src:
             if p.req_grad:
                 _ = _build_backward_queue(p, queue, visited)
         queue.append(node)
@@ -775,7 +775,7 @@ def apply_func(function: type[Op], *tensors: Optional[Tensor], **kwargs: Any) ->
 
     # return result node with autograd context
     if autograd_tracing_active and any(t.req_grad for t in t_args):
-        return Tensor(data, ctx=ctx, parents=t_args, req_grad=True)
+        return Tensor(data, ctx=ctx, src=t_args, req_grad=True)
 
     # return result node without autograd context
     return Tensor(data)
@@ -836,17 +836,17 @@ def draw_graph(
     mermaid_script = f"graph {orientation}\n{_get_mermaid_node_label(root_node)}\n"
 
     def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
-        if not node.parents:
+        if not node.src:
             return ""
-        for parent_node in node.parents:
-            parent_label = _get_mermaid_node_label(parent_node)
-            if parent_label not in mermaid_script:
-                mermaid_script += f"{parent_label}\n"
-            edge = f"{str(id(parent_node))}-->{str(id(node))}\n"
+        for src_node in node.src:
+            src_node_label = _get_mermaid_node_label(src_node)
+            if src_node_label not in mermaid_script:
+                mermaid_script += f"{src_node_label}\n"
+            edge = f"{str(id(src_node))}-->{str(id(node))}\n"
             if edge not in mermaid_script:
                 mermaid_script += edge
-            if parent_node.parents:
-                mermaid_script = _build_mermaid_script(parent_node, mermaid_script)
+            if src_node.src:
+                mermaid_script = _build_mermaid_script(src_node, mermaid_script)
         return mermaid_script
 
     mermaid_script = _build_mermaid_script(root_node, mermaid_script)
