@@ -100,7 +100,7 @@ And that's it!
 WIP - coming soon.
 
 ## Author
-Daniel Kofler - AI Research Associate ([dkofler@outlook.com](mailto:dkofler@outlook.com))
+Daniel Kofler - ([dkofler@outlook.com](mailto:dkofler@outlook.com))
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
