@@ -36,8 +36,8 @@ class Tensor:
 
     Attributes:
         data (ArrayLike): The underlying data of the tensor.
-        ctx (Op | None): The function context for automatic differentiation.
-        ctx (tuple[Tensor, ...] | None): Tensors used to create this tensor.
+        ctx (Op | None): The operation context for automatic differentiation.
+        src (tuple[Tensor, ...] | None): Tensors used to create this tensor.
         req_grad (bool): Whether the tensor requires autograd tracing.
         grad (ArrayLike | None): Corresponding gradients of the tensor data.
         label (str): A label for the tensor.
@@ -55,7 +55,7 @@ class Tensor:
 
         Args:
             data (Tensor): The underlying data of the tensor.
-            ctx (Op | None, optional): The function context for automatic differentiation.
+            ctx (Op | None, optional): The operation context for automatic differentiation.
                 Defaults to `None`.
             src (tuple[Tensor, ...] | None, optional): Tensors used to create this
                 tensor. Defaults to `None`.
@@ -234,8 +234,9 @@ class Tensor:
             node.grad, node.ctx, node.src = None, None, None
 
     # ----------------------------------------------------------------------------------
-    # UNARY FUNCS
+    # UNARY OPS
     # ----------------------------------------------------------------------------------
+
     def abs(self) -> Tensor:
         """Computes the element-wise absolute value of the tensor.
 
@@ -311,7 +312,7 @@ class Tensor:
         return apply_func(UOps.Triu, self, diag=diag)
 
     # ----------------------------------------------------------------------------------
-    # BINARY FUNCS
+    # BINARY OPS
     # ----------------------------------------------------------------------------------
 
     def add(self, x: Tensor | Scalar) -> Tensor:
@@ -393,7 +394,7 @@ class Tensor:
         return apply_func(BOps.Minimum, self, self.align(x))
 
     # ----------------------------------------------------------------------------------
-    # REDUCE FUNCS
+    # REDUCE OPS
     # ----------------------------------------------------------------------------------
 
     def sum(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
@@ -480,7 +481,7 @@ class Tensor:
         return apply_func(ROps.Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
-    # SHAPE FUNCS
+    # MOVEMENT OPS
     # ----------------------------------------------------------------------------------
 
     def expand(self, *dims: int) -> Tensor:
@@ -811,7 +812,7 @@ def draw_graph(
     colors = {
         "const": ("#CAEDFB", "#4D93D9"),
         "leaf": ("#C6EFCE", "#4EA72E"),
-        "func": ("#F2F2F2", "#808080"),
+        "op": ("#F2F2F2", "#808080"),
     }
 
     def _get_mermaid_node_label(n: Tensor) -> str:
@@ -822,8 +823,8 @@ def draw_graph(
             fill_color, stroke_color = colors["const"]
         elif n.ctx is None:  # leaf node
             fill_color, stroke_color = colors["leaf"]
-        else:  # function
-            fill_color, stroke_color = colors["func"]
+        else:  # op
+            fill_color, stroke_color = colors["op"]
 
         if len(n.shape) == 0:
             node_info = f"{n.item():.4g}"

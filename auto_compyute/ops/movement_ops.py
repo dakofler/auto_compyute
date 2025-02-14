@@ -74,7 +74,9 @@ class Stack(Op):
 class Transpose(Op):
     """Transposes an array."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, dim1, dim2) -> ArrayLike:
+    def forward(
+        self, x: ArrayLike, x_req_grad: bool, *, dim1: int, dim2: int
+    ) -> ArrayLike:
         y = x.swapaxes(dim1, dim2)
         if x_req_grad:
             self.save_to_cache(dim1, dim2)
