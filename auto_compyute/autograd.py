@@ -203,20 +203,20 @@ class Tensor:
 
         Args:
             dy (ArrayLike | None, optional): The gradient of the output with respect to
-                some value. If `None`, assumes a gradient of ones with the same shape as `self`.
+                some value. If `None`, assumes a gradient of ones.
 
         Raises:
             AssertionError: If the tensor is not part of the autograd graph (`req_grad=False`).
             AssertionError: If backward is called multiple times on the same node.
         """
-        assert self.req_grad, "Node not in autograd graph."
+        assert self.req_grad, "Node is not part of a autograd graph."
         assert self.grad is None, "Cannot run backward multiple times."
 
         # set node grad
         if dy is None:
-            self.grad = self.device.xp.ones(self.shape, dtype=self.dtype)
+            self.grad = self.device.xp.ones(self.shape, dtype=float32)
         else:
-            assert isinstance(dy, ArrayLike), "Gradient must be an tensor."
+            assert isinstance(dy, ArrayLike), "Gradient must be an array."
             self.grad = dy
 
         # run backward through traced graph

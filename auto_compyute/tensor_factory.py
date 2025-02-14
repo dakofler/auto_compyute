@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from .autograd import Tensor
 from .backends import Device, DeviceLike, Scalar, select_device
-from .dtypes import DType, int64, select_dtype
+from .dtypes import DType, int64, select_dtype, is_float
 
 __all__ = [
     "tensor",
@@ -52,11 +52,10 @@ def tensor(
     Returns:
         Tensor: The created tensor.
     """
-    if isinstance(data, Tensor):
-        return data
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)
+    assert not req_grad or is_float(data.dtype), "Tensors that req. grad must be float."
     return Tensor(data, req_grad=req_grad)
 
 
