@@ -1,7 +1,7 @@
 """Tensor functions."""
 
 from .tensor_factory import tensor
-from .autograd import Tensor, apply_func
+from .autograd import Tensor, apply_op
 from .backends import Scalar
 from .dtypes import float32
 from .ops.movement_ops import Concat, Stack, Where
@@ -19,7 +19,7 @@ def concat(*tensors: Tensor, dim: int = 0):
     Returns:
         Tensor: The concatenated result.
     """
-    return apply_func(Concat, *tensors, dim=dim)
+    return apply_op(Concat, *tensors, dim=dim)
 
 
 def stack(*tensors: Tensor, dim: int = 0):
@@ -32,7 +32,7 @@ def stack(*tensors: Tensor, dim: int = 0):
     Returns:
         Tensor: The stacked tensor with an added dimension.
     """
-    return apply_func(Stack, *tensors, dim=dim)
+    return apply_op(Stack, *tensors, dim=dim)
 
 
 def where(condition: Tensor, x1: Tensor | Scalar, x2: Tensor | Scalar) -> Tensor:
@@ -49,4 +49,4 @@ def where(condition: Tensor, x1: Tensor | Scalar, x2: Tensor | Scalar) -> Tensor
     """
     x1 = x1 if isinstance(x1, Tensor) else tensor(x1, condition.device, dtype=float32)
     x2 = x2 if isinstance(x2, Tensor) else tensor(x2, condition.device, dtype=float32)
-    return apply_func(Where, condition, x1, x2)
+    return apply_op(Where, condition, x1, x2)

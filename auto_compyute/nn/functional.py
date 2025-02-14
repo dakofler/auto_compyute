@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from ..autograd import Tensor, _parse_key, apply_func
+from ..autograd import Tensor, _parse_key, apply_op
 from ..dtypes import is_int
 from . import ops as NNFuncs
 
@@ -20,7 +20,7 @@ def gelu(x: Tensor) -> Tensor:
     Returns:
         Tensor: Output after applying GELU.
     """
-    return apply_func(NNFuncs.GELU, x)
+    return apply_op(NNFuncs.GELU, x)
 
 
 def relu(x: Tensor) -> Tensor:
@@ -32,7 +32,7 @@ def relu(x: Tensor) -> Tensor:
     Returns:
         Tensor: Output after applying ReLU.
     """
-    return apply_func(NNFuncs.ReLU, x)
+    return apply_op(NNFuncs.ReLU, x)
 
 
 def leaky_relu(x: Tensor, alpha: float = 0.2) -> Tensor:
@@ -45,7 +45,7 @@ def leaky_relu(x: Tensor, alpha: float = 0.2) -> Tensor:
     Returns:
         Tensor: Output after applying Leaky ReLU.
     """
-    return apply_func(NNFuncs.LeakyReLU, x, alpha=alpha)
+    return apply_op(NNFuncs.LeakyReLU, x, alpha=alpha)
 
 
 def sigmoid(x: Tensor) -> Tensor:
@@ -57,7 +57,7 @@ def sigmoid(x: Tensor) -> Tensor:
     Returns:
         Tensor: Output after applying sigmoid.
     """
-    return apply_func(NNFuncs.Sigmoid, x)
+    return apply_op(NNFuncs.Sigmoid, x)
 
 
 def softmax(x: Tensor, *, dim: int = -1) -> Tensor:
@@ -70,7 +70,7 @@ def softmax(x: Tensor, *, dim: int = -1) -> Tensor:
     Returns:
         Tensor: Output after applying softmax.
     """
-    return apply_func(NNFuncs.Softmax, x, dim=dim)
+    return apply_op(NNFuncs.Softmax, x, dim=dim)
 
 
 def tanh(x: Tensor) -> Tensor:
@@ -101,7 +101,7 @@ def linear(x: Tensor, w: Tensor, b: Optional[Tensor] = None) -> Tensor:
     Returns:
         Tensor: Output after applying the linear transformation.
     """
-    return apply_func(NNFuncs.Linear, x, w, b)
+    return apply_op(NNFuncs.Linear, x, w, b)
 
 
 # -------------------------------------------------------------------------------------
@@ -131,10 +131,10 @@ def conv1d(
         Tensor: Output after applying the 1D convolution.
     """
     if padding > 0:
-        x = apply_func(NNFuncs.Pad1D, x, padding=padding)
+        x = apply_op(NNFuncs.Pad1D, x, padding=padding)
     if dilation > 1:
-        w = apply_func(NNFuncs.Dilate1D, w, dilation=dilation)
-    y = apply_func(NNFuncs.Conv1D, x, w, stride=stride)
+        w = apply_op(NNFuncs.Dilate1D, w, dilation=dilation)
+    y = apply_op(NNFuncs.Conv1D, x, w, stride=stride)
     if b is not None:
         y += b.view(*b.shape, 1)
     return y
@@ -162,10 +162,10 @@ def conv2d(
         Tensor: Output after applying the 2D convolution.
     """
     if padding > 0:
-        x = apply_func(NNFuncs.Pad2D, x, padding=padding)
+        x = apply_op(NNFuncs.Pad2D, x, padding=padding)
     if dilation > 1:
-        w = apply_func(NNFuncs.Dilate2D, w, dilation=dilation)
-    y = apply_func(NNFuncs.Conv2D, x, w, stride=stride)
+        w = apply_op(NNFuncs.Dilate2D, w, dilation=dilation)
+    y = apply_op(NNFuncs.Conv2D, x, w, stride=stride)
     if b is not None:
         y += b.view(*b.shape, 1, 1)
     return y
@@ -196,10 +196,10 @@ def conv_transpose2d(
     """
     assert output_padding <= padding, "Output padding must be <= padding."
     if dilation > 1:
-        w = apply_func(NNFuncs.Dilate2D, w, dilation=dilation)
-    y = apply_func(NNFuncs.ConvTranspose2D, x, w, stride=stride)
+        w = apply_op(NNFuncs.Dilate2D, w, dilation=dilation)
+    y = apply_op(NNFuncs.ConvTranspose2D, x, w, stride=stride)
     if padding > 0:
-        y = apply_func(
+        y = apply_op(
             NNFuncs.OutPad2D, y, padding=padding, output_padding=output_padding
         )
     if b is not None:
@@ -217,7 +217,7 @@ def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
     Returns:
         Tensor: Output after applying max pooling.
     """
-    return apply_func(NNFuncs.Maxpool2D, x, window_size=window_size)
+    return apply_op(NNFuncs.Maxpool2D, x, window_size=window_size)
 
 
 # -------------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ def scaled_dot_product_attention(
     Returns:
         Tensor: Output after applying scaled dot-product attention.
     """
-    return apply_func(NNFuncs.ScaledDotProductAttention, q, k, v, mask, p=dropout_p)
+    return apply_op(NNFuncs.ScaledDotProductAttention, q, k, v, mask, p=dropout_p)
 
 
 # -------------------------------------------------------------------------------------
@@ -277,7 +277,7 @@ def batchnorm(
     Returns:
         Tensor: Output after applying batch normalization.
     """
-    return apply_func(
+    return apply_op(
         NNFuncs.Batchnorm,
         x,
         rmean,
@@ -302,7 +302,7 @@ def layernorm(x: Tensor, w: Tensor, b: Tensor, eps: float = 1e-5) -> Tensor:
     Returns:
         Tensor: Output after applying layer normalization.
     """
-    return apply_func(NNFuncs.Layernorm, x, w, b, eps=eps)
+    return apply_op(NNFuncs.Layernorm, x, w, b, eps=eps)
 
 
 # -------------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ def dropout(x: Tensor, p: float = 0.5, training: bool = True) -> Tensor:
     """
     if not training or p == 0:
         return x
-    return apply_func(NNFuncs.Dropout, x, p=p)
+    return apply_op(NNFuncs.Dropout, x, p=p)
 
 
 # -------------------------------------------------------------------------------------
@@ -350,7 +350,7 @@ def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
     """
     assert is_int(x.dtype)
     key = _parse_key(x)
-    return apply_func(NNFuncs.Embedding, emb_table, key=key)
+    return apply_op(NNFuncs.Embedding, emb_table, key=key)
 
 
 # -------------------------------------------------------------------------------------
@@ -372,7 +372,7 @@ def mse_loss(
     Returns:
         Tensor: Computed MSE loss.
     """
-    return apply_func(NNFuncs.MSELoss, logits, targets, reduction=reduction)
+    return apply_op(NNFuncs.MSELoss, logits, targets, reduction=reduction)
 
 
 def cross_entropy_loss(
@@ -397,7 +397,7 @@ def cross_entropy_loss(
         Tensor: Computed cross-entropy loss.
     """
     assert is_int(targets.dtype)
-    return apply_func(
+    return apply_op(
         NNFuncs.CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction
     )
 
@@ -416,4 +416,4 @@ def bce_loss(
     Returns:
         Tensor: Computed BCE loss.
     """
-    return apply_func(NNFuncs.BCELoss, logits, targets, reduction=reduction)
+    return apply_op(NNFuncs.BCELoss, logits, targets, reduction=reduction)

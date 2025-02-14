@@ -243,7 +243,7 @@ class Tensor:
         Returns:
             Tensor: A tensor with absolute values of the elements.
         """
-        return apply_func(UOps.Abs, self)
+        return apply_op(UOps.Abs, self)
 
     def exp(self) -> Tensor:
         """Computes the element-wise exponential function.
@@ -252,7 +252,7 @@ class Tensor:
             Tensor: A tensor where each element is `e` raised to the power of the
                 corresponding element.
         """
-        return apply_func(UOps.Exp, self)
+        return apply_op(UOps.Exp, self)
 
     def log(self) -> Tensor:
         """Computes the element-wise natural logarithm.
@@ -260,7 +260,7 @@ class Tensor:
         Returns:
             Tensor: A tensor with the natural logarithm of the elements.
         """
-        return apply_func(UOps.Log, self)
+        return apply_op(UOps.Log, self)
 
     def pow(self, exponent: Scalar) -> Tensor:
         """Raises each element of the tensor to the given power.
@@ -271,7 +271,7 @@ class Tensor:
         Returns:
             Tensor: A tensor with each element raised to the power `x`.
         """
-        return apply_func(UOps.Pow, self, exp=exponent)
+        return apply_op(UOps.Pow, self, exp=exponent)
 
     def sqrt(self) -> Tensor:
         """Computes the element-wise square root.
@@ -279,7 +279,7 @@ class Tensor:
         Returns:
             Tensor: A tensor with the square root of each element.
         """
-        return apply_func(UOps.Sqrt, self)
+        return apply_op(UOps.Sqrt, self)
 
     def tanh(self) -> Tensor:
         """Computes the element-wise hyperbolic tangent.
@@ -287,7 +287,7 @@ class Tensor:
         Returns:
             Tensor: A tensor with the tanh of each element.
         """
-        return apply_func(UOps.Tanh, self)
+        return apply_op(UOps.Tanh, self)
 
     def tril(self, diag: int = 0) -> Tensor:
         """Returns the lower triangular part of the tensor.
@@ -298,7 +298,7 @@ class Tensor:
         Returns:
             Tensor: The lower triangular matrix.
         """
-        return apply_func(UOps.Tril, self, diag=diag)
+        return apply_op(UOps.Tril, self, diag=diag)
 
     def triu(self, diag: int = 0) -> Tensor:
         """Returns the upper triangular part of the tensor.
@@ -309,7 +309,7 @@ class Tensor:
         Returns:
             Tensor: The upper triangular matrix.
         """
-        return apply_func(UOps.Triu, self, diag=diag)
+        return apply_op(UOps.Triu, self, diag=diag)
 
     # ----------------------------------------------------------------------------------
     # BINARY OPS
@@ -324,7 +324,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise sum.
         """
-        return apply_func(BOps.Add, self, self.align(x))
+        return apply_op(BOps.Add, self, self.align(x))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise subtraction.
@@ -335,7 +335,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise difference.
         """
-        return apply_func(BOps.Sub, self, self.align(x))
+        return apply_op(BOps.Sub, self, self.align(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise multiplication.
@@ -346,7 +346,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise product.
         """
-        return apply_func(BOps.Mul, self, self.align(x))
+        return apply_op(BOps.Mul, self, self.align(x))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise division.
@@ -357,7 +357,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise quotient.
         """
-        return apply_func(BOps.Div, self, self.align(x))
+        return apply_op(BOps.Div, self, self.align(x))
 
     def matmul(self, x: Tensor) -> Tensor:
         """Performs the dot product of the tensors. For higher dimensional tensors it performs
@@ -369,7 +369,7 @@ class Tensor:
         Returns:
             Tensor: The result of the dot product.
         """
-        return apply_func(BOps.Matmul, self, x)
+        return apply_op(BOps.Matmul, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
         """Computes the element-wise maximum.
@@ -380,7 +380,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise maximum values.
         """
-        return apply_func(BOps.Maximum, self, self.align(x))
+        return apply_op(BOps.Maximum, self, self.align(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
         """Computes the element-wise minimum.
@@ -391,7 +391,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise minimum values.
         """
-        return apply_func(BOps.Minimum, self, self.align(x))
+        return apply_op(BOps.Minimum, self, self.align(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -407,7 +407,7 @@ class Tensor:
         Returns:
             Tensor: The sum of elements.
         """
-        return apply_func(ROps.Sum, self, dim=dim, keepdims=keepdims)
+        return apply_op(ROps.Sum, self, dim=dim, keepdims=keepdims)
 
     def mean(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         """Computes the mean of elements along a specified dimension.
@@ -420,7 +420,7 @@ class Tensor:
         Returns:
             Tensor: The mean of elements.
         """
-        return apply_func(ROps.Mean, self, dim=dim, keepdims=keepdims)
+        return apply_op(ROps.Mean, self, dim=dim, keepdims=keepdims)
 
     def var(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
@@ -436,7 +436,7 @@ class Tensor:
         Returns:
             Tensor: The variance of elements.
         """
-        return apply_func(ROps.Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
+        return apply_op(ROps.Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def std(
         self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
@@ -452,7 +452,7 @@ class Tensor:
         Returns:
             Tensor: The standard deviation of elements.
         """
-        return apply_func(ROps.Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
+        return apply_op(ROps.Std, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
     def max(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         """Computes the maximum value along a specified dimension.
@@ -465,7 +465,7 @@ class Tensor:
         Returns:
             Tensor: The maximum values.
         """
-        return apply_func(ROps.Max, self, dim=dim, keepdims=keepdims)
+        return apply_op(ROps.Max, self, dim=dim, keepdims=keepdims)
 
     def min(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         """Computes the minimum value along a specified dimension.
@@ -478,7 +478,7 @@ class Tensor:
         Returns:
             Tensor: The minimum values.
         """
-        return apply_func(ROps.Min, self, dim=dim, keepdims=keepdims)
+        return apply_op(ROps.Min, self, dim=dim, keepdims=keepdims)
 
     # ----------------------------------------------------------------------------------
     # MOVEMENT OPS
@@ -493,7 +493,7 @@ class Tensor:
         Returns:
             Tensor: A new tensor with the expanded shape.
         """
-        return apply_func(MOps.Expand, self, shape=dims)
+        return apply_op(MOps.Expand, self, shape=dims)
 
     def select(self, key: Any) -> Tensor:
         """Selects elements from the tensor based on the given key.
@@ -505,11 +505,11 @@ class Tensor:
             Tensor: A new tensor containing the selected elements.
         """
         key = _parse_key(key)
-        return apply_func(MOps.Select, self, key=key)
+        return apply_op(MOps.Select, self, key=key)
 
     def _split(self, key: Any) -> Tensor:
         key = _parse_key(key)
-        return apply_func(MOps.Split, self, key=key)
+        return apply_op(MOps.Split, self, key=key)
 
     def split(self, split_size: int, *, dim: int = -1) -> list[Tensor]:
         """Splits the tensor into smaller chunks along a specified dimension.
@@ -538,7 +538,7 @@ class Tensor:
         non_singular_dims = tuple(d for d in self.shape if d > 1)
         if len(non_singular_dims) == self.ndim:
             return self
-        return apply_func(MOps.Squeeze, self, shape=non_singular_dims)
+        return apply_op(MOps.Squeeze, self, shape=non_singular_dims)
 
     def transpose(self, dim1: int = -1, dim2: int = -2) -> Tensor:
         """Swaps two dimensions of the tensor.
@@ -550,7 +550,7 @@ class Tensor:
         Returns:
             Tensor: A new tensor with the dimensions transposed.
         """
-        return apply_func(MOps.Transpose, self, dim1=dim1, dim2=dim2)
+        return apply_op(MOps.Transpose, self, dim1=dim1, dim2=dim2)
 
     def view(self, *dims: int) -> Tensor:
         """Reshapes the tensor without changing its data.
@@ -563,7 +563,7 @@ class Tensor:
         """
         if dims == self.shape:
             return self
-        return apply_func(MOps.View, self, shape=dims)
+        return apply_op(MOps.View, self, shape=dims)
 
     # ----------------------------------------------------------------------------------
     # OTHER METHODS
@@ -751,28 +751,28 @@ def _build_backward_queue(
     return queue
 
 
-def apply_func(function: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
-    """Applies a function to one or more tensors, handling autograd if needed.
+def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
+    """Applies an operation to one or more tensors, handling autograd if needed.
 
     Args:
-        function (type[Op]): The function to apply.
+        op (type[Op]): The operation to apply.
         *tensors (Tensor | None): Input tensors to which the function is applied.
         **kwargs (Any): Additional keyword arguments for the function.
 
     Returns:
-        Tensor: The resulting tensor after calling the functions `forward` method.
+        Tensor: The resulting tensor after calling the `forward` method.
     """
-    # create function args by extracting req_grad from tensors and handle optional tensors
-    f_args = [(None, False) if a is None else (a.data, a.req_grad) for a in tensors]
-    f_args = tuple(chain(*f_args))  # type: ignore  # flatten tuple of tuples
+    # create op args by extracting req_grad from tensors and handle optional tensors
+    op_args = [(None, False) if a is None else (a.data, a.req_grad) for a in tensors]
+    op_args = tuple(chain(*op_args))  # type: ignore  # flatten tuple of tuples
 
     # get tensor args
     t_args = tuple(t for t in tensors if t is not None)
     device = t_args[0].device
-    ctx = function(device)
+    ctx = op(device)
 
     with device:
-        data = ctx.forward(*f_args, **kwargs)
+        data = ctx.forward(*op_args, **kwargs)
 
     # return result node with autograd context
     if autograd_tracing_active and any(t.req_grad for t in t_args):
