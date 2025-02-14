@@ -15,7 +15,7 @@ At its core, AutoCompyute features a `Tensor` object for storing data and gradie
 
 ### Tensor Object
 
-The `Tensor` object is the fundamental data structure in this autograd engine. It holds numerical data as a NumPy array and remembers, where "it came from" by keeping a reference to the `Op` that created it.
+The `Tensor` object is the fundamental data structure in this autograd engine. It holds numerical data as a NumPy array and remembers, how it was created by keeping a reference to the `Op` that created it.
 
 **Most Important Attributes:**
 - `data`: A NumPy array containing the numerical values.
@@ -55,23 +55,22 @@ pip install .[cuda]
 
 AutoCompyute closely follows the PyTorch syntax.
 
-You can create a tensor from raw data or use a factory function to fill a tensor with data. Setting the tensor to require gradients (`req_grads=True`) singals, that it should be part of a computational graph for backpropagation.
+You can create a tensor from raw data or use a factory function to fill a tensor with data. Setting the tensor to require gradients (`req_grads=True`) signals, that it should be part of a computational graph for backpropagation.
 
 
 ```Python
 >>> import auto_compyute as ac
 
->>> # randn creates a tensor of shape (5, 5) with values drawn from a standard normal distribution.
+>>> # randn creates a tensor with values drawn from a standard normal distribution.
 
->>> x1 = ac.randn(2, 3, req_grad=True)  
->>> x2 = ac.randn(2, 3, req_grad=True)
->>> x3 = ac.randn(2, 3, req_grad=True)
+>>> x1 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
+>>> x2 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
+>>> x3 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
 
 >>> y = x1 ** 2 + 4 * x2 + x3 + 10
 >>> y
 Tensor([[13.8923, 11.5502,  5.2445],
         [15.6469, 18.8092, 16.2810]], dtype=float32, device=cpu, grad_fn=Add)
-y
 ```
 
 The computational graph can also be visualized using the `mermaid-python` package.
@@ -81,7 +80,7 @@ The computational graph can also be visualized using the `mermaid-python` packag
 ```
 ![Compute Graph Visualization in AutoCompyute](examples/compute_graph.png)
 
-By defining a bunch of `Ops` this forms a basic framework, that allows you to build most machine learning models easily.
+By defining a bunch of `Ops` this forms a basic framework, that allows you to build and train most machine learning models easily.
 
 AutoCompyute also offers a module base class for holding the state of a neural network layer (parameters, buffers, etc.). To create your own modules, simply inherit from the `auto_compyute.nn.Module` base class, make sure to call `super().__init__()` in your init method and implement a `forward()` method.
 
@@ -91,10 +90,10 @@ AutoCompyute also offers a module base class for holding the state of a neural n
 >>> class MyModule(nn.Module):  # inherit from Module
 >>>     def __init__(self):
 >>>         super().__init__()  # call parent init
->>>         self.layer1 = nn.Linear(in_dim=4, out_dim=5)
+>>>         self.lin = nn.Linear(in_dim=4, out_dim=5)
 >>>
->>>     def forward(self, x):  # implement a foward method
->>>         return x + self.layers1(x) + 25.0
+>>>     def forward(self, x):  # implement a forward method
+>>>         return x + self.lin(x) + 25.0
 ```
 
 And that's it!
