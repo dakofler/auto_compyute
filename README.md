@@ -97,7 +97,7 @@ AutoCompyute also offers a module base class for holding the state of a neural n
 And that's it!
 
 ## Examples
-WIP - coming soon.
+see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples)
 
 ## Author
 Daniel Kofler - ([dkofler@outlook.com](mailto:dkofler@outlook.com))

@@ -715,6 +715,19 @@ class Tensor:
         for i in range(self.shape[dim]):
             yield self[pre_dim_slice + (i,) + post_dim_slice]
 
+    def argmax(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
+        """Returns the index of the maximum value along a specified dimension.
+
+        Args:
+            dim (Dim | None, optional): The dimension to reduce. If `None`, finds the global
+                maximum.
+            keepdims (bool, optional): Whether to retain reduced dimensions. Defaults to `False`.
+
+        Returns:
+            Tensor: The index of the maximum value.
+        """
+        return Tensor(self.device.xp.argmax(self.data, axis=dim, keepdims=keepdims))
+
 
 # -------------------------------------------------------------------------------------
 # AUTOGRAD FUNCTIONS
