@@ -46,7 +46,7 @@ def tensor(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -76,7 +76,7 @@ def arange(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -101,7 +101,7 @@ def ones(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -126,7 +126,7 @@ def ones_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -150,7 +150,7 @@ def zeros(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -175,7 +175,7 @@ def zeros_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -201,7 +201,7 @@ def full(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -228,7 +228,7 @@ def full_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -256,7 +256,7 @@ def randi(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -285,7 +285,7 @@ def randi_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -315,7 +315,7 @@ def randn(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -345,7 +345,7 @@ def randn_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -375,7 +375,7 @@ def randu(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -405,7 +405,7 @@ def randu_like(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:
@@ -431,7 +431,7 @@ def randperm(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires autograd tracing.
+        req_grad (bool, optional): Whether the tensor requires gradients.
             Defaults to `False`.
 
     Returns:

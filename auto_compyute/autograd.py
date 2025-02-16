@@ -38,7 +38,7 @@ class Tensor:
         data (ArrayLike): The underlying data of the tensor.
         ctx (Op | None): The operation context for automatic differentiation.
         src (tuple[Tensor, ...] | None): Tensors used to create this tensor.
-        req_grad (bool): Whether the tensor requires autograd tracing.
+        req_grad (bool): Whether the tensor requires gradients.
         grad (ArrayLike | None): Corresponding gradients of the tensor data.
         label (str): A label for the tensor.
     """
@@ -59,7 +59,7 @@ class Tensor:
                 Defaults to `None`.
             src (tuple[Tensor, ...] | None, optional): Tensors used to create this
                 tensor. Defaults to `None`.
-            req_grad (bool, optional): Whether the tensor requires autograd tracing.
+            req_grad (bool, optional): Whether the tensor requires gradients.
                 Defaults to `False`.
             label (str): An optional label for the tensor. Defaults to `None`.
         """
@@ -116,26 +116,24 @@ class Tensor:
     def __add__(self, x: Tensor | Scalar) -> Tensor:
         return self.add(x)
 
-    def __radd__(self, x: Scalar) -> Tensor:
-        return self.add(x)
+    __radd__ = __add__
 
     def __sub__(self, x: Tensor | Scalar) -> Tensor:
         return self.sub(x)
 
     def __rsub__(self, x: Scalar) -> Tensor:
-        return (-self).add(x)
+        return self.align(x).sub(self)
 
     def __mul__(self, x: Tensor | Scalar) -> Tensor:
         return self.mul(x)
 
-    def __rmul__(self, x: Scalar) -> Tensor:
-        return self.mul(x)
+    __rmul__ = __mul__
 
     def __truediv__(self, x: Tensor | Scalar) -> Tensor:
         return self.truediv(x)
 
     def __rtruediv__(self, x: Scalar) -> Tensor:
-        return (self**-1).mul(x)
+        return self.align(x).truediv(self)
 
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.matmul(x)
@@ -220,7 +218,7 @@ class Tensor:
             self.grad = dy
 
         # run backward through traced graph
-        node_queue = _build_backward_queue(self, [], set())
+        node_queue = _get_node_tree_dfs(self, [], set())
         for node in reversed(node_queue):
             assert node.ctx is not None, "Node has no function context."
             assert node.src is not None, "Node has no source nodes."
@@ -735,31 +733,31 @@ class Tensor:
 
 
 def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
+    """Assures that the resulting gradient of some function matches the target shape."""
     if grad.shape == target_shape:
         return grad
     target_ndim = len(target_shape)
 
     if grad.ndim == target_ndim:
-        axis = _get_shape_diff(grad.shape, target_shape)
-        grad = grad.sum(axis, keepdims=True)
+        dims = _get_shape_diff(grad.shape, target_shape)
+        grad = grad.sum(dims, keepdims=True)
     else:
         data_shape = Shape((1,) * (grad.ndim - target_ndim) + target_shape)
-        axis = _get_shape_diff(grad.shape, data_shape)
-        grad = grad.sum(axis=axis)
+        dims = _get_shape_diff(grad.shape, data_shape)
+        grad = grad.sum(dims)
 
     return grad.reshape(target_shape)
 
 
-def _build_backward_queue(
-    node: Tensor, queue: list[Tensor], visited: set
-) -> list[Tensor]:
+def _get_node_tree_dfs(node: Tensor, queue: list[Tensor], visited: set) -> list[Tensor]:
+    """Returns a list of nodes using depth-first-search."""
     if node not in visited:
         visited.add(node)
         if not node.src:
             return []
         for p in node.src:
             if p.req_grad:
-                _ = _build_backward_queue(p, queue, visited)
+                _ = _get_node_tree_dfs(p, queue, visited)
         queue.append(node)
     return queue
 
@@ -896,6 +894,7 @@ def no_autograd_tracing() -> Generator:
 
 
 def _parse_key(key: Any) -> Any:
+    """Ensures the key is processable by the backend."""
     if isinstance(key, tuple):
         return tuple(k.data if isinstance(k, Tensor) else k for k in key)
     if isinstance(key, Tensor):
@@ -903,5 +902,6 @@ def _parse_key(key: Any) -> Any:
     return key
 
 
-def _get_shape_diff(shape1: ShapeLike, shape2: ShapeLike) -> Shape:
-    return Shape(i for i in range(len(shape1)) if shape1[i] != shape2[i])
+def _get_shape_diff(shape1: ShapeLike, shape2: ShapeLike) -> Dim:
+    """Returns the dims where two shapes do not match."""
+    return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])
