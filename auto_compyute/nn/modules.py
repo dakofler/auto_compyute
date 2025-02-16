@@ -720,6 +720,7 @@ class MultiHeadSelfAttention(Module):
                 `True`.
         """
         super().__init__()
+        assert in_dim % n_heads == 0, "Input dim must be divisible by n_heads."
         self.n_heads = n_heads
         self.mask = Buffer(mask, "Mask") if mask is not None else None
         self.dropout = dropout

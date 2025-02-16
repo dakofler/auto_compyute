@@ -28,7 +28,7 @@ from .ops import movement_ops as MOps
 from .ops import unary_ops as UOps
 from .ops.op import Op
 
-__all__ = ["Tensor", "no_autograd_tracing"]
+__all__ = ["Tensor", "no_autograd_tracking"]
 
 
 class Tensor:
@@ -733,7 +733,7 @@ class Tensor:
 
 
 def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
-    """Assures that the resulting gradient of some function matches the target shape."""
+    """Assures that the resulting gradient of some operation matches the target shape."""
     if grad.shape == target_shape:
         return grad
     target_ndim = len(target_shape)
@@ -767,8 +767,8 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
 
     Args:
         op (type[Op]): The operation to apply.
-        *tensors (Tensor | None): Input tensors to which the function is applied.
-        **kwargs (Any): Additional keyword arguments for the function.
+        *tensors (Tensor | None): Input tensors to which the operation is applied.
+        **kwargs (Any): Additional keyword arguments for the operation.
 
     Returns:
         Tensor: The resulting tensor after calling the `forward` method.
@@ -782,15 +782,34 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     device = t_args[0].device
     ctx = op(device)
 
+    # compute forward pass
     with device:
         data = ctx.forward(*op_args, **kwargs)
 
     # return result node with autograd context
-    if autograd_tracing_active and any(t.req_grad for t in t_args):
+    if autograd_tracking_active and any(t.req_grad for t in t_args):
         return Tensor(data, ctx=ctx, src=t_args, req_grad=True)
 
     # return result node without autograd context
     return Tensor(data)
+
+
+autograd_tracking_active = True
+
+
+def _set_autograd_tracking_mode(active: bool) -> None:
+    global autograd_tracking_active
+    autograd_tracking_active = active
+
+
+@contextmanager
+def no_autograd_tracking() -> Generator:
+    """Context manager for disabling autograd tracking."""
+    _set_autograd_tracking_mode(False)
+    try:
+        yield
+    finally:
+        _set_autograd_tracking_mode(True)
 
 
 def draw_graph(
@@ -868,24 +887,6 @@ def draw_graph(
             f.write(mermaid_html._repr_html_())
     else:
         return mermaid_html
-
-
-autograd_tracing_active = True
-
-
-def _set_autograd_tracing_mode(active: bool) -> None:
-    global autograd_tracing_active
-    autograd_tracing_active = active
-
-
-@contextmanager
-def no_autograd_tracing() -> Generator:
-    """Context manager for disabling autograd tracing."""
-    _set_autograd_tracing_mode(False)
-    try:
-        yield
-    finally:
-        _set_autograd_tracing_mode(True)
 
 
 # -------------------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 
 AutoCompyute is a lightweight deep learning library that provides automatic differentiation using only NumPy as the backend for computation (CuPy can be used as a drop-in replacement for NumPy). It is designed for simplicity and performance and enables you to train deep learning models with minimal dependencies while leveraging GPU acceleration. The package supports:
 
-- Tensor operations with gradient tracing.
+- Tensor operations with gradient tracking.
 - Neural network layers and loss functions.
 - Performant computation for both CPU and GPU.
 - A focus on clarity and simplicity.
