@@ -20,6 +20,7 @@ __all__ = [
     "Module",
     "Modulelist",
     "Sequential",
+    "GELU",
     "ReLU",
     "LeakyReLU",
     "Sigmoid",
@@ -45,50 +46,30 @@ __all__ = [
 class Parameter(Tensor):
     """Represents a trainable parameter tensor in a neural network.
 
-    Attributes:
+    Args:
         data (Tensor): The underlying data of the tensor.
-        ctx (Function | None): The function context for automatic differentiation.
-        parents (tuple[Tensor, ...] | None): The parent tensors in the computation graph.
-        req_grad (bool): Whether gradients should be computed for this tensor.
-        grad (TensorLike | None): Corresponding gradients of the tensor data.
-        label (str): A label for the tensor.
+        label (str | None, optional): An optional label for the tensor. Defaults to `None`.
     """
 
     def __init__(self, data: Tensor, label: Optional[str] = None) -> None:
-        """Represents a trainable parameter tensor in a neural network.
-
-        Args:
-            data (Tensor): The underlying data of the tensor.
-            label (str | None, optional): An optional label for the tensor. Defaults to `None`.
-        """
         super().__init__(data.data, req_grad=True, label=label)
 
 
 class Buffer(Tensor):
     """Represents a non-trainable tensor in a neural network.
 
-    Attributes:
+    Args:
         data (Tensor): The underlying data of the tensor.
-        ctx (Function | None): The function context for automatic differentiation.
-        parents (tuple[Tensor, ...] | None): The parent tensors in the computation graph.
-        req_grad (bool): Whether gradients should be computed for this tensor.
-        grad (TensorLike | None): Corresponding gradients of the tensor data.
-        label (str): A label for the tensor.
+        label (str | None, optional): An optional label for the tensor. Defaults to `None`.
     """
 
     def __init__(self, data: Tensor, label: Optional[str] = None) -> None:
-        """Represents a non-trainable tensor in a neural network.
-
-        Args:
-            data (Tensor): The underlying data of the tensor.
-            label (str | None, optional): An optional label for the tensor. Defaults to `None`.
-        """
         super().__init__(data.data, label=label)
 
 
 class Module(ABC):
     """
-    Base class for all neural network modules. Implements a structure to hold trainable
+    Base class for neural network modules. Implements a structure to hold trainable
     parameters, buffers, and submodules.
     """
 
@@ -134,17 +115,26 @@ class Module(ABC):
         """
         return self.forward(*tensors)
 
-    def __setattr__(self, name: str, value: Any) -> None:
+    def __setattr__(self, key: str, value: Any) -> None:
+
+        # register parameters, buffers and sub-modules
         if isinstance(value, Parameter):
-            self._parameters[name] = value
+            self._parameters[key] = value
         elif isinstance(value, Buffer):
-            self._buffers[name] = value
+            self._buffers[key] = value
         elif isinstance(value, Module):
-            self._modules[name] = value
+            self._modules[key] = value
         elif isinstance(value, Modulelist):
-            for i, m in enumerate(value):
-                self._modules[name + "." + str(i)] = m
-        return super().__setattr__(name, value)
+            for i, module in enumerate(value):
+                self._modules[key + "." + str(i)] = module
+
+        return super().__setattr__(key, value)
+
+    def __repr__(self) -> str:
+        class_name = self.__class__.__name__
+        kwargs = [f"{k}={v}" for k, v in self.__dict__.items() if _is_repr_attr(k, v)]
+        kwargs_str = ", ".join(kwargs)
+        return f"{class_name}({kwargs_str})"
 
     # ----------------------------------------------------------------------------------
     # OTHER METHODS
@@ -249,35 +239,30 @@ class Module(ABC):
         return self
 
 
+def _is_repr_attr(key: str, value: Any) -> bool:
+    return not key.startswith("_") and not isinstance(value, (Tensor, Module))
+
+
 class Modulelist(list):
-    """
-    A container for storing and managing a list of modules. Inherits from the built-in list and is
-    used to store submodules.
+    """A container for storing and managing a list of modules. Inherits from the built-in list
+    and is used to store submodules.
+
+    Args:
+        modules (Iterable[Module]): An iterable of modules to be stored.
     """
 
     def __init__(self, modules: Iterable[Module]) -> None:
-        """A container for storing and managing a list of modules. Inherits from the built-in list
-        and is used to store submodules.
-
-        Args:
-            modules (Iterable[Module]): An iterable of modules to be stored.
-        """
         super().__init__(modules)
 
 
 class Sequential(Module):
     """A sequential container of modules. Modules are applied in order.
 
-    Attributes:
-        layers (Modulelist): A sequence of modules to apply sequentially.
+    Args:
+        *layers (Module): A sequence of modules to apply sequentially.
     """
 
     def __init__(self, *layers: Module) -> None:
-        """A sequential container of modules. Modules are applied in order.
-
-        Args:
-            *layers (Module): A sequence of modules to apply sequentially.
-        """
         super().__init__()
         self.layers = Modulelist(layers)
 
@@ -304,16 +289,11 @@ class ReLU(Module):
 class LeakyReLU(Module):
     """Applies the Leaky ReLU activation function.
 
-    Attributes:
-        alpha (float): Slope for negative values.
+    Args:
+        alpha (float, optional): Slope for negative values. Defaults to `0.2`.
     """
 
     def __init__(self, alpha: float = 0.2) -> None:
-        """Applies the Leaky ReLU activation function.
-
-        Args:
-            alpha (float, optional): Slope for negative values. Defaults to `0.2`.
-        """
         super().__init__()
         self.alpha = alpha
 
@@ -336,7 +316,12 @@ class Tanh(Module):
 
 
 class Linear(Module):
-    """Applies a linear transformation.
+    """Applies a linear transformation to the input.
+
+    Args:
+        in_dim (int): Input feature dimension.
+        out_dim (int): Output feature dimension.
+        bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
 
     Attributes:
         w (Parameter): Weight matrix of shape (out_dim, in_dim).
@@ -344,14 +329,11 @@ class Linear(Module):
     """
 
     def __init__(self, in_dim: int, out_dim: int, bias: bool = True) -> None:
-        """Applies a linear transformation to the input.
-
-        Args:
-            in_dim (int): Input feature dimension.
-            out_dim (int): Output feature dimension.
-            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
-        """
         super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.bias = bias
+
         k = 1 / math.sqrt(in_dim)
         self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k), "Weights")
         self.b = (
@@ -365,12 +347,18 @@ class Linear(Module):
 class Conv1D(Module):
     """Applies a 1D convolution operation.
 
+    Args:
+        in_dim (int): Input feature dimension (number of input channels).
+        out_dim (int): Output feature dimension (number of kernels).
+        kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+        stride (int, optional): Stride of the convolution. Defaults to `1`.
+        padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+        dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+        bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+
     Attributes:
         w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size).
         b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
-        stride (int): Stride of the convolution.
-        padding (int): Zero-padding added to all sides.
-        dilation (int): Dilation rate of the kernel.
     """
 
     def __init__(
@@ -383,21 +371,15 @@ class Conv1D(Module):
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
-        """Applies a 1D convolution operation.
-
-        Args:
-            in_dim (int): Input feature dimension (number of input channels).
-            out_dim (int): Output feature dimension (number of kernels).
-            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
-            stride (int, optional): Stride of the convolution. Defaults to `1`.
-            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
-            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
-            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
-        """
         super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
+        self.bias = bias
+
         k = 1 / math.sqrt(in_dim * kernel_size)
         self.w = Parameter(
             randu(out_dim, in_dim, kernel_size, low=-k, high=k), "Kernel"
@@ -413,12 +395,18 @@ class Conv1D(Module):
 class Conv2D(Module):
     """Applies a 2D convolution operation.
 
+    Args:
+        in_dim (int): Input feature dimension (number of input channels).
+        out_dim (int): Output feature dimension (number of kernels).
+        kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+        stride (int, optional): Stride of the convolution. Defaults to `1`.
+        padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+        dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+        bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+
     Attributes:
         w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size, kernel_size).
         b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
-        stride (int): Stride of the convolution.
-        padding (int): Zero-padding added to all sides.
-        dilation (int): Dilation rate of the kernel.
     """
 
     def __init__(
@@ -431,21 +419,15 @@ class Conv2D(Module):
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
-        """Applies a 2D convolution operation.
-
-        Args:
-            in_dim (int): Input feature dimension (number of input channels).
-            out_dim (int): Output feature dimension (number of kernels).
-            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
-            stride (int, optional): Stride of the convolution. Defaults to `1`.
-            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
-            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
-            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
-        """
         super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
+        self.bias = bias
+
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
             randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
@@ -461,13 +443,19 @@ class Conv2D(Module):
 class ConvTranspose2D(Module):
     """Applies a transposed 2D convolution (deconvolution) operation.
 
+    Args:
+        in_dim (int): Input feature dimension (number of input channels).
+        out_dim (int): Output feature dimension (number of kernels).
+        kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
+        stride (int, optional): Stride of the convolution. Defaults to `1`.
+        padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
+        output_padding (int, optional): Additional size added to the output. Defaults to `0`.
+        dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
+        bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
+
     Attributes:
         w (Parameter): Kernel weight tensor of shape (out_dim, in_dim, kernel_size, kernel_size).
         b (Parameter | None): Bias vector of shape (out_dim,) if bias is enabled, else `None`.
-        stride (int): Stride of the convolution.
-        padding (int): Zero-padding added to all sides.
-        output_padding (int): Additional size added to the output.
-        dilation (int): Dilation rate of the kernel.
     """
 
     def __init__(
@@ -481,23 +469,16 @@ class ConvTranspose2D(Module):
         dilation: int = 1,
         bias: bool = True,
     ) -> None:
-        """Applies a transposed 2D convolution (deconvolution) operation.
-
-        Args:
-            in_dim (int): Input feature dimension (number of input channels).
-            out_dim (int): Output feature dimension (number of kernels).
-            kernel_size (int, optional): Size of the convolutional kernel. Defaults to `3`.
-            stride (int, optional): Stride of the convolution. Defaults to `1`.
-            padding (int, optional): Zero-padding added to all sides. Defaults to `0`.
-            output_padding (int, optional): Additional size added to the output. Defaults to `0`.
-            dilation (int, optional): Dilation rate of the kernel. Defaults to `1`.
-            bias (bool, optional): If `True`, includes a bias term. Defaults to `True`.
-        """
         super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.output_padding = output_padding
         self.dilation = dilation
+        self.bias = bias
+
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
             randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
@@ -521,16 +502,11 @@ class ConvTranspose2D(Module):
 class MaxPooling2D(Module):
     """Applies a 2D max pooling operation.
 
-    Attributes:
-        window_size (int): Pooling window size.
+    Args:
+        window_size (int, optional): Pooling window size. Defaults to `2`.
     """
 
     def __init__(self, window_size: int = 2) -> None:
-        """Applies a 2D max pooling operation.
-
-        Args:
-            window_size (int, optional): Pooling window size. Defaults to `2`.
-        """
         super().__init__()
         self.window_size = window_size
 
@@ -541,25 +517,19 @@ class MaxPooling2D(Module):
 class RNN(Module):
     """Simple Recurrent Neural Network (RNN) module.
 
-    Attributes:
-        hidden_dim (int): Dimension of the hidden state.
-        return_seq (bool): Flag indicating whether to return the full sequence.
-        W_xh (Linear): Linear transformation for input to hidden state.
-        W_hh (Linear): Linear transformation for hidden-to-hidden recurrence.
+    Args:
+        in_dim (int): Input feature dimension.
+        hidden_dim (int): Hidden state dimension.
+        return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+            If `False`, returns only the last hidden state. Defaults to `False`.
     """
 
     def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
-        """Simple Recurrent Neural Network (RNN) module.
-
-        Args:
-            in_dim (int): Input feature dimension.
-            hidden_dim (int): Hidden state dimension.
-            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
-                If `False`, returns only the last hidden state. Defaults to `False`.
-        """
         super().__init__()
+        self.in_dim = in_dim
         self.hidden_dim = hidden_dim
         self.return_seq = return_seq
+
         self.W_xh = Linear(in_dim, hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, hidden_dim)
 
@@ -587,25 +557,19 @@ class RNN(Module):
 class LSTM(Module):
     """Long Short-Term Memory (LSTM) module.
 
-    Attributes:
-        hidden_dim (int): Dimension of the hidden state.
-        return_seq (bool): Flag indicating whether to return the full sequence.
-        W_xh (Linear): Linear transformation for input to hidden state.
-        W_hh (Linear): Linear transformation for hidden-to-hidden recurrence.
+    Args:
+        in_dim (int): Input feature dimension.
+        hidden_dim (int): Hidden state dimension.
+        return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+            If `False`, returns only the last hidden state. Defaults to `False`.
     """
 
     def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
-        """Long Short-Term Memory (LSTM) module.
-
-        Args:
-            in_dim (int): Input feature dimension.
-            hidden_dim (int): Hidden state dimension.
-            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
-                If `False`, returns only the last hidden state. Defaults to `False`.
-        """
         super().__init__()
+        self.in_dim = in_dim
         self.hidden_dim = hidden_dim
         self.return_seq = return_seq
+
         self.W_xh = Linear(in_dim, 4 * hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, 4 * hidden_dim)
 
@@ -640,25 +604,19 @@ class LSTM(Module):
 class GRU(Module):
     """Gated Recurrent Unit (GRU) module.
 
-    Attributes:
-        hidden_dim (int): Dimension of the hidden state.
-        return_seq (bool): Flag indicating whether to return the full sequence.
-        W_xh (Linear): Linear transformation for input to hidden state.
-        W_hh (Linear): Linear transformation for hidden-to-hidden recurrence.
+    Args:
+        in_dim (int): Input feature dimension.
+        hidden_dim (int): Hidden state dimension.
+        return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
+            If `False`, returns only the last hidden state. Defaults to `False`.
     """
 
     def __init__(self, in_dim: int, hidden_dim: int, return_seq: bool = False) -> None:
-        """Gated Recurrent Unit (GRU) module.
-
-        Args:
-            in_dim (int): Input feature dimension.
-            hidden_dim (int): Hidden state dimension.
-            return_seq (bool, optional): If `True`, returns the full sequence of hidden states.
-                If `False`, returns only the last hidden state. Defaults to `False`.
-        """
         super().__init__()
+        self.in_dim = in_dim
         self.hidden_dim = hidden_dim
         self.return_seq = return_seq
+
         self.W_xh = Linear(in_dim, 3 * hidden_dim, bias=False)
         self.W_hh = Linear(hidden_dim, 3 * hidden_dim)
 
@@ -690,12 +648,15 @@ class GRU(Module):
 class MultiHeadSelfAttention(Module):
     """Implements multi-head self-attention.
 
-    Attributes:
+    Args:
+        in_dim (int): Input feature dimension.
         n_heads (int): Number of attention heads.
-        mask (Buffer | None): Attention mask if provided.
-        dropout (float): Dropout probability.
-        qkv (Linear): Linear layer for computing query, key, and value projections.
-        out (Linear): Output projection layer.
+        mask (Tensor | None, optional): Optional attention mask. Defaults to `None`.
+        dropout (float, optional): Dropout probability. Defaults to `0`.
+        attn_bias (bool, optional): If `True`, includes bias in attention projections. Defaults
+            to `False`.
+        bias (bool, optional): If `True`, includes bias in the output projection. Defaults to
+            `True`.
     """
 
     def __init__(
@@ -707,23 +668,16 @@ class MultiHeadSelfAttention(Module):
         attn_bias: bool = False,
         bias: bool = True,
     ) -> None:
-        """Implements multi-head self-attention.
-
-        Args:
-            in_dim (int): Input feature dimension.
-            n_heads (int): Number of attention heads.
-            mask (Tensor | None, optional): Optional attention mask. Defaults to `None`.
-            dropout (float, optional): Dropout probability. Defaults to `0`.
-            attn_bias (bool, optional): If `True`, includes bias in attention projections. Defaults
-                to `False`.
-            bias (bool, optional): If `True`, includes bias in the output projection. Defaults to
-                `True`.
-        """
         super().__init__()
         assert in_dim % n_heads == 0, "Input dim must be divisible by n_heads."
+
+        self.in_dim = in_dim
         self.n_heads = n_heads
-        self.mask = Buffer(mask, "Mask") if mask is not None else None
         self.dropout = dropout
+        self.attn_bias = attn_bias
+        self.bias = bias
+
+        self.mask = Buffer(mask, "AttnMask") if mask is not None else None
         self.qkv = Linear(in_dim, 3 * in_dim, bias=attn_bias)
         self.out = Linear(in_dim, in_dim, bias=bias)
 
@@ -749,9 +703,12 @@ class MultiHeadSelfAttention(Module):
 class Batchnorm(Module):
     """Applies batch normalization.
 
+    Args:
+        in_dim (int): Number of input features.
+        momentum (float, optional): Momentum for updating running stats. Defaults to `0.1`.
+        eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
+
     Attributes:
-        momentum (float): Momentum for updating running stats.
-        eps (float): Small constant added for numerical stability.
         w (Parameter): Scale parameter (gamma) of shape (in_dim,).
         b (Parameter): Shift parameter (beta) of shape (in_dim,).
         rmean (Buffer): Running mean of shape (in_dim,).
@@ -759,16 +716,11 @@ class Batchnorm(Module):
     """
 
     def __init__(self, in_dim: int, momentum: float = 0.1, eps: float = 1e-5) -> None:
-        """Applies batch normalization.
-
-        Args:
-            in_dim (int): Number of input features.
-            momentum (float, optional): Momentum for updating running stats. Defaults to `0.1`.
-            eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
-        """
         super().__init__()
+        self.in_dim = in_dim
         self.momentum = momentum
         self.eps = eps
+
         self.w = Parameter(ones(in_dim), "Gamma")
         self.b = Parameter(zeros(in_dim), "Beta")
         self.rmean = Buffer(zeros(in_dim), "Run. Mean")
@@ -790,21 +742,20 @@ class Batchnorm(Module):
 class Layernorm(Module):
     """Applies layer normalization.
 
+    Args:
+        norm_shape (int | ShapeLike): Shape of the normalization dimension(s).
+        eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
+
     Attributes:
-        eps (float): Small constant added for numerical stability.
         w (Parameter): Scale parameter (gamma) of shape (norm_shape).
         b (Parameter): Shift parameter (beta) of shape (norm_shape).
     """
 
     def __init__(self, norm_shape: int | ShapeLike, eps: float = 1e-5) -> None:
-        """Applies layer normalization.
-
-        Args:
-            norm_shape (int | ShapeLike): Shape of the normalization dimension(s).
-            eps (float, optional): Small constant added for numerical stability. Defaults to `1e-5`.
-        """
         super().__init__()
+        self.norm_shape = norm_shape
         self.eps = eps
+
         norm_shape = (norm_shape,) if isinstance(norm_shape, int) else norm_shape
         self.w = Parameter(ones(*norm_shape), "Gamma")
         self.b = Parameter(zeros(*norm_shape), "Beta")
@@ -816,16 +767,11 @@ class Layernorm(Module):
 class Dropout(Module):
     """Applies dropout regularization.
 
-    Attributes:
-        p (float): Dropout probability.
+    Args:
+        p (float, optional): Dropout probability. Defaults to `0.5`.
     """
 
     def __init__(self, p: float = 0.5) -> None:
-        """Applies dropout regularization.
-
-        Args:
-            p (float, optional): Dropout probability. Defaults to `0.5`.
-        """
         super().__init__()
         self.p = p
 
@@ -836,18 +782,18 @@ class Dropout(Module):
 class Embedding(Module):
     """Maps discrete indices to continuous embeddings.
 
+    Args:
+        n_emb (int): Number of embedding vectors.
+        emb_dim (int): Dimension of each embedding vector.
+
     Attributes:
         w (Parameter): Embedding matrix of shape (n_emb, emb_dim).
     """
 
     def __init__(self, n_emb: int, emb_dim: int) -> None:
-        """Maps discrete indices to continuous embeddings.
-
-        Args:
-            n_emb (int): Number of embedding vectors.
-            emb_dim (int): Dimension of each embedding vector.
-        """
         super().__init__()
+        self.n_emb = n_emb
+        self.emb_dim = emb_dim
         self.w = Parameter(randn(n_emb, emb_dim), "Embeddings")
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
@@ -864,16 +810,11 @@ class Flatten(Module):
 class Reshape(Module):
     """Reshapes the input tensor to the specified shape.
 
-    Attributes:
-        shape (ShapeLike): Desired output shape.
+    Args:
+        shape (ShapeLike): Target shape (excluding the batch dimension).
     """
 
     def __init__(self, shape: ShapeLike) -> None:
-        """Reshapes the input tensor to the specified shape.
-
-        Args:
-            shape (ShapeLike): Target shape (excluding the batch dimension).
-        """
         super().__init__()
         self.shape = shape
 

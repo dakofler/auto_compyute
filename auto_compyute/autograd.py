@@ -34,13 +34,15 @@ __all__ = ["Tensor", "no_autograd_tracking"]
 class Tensor:
     """Represents a multi-dimensional tensor with automatic differentiation support.
 
-    Attributes:
-        data (ArrayLike): The underlying data of the tensor.
-        ctx (Op | None): The operation context for automatic differentiation.
-        src (tuple[Tensor, ...] | None): Tensors used to create this tensor.
-        req_grad (bool): Whether the tensor requires gradients.
-        grad (ArrayLike | None): Corresponding gradients of the tensor data.
-        label (str): A label for the tensor.
+    Args:
+        data (Tensor): The underlying data of the tensor.
+        ctx (Op | None, optional): The operation context for automatic differentiation.
+            Defaults to `None`.
+        src (tuple[Tensor, ...] | None, optional): Tensors used to create this
+            tensor. Defaults to `None`.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+            Defaults to `False`.
+        label (str): An optional label for the tensor. Defaults to `None`.
     """
 
     def __init__(
@@ -51,18 +53,6 @@ class Tensor:
         req_grad: bool = False,
         label: Optional[str] = None,
     ) -> None:
-        """Represents a multi-dimensional tensor with automatic differentiation support.
-
-        Args:
-            data (Tensor): The underlying data of the tensor.
-            ctx (Op | None, optional): The operation context for automatic differentiation.
-                Defaults to `None`.
-            src (tuple[Tensor, ...] | None, optional): Tensors used to create this
-                tensor. Defaults to `None`.
-            req_grad (bool, optional): Whether the tensor requires gradients.
-                Defaults to `False`.
-            label (str): An optional label for the tensor. Defaults to `None`.
-        """
         self.data = data
         self.ctx = ctx
         self.src = src

@@ -114,18 +114,11 @@ def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
 class Device:
     """Represents a computing device.
 
-    Attributes:
-        dev_type (str): The type of device ("cpu" or "cuda").
-        dev_id (str): The ID of device (used for CUDA devices).
-        xp (ModuleType): The module used by the device for computations.
+    Args:
+        dev_type (str): The type and optionally the id of device (e.g. "cpu" or "cuda:0").
     """
 
     def __init__(self, dev_type: str):
-        """Represents a computing device.
-
-        Args:
-            dev_type (str): The type and optionally the id of device (e.g. "cpu" or "cuda:0").
-        """
         dev_type, dev_id = _get_type_and_id(dev_type)
         self.dev_type = dev_type
         self.dev_id = dev_id

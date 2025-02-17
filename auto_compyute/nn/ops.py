@@ -19,18 +19,15 @@ class GELU(Op):
     """Gaussian error linear unit activation function."""
 
     def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
-        tanh_term = self.xp.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x))
-        y = 0.5 * x * (1.0 + tanh_term)
+        y = 0.5 * x * (1 + self.xp.tanh(x * 0.7978845608 * (1 + 0.044715 * x * x)))
         if x_req_grad:
             self.save_to_cache(x)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         (x,) = self.retrieve_from_cache()
-        tanh_term = self.xp.tanh(x * 0.7978845608 * (1.0 + 0.044715 * x * x))
-        dx1 = 1.0 + tanh_term
-        dx2 = x * (1.0 - tanh_term * tanh_term) * (0.7978845608 + 0.1070322243 * x * x)
-        dx = dy * 0.5 * (dx1 + dx2)
+        t = self.xp.tanh(x * 0.79788 * (1 + 0.04472 * x * x))
+        dx = dy * 0.5 * ((1 + t) + x * (1 - t * t) * (0.79788 + 0.10703 * x * x))
         return (dx,)
 
 
@@ -65,7 +62,7 @@ class LeakyReLU(Op):
 
 
 def _sigmoid_forward(xp: ModuleType, x: ArrayLike) -> ArrayLike:
-    return 1.0 / (1.0 + xp.exp(-x))
+    return 1 / (1 + xp.exp(-x))
 
 
 class Sigmoid(Op):
@@ -79,7 +76,7 @@ class Sigmoid(Op):
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         (y,) = self.retrieve_from_cache()
-        dx = dy * y * (1.0 - y)
+        dx = dy * y * (1 - y)
         return (dx,)
 
 
@@ -608,16 +605,16 @@ class Batchnorm(Op):
             var = (xshift * xshift).mean(b_dims, keepdims=True)
 
             # update rmean and rvar inplace to avoid returning multiple arrays
-            rmean *= 1.0 - momentum
+            rmean *= 1 - momentum
             rmean += mean.squeeze() * momentum
-            rvar *= 1.0 - momentum
+            rvar *= 1 - momentum
             rvar += n / (n - 1) * var.squeeze() * momentum
         else:
             mean = rmean.reshape(*rmean.shape, *ext_shape)
             xshift = x - mean
             var = rvar.reshape(*rvar.shape, *ext_shape)
 
-        rstd = 1.0 / self.xp.sqrt(var + eps)
+        rstd = 1 / self.xp.sqrt(var + eps)
         xnorm = xshift * rstd
         w = w.reshape(*w.shape, *ext_shape)
         b = b.reshape(*b.shape, *ext_shape)
@@ -674,7 +671,7 @@ class Layernorm(Op):
         mean = x.mean(f_dims, keepdims=True)
         xshift = x - mean
         var = (xshift * xshift).mean(f_dims, keepdims=True)
-        rstd = 1.0 / self.xp.sqrt(var + eps)
+        rstd = 1 / self.xp.sqrt(var + eps)
         xnorm = xshift * rstd
         y = xnorm * w + b
 
@@ -721,11 +718,11 @@ def _get_dropout_mask(xp: ModuleType, shape: ShapeLike, p: float) -> ArrayLike:
 
 
 def _dropout_forward(x: ArrayLike, dropout_mask: ArrayLike, p: float) -> ArrayLike:
-    return x * dropout_mask / (1.0 - p)
+    return x * dropout_mask / (1 - p)
 
 
 def _dropout_backward(dy: ArrayLike, dropout_mask: ArrayLike, p: float) -> ArrayLike:
-    return dy * dropout_mask / (1.0 - p)
+    return dy * dropout_mask / (1 - p)
 
 
 class Dropout(Op):
@@ -820,7 +817,7 @@ class BCELoss(Op):
         self, x: ArrayLike, x_req_grad: bool, y: ArrayLike, _: bool, *, reduction: str
     ) -> ArrayLike:
         max_logits = self.xp.maximum(x, 0.0)
-        loss = max_logits - x * y + self.xp.log(1.0 + self.xp.exp(-self.xp.abs(x)))
+        loss = max_logits - x * y + self.xp.log(1 + self.xp.exp(-self.xp.abs(x)))
         loss = loss.mean() if reduction == "mean" else loss.sum()
         if x_req_grad:
             self.save_to_cache(x, y, reduction)

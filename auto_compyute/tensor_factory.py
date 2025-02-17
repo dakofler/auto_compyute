@@ -46,7 +46,7 @@ def tensor(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -76,7 +76,7 @@ def arange(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -98,10 +98,7 @@ def ones(
 
     Args:
         *dims (int): The dimensions of the tensor.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -113,28 +110,18 @@ def ones(
     return Tensor(data, req_grad=req_grad)
 
 
-def ones_like(
-    x: Tensor,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = None,
-    req_grad: bool = False,
-) -> Tensor:
+def ones_like(x: Tensor, req_grad: bool = False) -> Tensor:
     """Creates an tensor of ones, matching the shape of another tensor.
 
     Args:
         x (Tensor): The reference tensor.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
-    return ones(*x.shape, device=device, dtype=dtype, req_grad=req_grad)
+    return ones(*x.shape, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def zeros(
@@ -150,7 +137,7 @@ def zeros(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -162,28 +149,18 @@ def zeros(
     return Tensor(data, req_grad=req_grad)
 
 
-def zeros_like(
-    x: Tensor,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = None,
-    req_grad: bool = False,
-) -> Tensor:
+def zeros_like(x: Tensor, req_grad: bool = False) -> Tensor:
     """Creates an tensor of zeros, matching the shape of another tensor.
 
     Args:
         x (Tensor): The reference tensor.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
-    return zeros(*x.shape, device=device, dtype=dtype, req_grad=req_grad)
+    return zeros(*x.shape, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def full(
@@ -201,7 +178,7 @@ def full(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -213,30 +190,21 @@ def full(
     return Tensor(data, req_grad=req_grad)
 
 
-def full_like(
-    x: Tensor,
-    value: Scalar,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = None,
-    req_grad: bool = False,
-) -> Tensor:
+def full_like(x: Tensor, value: Scalar, req_grad: bool = False) -> Tensor:
     """Creates an tensor filled with a specified value, matching the shape of another tensor.
 
     Args:
         x (Tensor): The reference tensor.
         value (Scalar): The fill value.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
-    return full(*x.shape, value=value, device=device, dtype=dtype, req_grad=req_grad)
+    return full(
+        *x.shape, value=value, device=x.device, dtype=x.dtype, req_grad=req_grad
+    )
 
 
 def randi(
@@ -256,7 +224,7 @@ def randi(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -268,33 +236,21 @@ def randi(
     return Tensor(data, req_grad=req_grad)
 
 
-def randi_like(
-    x: Tensor,
-    low: int,
-    high: int,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = int64,
-    req_grad: bool = False,
-) -> Tensor:
+def randi_like(x: Tensor, low: int, high: int, req_grad: bool = False) -> Tensor:
     """Creates an tensor of random integers within a range, matching the shape of another tensor.
 
     Args:
         x (Tensor): The reference tensor.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
     return randi(
-        *x.shape, low=low, high=high, device=device, dtype=dtype, req_grad=req_grad
+        *x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad
     )
 
 
@@ -315,7 +271,7 @@ def randn(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -328,12 +284,7 @@ def randn(
 
 
 def randn_like(
-    x: Tensor,
-    mean: float = 0,
-    var: float = 1,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = None,
-    req_grad: bool = False,
+    x: Tensor, mean: float = 0, var: float = 1, req_grad: bool = False
 ) -> Tensor:
     """Creates an tensor of random values from a normal distribution, matching the shape of another
         tensor.
@@ -342,19 +293,14 @@ def randn_like(
         x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
     return randn(
-        *x.shape, mean=mean, var=var, device=device, dtype=dtype, req_grad=req_grad
+        *x.shape, mean=mean, var=var, device=x.device, dtype=x.dtype, req_grad=req_grad
     )
 
 
@@ -375,7 +321,7 @@ def randu(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -388,12 +334,7 @@ def randu(
 
 
 def randu_like(
-    x: Tensor,
-    low: float = -1,
-    high: float = 1,
-    device: Optional[DeviceLike] = None,
-    dtype: Optional[DType] = None,
-    req_grad: bool = False,
+    x: Tensor, low: float = -1, high: float = 1, req_grad: bool = False
 ) -> Tensor:
     """Creates an tensor of random values from a uniform distribution, matching the shape of another
         tensor.
@@ -402,19 +343,14 @@ def randu_like(
         x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        device (DeviceLike | None, optional): The device on which to create the tensor.
-            Defaults to `None`.
-        dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
         Tensor: The created tensor.
     """
-    device = device if device is not None else x.device
-    dtype = dtype if dtype is not None else x.dtype
     return randu(
-        *x.shape, low=low, high=high, device=device, dtype=dtype, req_grad=req_grad
+        *x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad
     )
 
 
@@ -431,7 +367,7 @@ def randperm(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether the tensor requires gradients.
+        req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
 
     Returns:

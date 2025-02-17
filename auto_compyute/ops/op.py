@@ -9,16 +9,11 @@ from ..backends import ArrayLike, Device
 class Op(ABC):
     """Base class for a differentiable operation.
 
-    Attributes:
-        xp (ModuleType): The module used for computations.
+    Args:
+        device (Device): The device used for computations.
     """
 
     def __init__(self, device: Device) -> None:
-        """Base class for a differentiable operation.
-
-        Args:
-            device (Device): The device used for computations.
-        """
         self.xp = device.xp
         self._cache: Any = None
 
@@ -53,7 +48,8 @@ class Op(ABC):
         """Computes the forward pass of the operation.
 
         Args:
-            *args (Any): The input values.
+            *args (Any): The input values and whether they require gradients
+                (e.g. x1, x1_req_grad, x2, x2_req_grad, ...).
             **kwargs (Any): Additional keyword arguments.
 
         Returns:
@@ -65,7 +61,7 @@ class Op(ABC):
         """Computes the backward pass (gradients) of the operation.
 
         Args:
-            dy (ArrayLike): The gradient of the loss with respect to the output.
+            dy (ArrayLike): The gradient with respect to the output.
 
         Returns:
             tuple[ArrayLike, ...]: The gradients with respect to the inputs.
