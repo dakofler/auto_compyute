@@ -834,45 +834,57 @@ def draw_graph(
         "op": ("#F2F2F2", "#808080"),
     }
 
-    def _get_mermaid_node_label(n: Tensor) -> str:
+    def _get_mermaid_node_def(n: Tensor) -> str:
         node_id = str(id(n))
         node_name = n.label
         node_data = str(n.shape).replace("shape", "shape=")
-
-        # Constant
-        if not n.req_grad:
-            fill_color, stroke_color = colors["const"]
-            op_kwargs = ""
-
-        # Leaf node
-        elif n.ctx is None:
-            fill_color, stroke_color = colors["leaf"]
-            op_kwargs = ""
-
-        # Operation
-        else:
-            fill_color, stroke_color = colors["op"]
+        if n.ctx is not None:
             op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
             op_kwargs = ", ".join(op_kwargs)
-
+        else:
+            op_kwargs = ""
         label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
         label += f"{node_data}<br>dtype={str(n.dtype)}</small>"
-        return f'{node_id}("{label}")\nstyle {node_id} fill:{fill_color},stroke:{stroke_color}'
+        return f'{node_id}("{label}")'
 
-    mermaid_script = f"graph {orientation}\n{_get_mermaid_node_label(root_node)}\n"
+    def _get_mermaid_node_style(n: Tensor) -> str:
+        node_id = str(id(n))
+        if not n.req_grad:
+            fill_color, stroke_color = colors["const"]
+        elif n.ctx is None:
+            fill_color, stroke_color = colors["leaf"]
+        else:
+            fill_color, stroke_color = colors["op"]
+        return f"style {node_id} fill:{fill_color},stroke:{stroke_color}"
+
+    mermaid_script = f"graph {orientation}\n"
+    mermaid_script += f"{_get_mermaid_node_def(root_node)}\n"
+    mermaid_script += f"{_get_mermaid_node_style(root_node)}\n"
 
     def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
         if not node.src:
             return ""
+
         for src_node in node.src:
-            src_node_label = _get_mermaid_node_label(src_node)
-            if src_node_label not in mermaid_script:
-                mermaid_script += f"{src_node_label}\n"
+            # build label, style and tooltip
+            label = _get_mermaid_node_def(src_node)
+
+            if label not in mermaid_script:
+                # add node definition
+                mermaid_script += f"{label}\n"
+
+                # add node style
+                style = _get_mermaid_node_style(src_node)
+                mermaid_script += f"{style}\n"
+
+            # add edge from src node to node
             edge = f"{str(id(src_node))}-->{str(id(node))}\n"
             if edge not in mermaid_script:
                 mermaid_script += edge
+
             if src_node.src:
                 mermaid_script = _build_mermaid_script(src_node, mermaid_script)
+
         return mermaid_script
 
     mermaid_script = _build_mermaid_script(root_node, mermaid_script)

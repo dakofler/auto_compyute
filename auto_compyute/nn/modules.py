@@ -382,7 +382,7 @@ class Conv1D(Module):
 
         k = 1 / math.sqrt(in_dim * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, low=-k, high=k), "Kernel"
+            randu(out_dim, in_dim, kernel_size, low=-k, high=k), "KernelWeights"
         )
         self.b = (
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
@@ -430,7 +430,8 @@ class Conv2D(Module):
 
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k),
+            "KernelWeights",
         )
         self.b = (
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
@@ -481,7 +482,8 @@ class ConvTranspose2D(Module):
 
         k = 1 / math.sqrt(in_dim * kernel_size * kernel_size)
         self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k), "Kernel"
+            randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k),
+            "KernelWeights",
         )
         self.b = (
             None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
