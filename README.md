@@ -57,16 +57,17 @@ You can create a tensor from raw data or use a factory function to fill a tensor
 
 
 ```Python
->>> import auto_compyute as ac
+import auto_compyute as ac
 
->>> # randn creates a tensor with values drawn from a standard normal distribution.
+# randn creates a tensor with values drawn from a standard normal distribution.
+x1 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
+x2 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
+x3 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
 
->>> x1 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
->>> x2 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
->>> x3 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
-
->>> y = x1 ** 2 + 4 * x2 + x3 + 10
->>> y
+y = x1 ** 2 + 4 * x2 + x3 + 10
+y
+```
+```bash
 Tensor([[13.8923, 11.5502,  5.2445],
         [15.6469, 18.8092, 16.2810]], dtype=float32, device=cpu, grad_fn=Add)
 ```
@@ -74,27 +75,35 @@ Tensor([[13.8923, 11.5502,  5.2445],
 The computational graph can also be visualized using the `mermaid-python` package.
 
 ```Python
->>> ac.autograd.draw_graph(y)
+ac.autograd.draw_graph(y)
 ```
 ![Compute Graph Visualization in AutoCompyute](examples/compute_graph.png)
 
 By defining a bunch of `Ops` this forms a basic framework, that allows you to build and train most machine learning models easily.
 
-AutoCompyute also offers a module base class for holding the state of a neural network layer (parameters, buffers, etc.). To create your own modules, simply inherit from the `auto_compyute.nn.Module` base class, make sure to call `super().__init__()` in your init method and implement a `forward()` method.
+AutoCompyute also offers a module base class for holding the state of a neural network layer (parameters, buffers, etc.). To create your own modules, simply inherit from the `auto_compyute.nn.Module` base class, make sure to call `super().__init__()` in your init method and implement a `forward()` method. The rest is up to you.
 
 ```Python
->>> from auto_compyute import nn
->>> 
->>> class MyModule(nn.Module):  # inherit from Module
->>>     def __init__(self):
->>>         super().__init__()  # call parent init
->>>         self.lin = nn.Linear(in_dim=4, out_dim=5)
->>>
->>>     def forward(self, x):  # implement a forward method
->>>         return x + self.lin(x) + 25.0
+from auto_compyute import nn
+import auto_compyute.nn.functional as F
+
+class MyModule(nn.Module):  # inherit from Module
+    def __init__(self):
+        super().__init__()  # call parent init
+        self.lin1 = nn.Linear(in_dim=4, out_dim=5)
+        self.lin2 = nn.Linear(in_dim=5, out_dim=3)
+
+   def forward(self, x):  # implement a forward method
+        x = self.lin1(x)
+        x = F.relu(x)
+        x = self.lin2(x)
+        return x
+
+module = MyModule()
+y = module(x)  # modules are callable
 ```
 
-And that's it!
+And that's all you need to build all sorts of models.
 
 ## Examples
 see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples)

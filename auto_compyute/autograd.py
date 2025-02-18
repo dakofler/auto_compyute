@@ -769,7 +769,7 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     # get tensor args
     t_args = tuple(t for t in tensors if t is not None)
     device = t_args[0].device
-    ctx = op(device)
+    ctx = op(device, kwargs)
 
     # compute forward pass
     with device:
@@ -835,23 +835,29 @@ def draw_graph(
     }
 
     def _get_mermaid_node_label(n: Tensor) -> str:
-
+        node_id = str(id(n))
         node_name = n.label
+        node_data = str(n.shape).replace("shape", "shape=")
 
-        if not n.req_grad:  # constant
+        # Constant
+        if not n.req_grad:
             fill_color, stroke_color = colors["const"]
-        elif n.ctx is None:  # leaf node
+            op_kwargs = ""
+
+        # Leaf node
+        elif n.ctx is None:
             fill_color, stroke_color = colors["leaf"]
-        else:  # op
-            fill_color, stroke_color = colors["op"]
+            op_kwargs = ""
 
-        if len(n.shape) == 0:
-            node_info = f"{n.item():.4g}"
+        # Operation
         else:
-            node_info = str(n.shape).replace("shape", "")
+            fill_color, stroke_color = colors["op"]
+            op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
+            op_kwargs = ", ".join(op_kwargs)
 
-        label = f"{node_name}<br>{node_info}<br>{str(n.dtype)}"
-        return f'{id(n)}("{label}")\nstyle {str(id(n))} fill:{fill_color},stroke:{stroke_color}'
+        label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
+        label += f"{node_data}<br>dtype={str(n.dtype)}</small>"
+        return f'{node_id}("{label}")\nstyle {node_id} fill:{fill_color},stroke:{stroke_color}'
 
     mermaid_script = f"graph {orientation}\n{_get_mermaid_node_label(root_node)}\n"
 

@@ -13,8 +13,9 @@ class Op(ABC):
         device (Device): The device used for computations.
     """
 
-    def __init__(self, device: Device) -> None:
+    def __init__(self, device: Device, kwargs: Any) -> None:
         self.xp = device.xp
+        self.kwargs = kwargs
         self._cache: Any = None
 
     @property
