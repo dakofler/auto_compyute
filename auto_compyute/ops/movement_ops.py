@@ -10,24 +10,22 @@ from .op import Op
 class Concat(Op):
     """Concatinates arrays."""
 
-    def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
-        arrays = arrays_and_req_grads[::2]
-        req_grads = arrays_and_req_grads[1::2]
+    def forward(self, *arrays: ArrayLike, dim: int) -> ArrayLike:
         y = self.xp.concatenate(arrays, dim)
-        self.save_to_cache(dim, req_grads, [a.shape[dim] for a in arrays])
+        self.save_to_cache(dim, [a.shape[dim] for a in arrays])
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        dim, req_grads, split_sizes = self.retrieve_from_cache()
+        dim, split_sizes = self.retrieve_from_cache()
         split_indices = list(accumulate(s for s in split_sizes))
         dxs = self.xp.split(dy, split_indices, dim)
-        return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
+        return tuple(dxs)
 
 
 class Expand(Op):
     """Broadcasts array elements."""
 
-    def forward(self, x: ArrayLike, _: bool, *, shape: ShapeLike) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, shape: ShapeLike) -> ArrayLike:
         y = self.xp.broadcast_to(x, shape)
         return y
 
@@ -38,10 +36,9 @@ class Expand(Op):
 class Select(Op):
     """Selects array elements."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, key: Any) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, key: Any) -> ArrayLike:
         y = x[key]
-        if x_req_grad:
-            self.save_to_cache(x.shape, key)
+        self.save_to_cache(x.shape, key)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -58,28 +55,23 @@ class Split(Select):
 class Stack(Op):
     """Stacks arrays."""
 
-    def forward(self, *arrays_and_req_grads: ArrayLike | bool, dim: int) -> ArrayLike:
-        arrays = arrays_and_req_grads[::2]
-        req_grads = arrays_and_req_grads[1::2]
+    def forward(self, *arrays: ArrayLike | bool, dim: int) -> ArrayLike:
         y = self.xp.stack(arrays, dim)
-        self.save_to_cache(dim, req_grads)
+        self.save_to_cache(dim)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        dim, req_grads = self.retrieve_from_cache()
+        dim = self.retrieve_from_cache()
         dxs = tuple(self.xp.moveaxis(dy, dim, 0))
-        return tuple(dx if req_grad else None for dx, req_grad in zip(dxs, req_grads))
+        return tuple(dxs)
 
 
 class Transpose(Op):
     """Transposes an array."""
 
-    def forward(
-        self, x: ArrayLike, x_req_grad: bool, *, dim1: int, dim2: int
-    ) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, dim1: int, dim2: int) -> ArrayLike:
         y = x.swapaxes(dim1, dim2)
-        if x_req_grad:
-            self.save_to_cache(dim1, dim2)
+        self.save_to_cache(dim1, dim2)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -91,10 +83,9 @@ class Transpose(Op):
 class View(Op):
     """Reshapes an array."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, shape: ShapeLike) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, shape: ShapeLike) -> ArrayLike:
         y = self.xp.reshape(x, shape)
-        if x_req_grad:
-            self.save_to_cache(x.shape)
+        self.save_to_cache(x.shape)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -113,22 +104,15 @@ class Where(Op):
     def forward(
         self,
         condition: ArrayLike,
-        _: bool,
         x1: ArrayLike,
-        x1_req_grad: bool,
         x2: ArrayLike,
-        x2_req_grad: bool,
     ) -> ArrayLike:
         y = self.xp.where(condition, x1, x2)
-        self.save_to_cache(
-            x1_req_grad,
-            x2_req_grad,
-            ((y == x1) if x1_req_grad or x2_req_grad else None),
-        )
+        self.save_to_cache(y == x1)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        x1_req_grad, x2_req_grad, mask = self.retrieve_from_cache()
-        dx1 = None if not x1_req_grad else (dy * mask)
-        dx2 = None if not x2_req_grad else (dy * self.xp.invert(mask))
+        mask = self.retrieve_from_cache()
+        dx1 = dy * mask
+        dx2 = dy * self.xp.invert(mask)
         return None, dx1, dx2

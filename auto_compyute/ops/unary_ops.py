@@ -7,10 +7,9 @@ from .op import Op
 class Abs(Op):
     """Element-wise absolute value."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+    def forward(self, x: ArrayLike) -> ArrayLike:
         y = self.xp.absolute(x)
-        if x_req_grad:
-            self.save_to_cache(y != x)
+        self.save_to_cache(y != x)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -23,10 +22,9 @@ class Abs(Op):
 class Exp(Op):
     """Element-wise exponential."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+    def forward(self, x: ArrayLike) -> ArrayLike:
         y = self.xp.exp(x)
-        if x_req_grad:
-            self.save_to_cache(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -38,10 +36,9 @@ class Exp(Op):
 class Log(Op):
     """Element-wise natural logarithm."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+    def forward(self, x: ArrayLike) -> ArrayLike:
         y = self.xp.log(x)
-        if x_req_grad:
-            self.save_to_cache(x)
+        self.save_to_cache(x)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -53,10 +50,9 @@ class Log(Op):
 class Pow(Op):
     """Element-wise power."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, exp: Scalar) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, exp: Scalar) -> ArrayLike:
         y = x**exp
-        if x_req_grad:
-            self.save_to_cache(x, exp)
+        self.save_to_cache(x, exp)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -68,10 +64,9 @@ class Pow(Op):
 class Sqrt(Op):
     """Element-wise square root."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+    def forward(self, x: ArrayLike) -> ArrayLike:
         y = self.xp.sqrt(x)
-        if x_req_grad:
-            self.save_to_cache(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -83,10 +78,9 @@ class Sqrt(Op):
 class Tanh(Op):
     """Element-wise hyperbolic tangent."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool) -> ArrayLike:
+    def forward(self, x: ArrayLike) -> ArrayLike:
         y = self.xp.tanh(x)
-        if x_req_grad:
-            self.save_to_cache(y)
+        self.save_to_cache(y)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -98,10 +92,9 @@ class Tanh(Op):
 class Tril(Op):
     """Sets lower diagonal elements to `0`."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, diag: int) -> ArrayLike:
         y = self.xp.tril(x, diag)
-        if x_req_grad:
-            self.save_to_cache(y == x)
+        self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -113,10 +106,9 @@ class Tril(Op):
 class Triu(Op):
     """Sets upper diagonal elements to `0`."""
 
-    def forward(self, x: ArrayLike, x_req_grad: bool, *, diag: int) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, diag: int) -> ArrayLike:
         y = self.xp.triu(x, diag)
-        if x_req_grad:
-            self.save_to_cache(y == x)
+        self.save_to_cache(y == x)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:

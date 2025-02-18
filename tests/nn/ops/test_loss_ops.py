@@ -21,9 +21,9 @@ ac_x3, torch_x3 = get_random_floats((4, 8, 16, 32))
 xs = ((ac_x1, torch_x1), (ac_x2, torch_x2), (ac_x3, torch_x3))
 reductions = ("mean", "sum")
 
-mse_ac_t1, mse_torch_t1 = get_random_floats((4, 8))
-mse_ac_t2, mse_torch_t2 = get_random_floats((4, 8, 16))
-mse_ac_t3, mse_torch_t3 = get_random_floats((4, 8, 16, 32))
+mse_ac_t1, mse_torch_t1 = get_random_floats((4, 8), req_grad=False)
+mse_ac_t2, mse_torch_t2 = get_random_floats((4, 8, 16), req_grad=False)
+mse_ac_t3, mse_torch_t3 = get_random_floats((4, 8, 16, 32), req_grad=False)
 mse_ts = (
     (mse_ac_t1, mse_torch_t1),
     (mse_ac_t2, mse_torch_t2),

@@ -10,16 +10,10 @@ class Sum(Op):
     """Sum of array elements."""
 
     def forward(
-        self,
-        x: ArrayLike,
-        x_req_grad: bool,
-        *,
-        dim: Optional[int | tuple[int, ...]],
-        keepdims: bool,
+        self, x: ArrayLike, *, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> ArrayLike:
         y = x.sum(dim, keepdims=keepdims)
-        if x_req_grad:
-            self.save_to_cache(x.shape, dim, keepdims)
+        self.save_to_cache(x.shape, dim, keepdims)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -34,16 +28,10 @@ class Mean(Op):
     """Mean of array elements."""
 
     def forward(
-        self,
-        x: ArrayLike,
-        x_req_grad: bool,
-        *,
-        dim: Optional[int | tuple[int, ...]],
-        keepdims: bool,
+        self, x: ArrayLike, *, dim: Optional[int | tuple[int, ...]], keepdims: bool
     ) -> ArrayLike:
         y = x.mean(dim, keepdims=keepdims)
-        if x_req_grad:
-            self.save_to_cache(x.shape, dim, keepdims, x.size / y.size)
+        self.save_to_cache(x.shape, dim, keepdims, x.size / y.size)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -60,15 +48,13 @@ class Var(Op):
     def forward(
         self,
         x: ArrayLike,
-        x_req_grad: bool,
         *,
         dim: Optional[int | tuple[int, ...]],
         ddof: int,
         keepdims: bool,
     ) -> ArrayLike:
         y = x.var(dim, ddof=ddof, keepdims=keepdims)
-        if x_req_grad:
-            self.save_to_cache(x, dim, x.size / y.size - ddof)
+        self.save_to_cache(x, dim, x.size / y.size - ddof)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -83,15 +69,13 @@ class Std(Op):
     def forward(
         self,
         x: ArrayLike,
-        x_req_grad: bool,
         *,
         dim: Optional[int | tuple[int, ...]],
         ddof: int,
         keepdims: bool,
     ) -> ArrayLike:
         y = x.std(dim, ddof=ddof, keepdims=keepdims)
-        if x_req_grad:
-            self.save_to_cache(x, dim, ddof, y)
+        self.save_to_cache(x, dim, ddof, y)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -104,12 +88,9 @@ class Std(Op):
 class Max(Op):
     """Maximum of array elements."""
 
-    def forward(
-        self, x: ArrayLike, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
-    ) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, dim: Optional[int], keepdims: bool) -> ArrayLike:
         y = x.max(dim, keepdims=True)
-        if x_req_grad:
-            self.save_to_cache(dim, keepdims, x == y)
+        self.save_to_cache(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
@@ -123,12 +104,9 @@ class Max(Op):
 class Min(Op):
     """Minimum of array elements."""
 
-    def forward(
-        self, x: ArrayLike, x_req_grad: bool, *, dim: Optional[int], keepdims: bool
-    ) -> ArrayLike:
+    def forward(self, x: ArrayLike, *, dim: Optional[int], keepdims: bool) -> ArrayLike:
         y = x.min(dim, keepdims=True)
-        if x_req_grad:
-            self.save_to_cache(dim, keepdims, x == y)
+        self.save_to_cache(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:

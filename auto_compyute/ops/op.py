@@ -1,7 +1,7 @@
 """Differentiable operation base class."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 from ..backends import ArrayLike, Device
 
@@ -22,11 +22,11 @@ class Op(ABC):
         """Returns the operation name."""
         return self.__class__.__name__
 
-    def save_to_cache(self, *args):
-        """Saves the input arguments to the cache.
+    def save_to_cache(self, *args: Any):
+        """Saves values to the cache.
 
         Args:
-            *args: The input arguments to be cached.
+            *args: Values to be cached.
         """
         self._cache = args
 
@@ -44,12 +44,11 @@ class Op(ABC):
         return values
 
     @abstractmethod
-    def forward(self, *args: Any, **kwargs: Any) -> ArrayLike:
+    def forward(self, *arrays: Optional[ArrayLike], **kwargs: Any) -> ArrayLike:
         """Computes the forward pass of the operation.
 
         Args:
-            *args (Any): The input values and whether they require gradients
-                (e.g. x1, x1_req_grad, x2, x2_req_grad, ...).
+            *arrays (ArrayLike | None): The input arrays.
             **kwargs (Any): Additional keyword arguments.
 
         Returns:

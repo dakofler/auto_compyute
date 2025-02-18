@@ -38,7 +38,7 @@ class Tensor:
         data (Tensor): The underlying data of the tensor.
         ctx (Op | None, optional): The operation context for automatic differentiation.
             Defaults to `None`.
-        src (tuple[Tensor, ...] | None, optional): Tensors used to create this
+        src (tuple[Tensor | None, ...] | None, optional): Tensors used to create this
             tensor. Defaults to `None`.
         req_grad (bool, optional): Whether gradients should be computed for this tensor.
             Defaults to `False`.
@@ -49,7 +49,7 @@ class Tensor:
         self,
         data: ArrayLike,
         ctx: Optional[Op] = None,
-        src: Optional[tuple[Tensor, ...]] = None,
+        src: Optional[tuple[Optional[Tensor], ...]] = None,
         req_grad: bool = False,
         label: Optional[str] = None,
     ) -> None:
@@ -162,7 +162,7 @@ class Tensor:
         return prefix + array_to_string(self.data, prefix) + suffix
 
     def __len__(self) -> int:
-        return self.data.shape[0]
+        return 0 if len(self.shape) == 0 else self.shape[0]
 
     def __hash__(self) -> int:
         return id(self)
@@ -214,9 +214,10 @@ class Tensor:
             assert node.src is not None, "Node has no source nodes."
             grads = node.ctx.backward(node.grad)
             for src_tensor, grad in zip(node.src, grads):
-                if src_tensor.req_grad:
-                    grad = _undo_broadcast(grad, src_tensor.shape)
-                    src_tensor.accumulate_grad(grad)
+                if src_tensor is None or not src_tensor.req_grad:
+                    continue
+                grad = _undo_broadcast(grad, src_tensor.shape)
+                src_tensor.accumulate_grad(grad)
 
             # clear context of intermediate nodes
             node.grad, node.ctx, node.src = None, None, None
@@ -746,7 +747,7 @@ def _get_node_tree_dfs(node: Tensor, queue: list[Tensor], visited: set) -> list[
         if not node.src:
             return []
         for p in node.src:
-            if p.req_grad:
+            if p is not None and p.req_grad:
                 _ = _get_node_tree_dfs(p, queue, visited)
         queue.append(node)
     return queue
@@ -763,22 +764,20 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     Returns:
         Tensor: The resulting tensor after calling the `forward` method.
     """
-    # create op args by extracting req_grad from tensors and handle optional tensors
-    op_args = [(None, False) if a is None else (a.data, a.req_grad) for a in tensors]
-    op_args = tuple(chain(*op_args))  # type: ignore  # flatten tuple of tuples
+    fwd_args = [t.data if t is not None else None for t in tensors]
 
     # get tensor args
-    t_args = tuple(t for t in tensors if t is not None)
+    t_args = tuple(t for t in tensors if t)
     device = t_args[0].device
     ctx = op(device)
 
     # compute forward pass
     with device:
-        data = ctx.forward(*op_args, **kwargs)
+        data = ctx.forward(*fwd_args, **kwargs)
 
     # return result node with autograd context
     if autograd_tracking_active and any(t.req_grad for t in t_args):
-        return Tensor(data, ctx=ctx, src=t_args, req_grad=True)
+        return Tensor(data, ctx=ctx, src=tensors, req_grad=True)
 
     # return result node without autograd context
     return Tensor(data)

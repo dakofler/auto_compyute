@@ -370,6 +370,7 @@ def mse_loss(
     Returns:
         Tensor: Computed MSE loss.
     """
+    assert not targets.req_grad, "Targets cannot require gradients."
     return apply_op(NNOps.MSELoss, logits, targets, reduction=reduction)
 
 
@@ -394,7 +395,8 @@ def cross_entropy_loss(
     Returns:
         Tensor: Computed cross-entropy loss.
     """
-    assert is_int(targets.dtype)
+    assert not targets.req_grad, "Targets cannot require gradients."
+    assert is_int(targets.dtype), "Targets must be integers."
     return apply_op(
         NNOps.CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction
     )
@@ -414,4 +416,5 @@ def bce_loss(
     Returns:
         Tensor: Computed BCE loss.
     """
+    assert not targets.req_grad, "Targets cannot require gradients."
     return apply_op(NNOps.BCELoss, logits, targets, reduction=reduction)
