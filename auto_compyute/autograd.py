@@ -767,7 +767,7 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     fwd_args = [t.data if t is not None else None for t in tensors]
 
     # get tensor args
-    t_args = tuple(t for t in tensors if t)
+    t_args = tuple(t for t in tensors if t is not None)
     device = t_args[0].device
     ctx = op(device)
 
