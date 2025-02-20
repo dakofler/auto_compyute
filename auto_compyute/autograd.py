@@ -40,7 +40,7 @@ class Tensor:
             Defaults to `None`.
         src (tuple[Tensor | None, ...] | None, optional): Tensors used to create this
             tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
         label (str): An optional label for the tensor. Defaults to `None`.
     """
@@ -126,7 +126,7 @@ class Tensor:
         return self.align(x).truediv(self)
 
     def __matmul__(self, x: Tensor) -> Tensor:
-        return self.matmul(x)
+        return self.dot(x)
 
     def __pow__(self, x: Scalar) -> Tensor:
         return self.pow(x)
@@ -184,9 +184,9 @@ class Tensor:
         self.grad = dy if self.grad is None else self.grad + dy
 
     def backward(self, dy: Optional[ArrayLike] = None):
-        """Performs backpropagation to compute gradients.
+        """Performs backpropagation to compute the gradient.
 
-        - Computes and stores gradients for all nodes in the computation graph.
+        - Computes and stores the gradient for all nodes in the computation graph.
         - Clears intermediate node contexts after backpropagation.
 
         Args:
@@ -348,7 +348,7 @@ class Tensor:
         """
         return apply_op(BOps.Div, self, self.align(x))
 
-    def matmul(self, x: Tensor) -> Tensor:
+    def dot(self, x: Tensor) -> Tensor:
         """Performs the dot product of the tensors. For higher dimensional tensors it performs
         parallelized dot products (eg. matrix multiplication for 2-dimesional tensors).
 
@@ -358,7 +358,7 @@ class Tensor:
         Returns:
             Tensor: The result of the dot product.
         """
-        return apply_op(BOps.Matmul, self, x)
+        return apply_op(BOps.Dot, self, x)
 
     def maximum(self, x: Tensor | Scalar) -> Tensor:
         """Computes the element-wise maximum.

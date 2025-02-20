@@ -60,8 +60,8 @@ class Div(Op):
         return dx1, dx2
 
 
-class Matmul(Op):
-    """Matrix multiplication."""
+class Dot(Op):
+    """Vector dot product."""
 
     def forward(self, x1: ArrayLike, x2: ArrayLike) -> ArrayLike:
         y = x1 @ x2

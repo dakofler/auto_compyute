@@ -54,7 +54,7 @@ class LeakyReLU(Op):
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
         alpha, mask = self.retrieve_from_cache()
-        dx = dy * (mask + (~mask).astype(dy.dtype) * alpha)
+        dx = dy * (mask + self.xp.invert(mask).astype(dy.dtype) * alpha)
         return (dx,)
 
 

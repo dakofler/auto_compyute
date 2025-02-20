@@ -46,7 +46,7 @@ def tensor(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -76,7 +76,7 @@ def arange(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -98,7 +98,7 @@ def ones(
 
     Args:
         *dims (int): The dimensions of the tensor.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -115,7 +115,7 @@ def ones_like(x: Tensor, req_grad: bool = False) -> Tensor:
 
     Args:
         x (Tensor): The reference tensor.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -137,7 +137,7 @@ def zeros(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -154,7 +154,7 @@ def zeros_like(x: Tensor, req_grad: bool = False) -> Tensor:
 
     Args:
         x (Tensor): The reference tensor.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -178,7 +178,7 @@ def full(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -196,7 +196,7 @@ def full_like(x: Tensor, value: Scalar, req_grad: bool = False) -> Tensor:
     Args:
         x (Tensor): The reference tensor.
         value (Scalar): The fill value.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -224,7 +224,7 @@ def randi(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -243,7 +243,7 @@ def randi_like(x: Tensor, low: int, high: int, req_grad: bool = False) -> Tensor
         x (Tensor): The reference tensor.
         low (int): The lower bound (inclusive).
         high (int): The upper bound (exclusive).
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -271,7 +271,7 @@ def randn(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -293,7 +293,7 @@ def randn_like(
         x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -321,7 +321,7 @@ def randu(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType | None, optional): The desired data type of the tensor. Defaults to `None`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -343,7 +343,7 @@ def randu_like(
         x (Tensor): The reference tensor.
         mean (float, optional): The mean of the distribution. Defaults to `0`.
         var (float, optional): The variance of the distribution. Defaults to `1`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:
@@ -367,7 +367,7 @@ def randperm(
         device (DeviceLike | None, optional): The device on which to create the tensor.
             Defaults to `None`.
         dtype (DType, optional): The desired data type of the tensor. Defaults to `int64`.
-        req_grad (bool, optional): Whether gradients should be computed for this tensor.
+        req_grad (bool, optional): Whether the gradient should be computed for this tensor.
             Defaults to `False`.
 
     Returns:

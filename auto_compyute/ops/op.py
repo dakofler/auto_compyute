@@ -58,11 +58,11 @@ class Op(ABC):
 
     @abstractmethod
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        """Computes the backward pass (gradients) of the operation.
+        """Computes the backward pass (gradient) of the operation.
 
         Args:
             dy (ArrayLike): The gradient with respect to the output.
 
         Returns:
-            tuple[ArrayLike, ...]: The gradients with respect to the inputs.
+            tuple[ArrayLike, ...]: The gradient with respect to the inputs.
         """
