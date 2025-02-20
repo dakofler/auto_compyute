@@ -446,29 +446,31 @@ class ScaledDotProductAttention(Op):
         attn = q @ k.swapaxes(-1, -2) / math.sqrt(head_size)  # q @ k.T / scale
         if attn_mask is not None:
             attn += attn_mask[:seq_len, :seq_len]
-        attnw = _softmax_fwd(self.xp, attn, dim=-1)
-        drop_mask = None if dropout_p else _dropout_mask(self.xp, attn.shape, dropout_p)
-        drop_attnw = attnw if dropout_p else _dropout_fwd(attnw, drop_mask, dropout_p)
-        y = drop_attnw @ v
+        attn_weights = _softmax_fwd(self.xp, attn, dim=-1)
+        if dropout_p > 0:
+            drop_mask = _dropout_mask(self.xp, attn.shape, dropout_p)
+            attn_weights = _dropout_fwd(attn_weights, drop_mask, dropout_p)
+        y = attn_weights @ v
 
-        self.save_to_cache(q, k, v, drop_attnw, dropout_p)
+        self.save_to_cache(q, k, v, attn_weights, dropout_p)
         return y
 
     def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
-        q, k, v, drop_attnw, dropout_p = self.retrieve_from_cache()
+        q, k, v, attn_weights, dropout_p = self.retrieve_from_cache()
         head_size = q.shape[-1]
 
         # attention gradients
-        dattnw = dy @ v.swapaxes(-1, -2)  # dy @ v.T
-        if dropout_p:
-            dattnw = _dropout_bwd(dattnw, drop_attnw == 0, dropout_p)
-        dattnw = _softmax_bwd(drop_attnw, dattnw, -1)
-        dattnw /= math.sqrt(head_size)
+        dattn_weights = dy @ v.swapaxes(-1, -2)  # dy @ v.T
+        if dropout_p > 0:
+            drop_mask = attn_weights != 0
+            dattn_weights = _dropout_bwd(dattn_weights, drop_mask, dropout_p)
+        dattn = _softmax_bwd(attn_weights, dattn_weights, -1)
+        dattn /= math.sqrt(head_size)
 
         # query, key, value gradients
-        dq = dattnw @ k
-        dk = dattnw.swapaxes(-1, -2) @ q  # dattnw.T @ q
-        dv = drop_attnw.swapaxes(-1, -2) @ dy  # drop_attnw.T @ dy
+        dq = dattn @ k
+        dk = dattn.swapaxes(-1, -2) @ q  # dattn_weights.T @ q
+        dv = attn_weights.swapaxes(-1, -2) @ dy  # attn_weights.T @ dy
 
         return dq, dk, dv, None
 
