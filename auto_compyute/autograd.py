@@ -861,20 +861,23 @@ def draw_graph(
     mermaid_script += f"{_get_mermaid_node_style(root_node)}\n"
 
     def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
-        if not node.src:
+        if node.src is None:
             return ""
 
         for src_node in node.src:
-            # build label, style and tooltip
-            label = _get_mermaid_node_def(src_node)
+            if src_node is None:
+                continue
 
-            if label not in mermaid_script:
+            # build label, style and tooltip
+            node_def = _get_mermaid_node_def(src_node)
+
+            if node_def not in mermaid_script:
                 # add node definition
-                mermaid_script += f"{label}\n"
+                mermaid_script += f"{node_def}\n"
 
                 # add node style
-                style = _get_mermaid_node_style(src_node)
-                mermaid_script += f"{style}\n"
+                node_style = _get_mermaid_node_style(src_node)
+                mermaid_script += f"{node_style}\n"
 
             # add edge from src node to node
             edge = f"{str(id(src_node))}-->{str(id(node))}\n"
