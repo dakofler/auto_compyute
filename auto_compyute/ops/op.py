@@ -15,7 +15,7 @@ class Op(ABC):
 
     def __init__(self, device: Device, kwargs: Any) -> None:
         self.xp = device.xp
-        self.kwargs = kwargs
+        self.kwargs = kwargs  # just for graph visualization
         self._cache: Any = None
 
     @property

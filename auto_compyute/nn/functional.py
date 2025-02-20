@@ -224,7 +224,11 @@ def maxpool2d(x: Tensor, window_size: int = 2) -> Tensor:
 
 
 def scaled_dot_product_attention(
-    q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None, dropout_p: float = 0
+    q: Tensor,
+    k: Tensor,
+    v: Tensor,
+    mask: Optional[Tensor] = None,
+    dropout_p: float = 0,
 ) -> Tensor:
     """Computes scaled dot-product attention.
 
@@ -238,7 +242,7 @@ def scaled_dot_product_attention(
     Returns:
         Tensor: Output after applying scaled dot-product attention.
     """
-    return apply_op(NNOps.ScaledDotProductAttention, q, k, v, mask, p=dropout_p)
+    return apply_op(NNOps.ScaledDotProductAttention, q, k, v, mask, dropout_p=dropout_p)
 
 
 # -------------------------------------------------------------------------------------

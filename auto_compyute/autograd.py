@@ -764,19 +764,18 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     Returns:
         Tensor: The resulting tensor after calling the `forward` method.
     """
-    fwd_args = [t.data if t is not None else None for t in tensors]
-
-    # get tensor args
-    t_args = tuple(t for t in tensors if t is not None)
-    device = t_args[0].device
+    tensor_args = [t for t in tensors if t is not None]
+    device = tensor_args[0].device
     ctx = op(device, kwargs)
 
     # compute forward pass
+    fwd_args = [t.data if t is not None else None for t in tensors]
     with device:
         data = ctx.forward(*fwd_args, **kwargs)
 
     # return result node with autograd context
-    if autograd_tracking_active and any(t.req_grad for t in t_args):
+    result_req_grad = any(t.req_grad for t in tensor_args)
+    if autograd_tracking_active and result_req_grad:
         return Tensor(data, ctx=ctx, src=tensors, req_grad=True)
 
     # return result node without autograd context
