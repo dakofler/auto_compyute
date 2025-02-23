@@ -5,7 +5,7 @@ from typing import Any, Optional, TypeAlias
 
 import numpy  # type: ignore
 
-__all__ = ["Device"]
+__all__ = ["Device", "set_random_seed"]
 
 
 # -------------------------------------------------------------------------------------
@@ -55,10 +55,10 @@ ArrayLike: TypeAlias = numpy.ndarray
 
 
 def gpu_available():
-    """Checks if a GPU is available.
+    """Returns `True` if at least one GPU device is available.
 
     Returns:
-        bool: `True` if a CUDA-compatible GPU is available, otherwise `False`.
+        bool: `True` if at least one CUDA-compatible GPU is available, otherwise `False`.
     """
     return GPU_BACKEND is not None and GPU_BACKEND.cuda.is_available()
 
@@ -112,7 +112,7 @@ def _get_type_and_id(device_type: str) -> tuple[str, Optional[int]]:
 
 
 class Device:
-    """Represents a computing device.
+    """Represents a device to store data and perform computations.
 
     Args:
         dev_type (str): The type and optionally the id of device (e.g. "cpu" or "cuda:0").

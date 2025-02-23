@@ -469,7 +469,7 @@ class ScaledDotProductAttention(Op):
 
         # query, key, value gradients
         dq = dattn @ k
-        dk = dattn.swapaxes(-1, -2) @ q  # dattn_weights.T @ q
+        dk = dattn.swapaxes(-1, -2) @ q  # dattn.T @ q
         dv = attn_weights.swapaxes(-1, -2) @ dy  # attn_weights.T @ dy
 
         return dq, dk, dv, None

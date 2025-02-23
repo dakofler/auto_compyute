@@ -2,20 +2,21 @@
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional
+from types import ModuleType
 
-from ..backends import ArrayLike, Device
+from ..backends import ArrayLike
 
 
 class Op(ABC):
     """Base class for a differentiable operation.
 
     Args:
-        device (Device): The device used for computations.
+        xp (ModuleType): The backend used for computations.
     """
 
-    def __init__(self, device: Device, kwargs: Any) -> None:
-        self.xp = device.xp
-        self.kwargs = kwargs  # just for graph visualization
+    def __init__(self, xp: ModuleType, kwargs: Any) -> None:
+        self.xp = xp
+        self.kwargs = kwargs  # for graph visualization
         self._cache: Any = None
 
     @property

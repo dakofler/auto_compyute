@@ -207,9 +207,12 @@ class Tensor:
             assert isinstance(dy, ArrayLike), "Gradient must be an array."
             self.grad = dy
 
-        # run backward through traced graph
-        node_queue = _get_node_tree_dfs(self, [], set())
-        for node in reversed(node_queue):
+        # construct a list of nodes via depth-first-search
+        nodes = []
+        build_backward_node_queue(self, nodes, set())
+
+        # run backward through the list
+        for node in reversed(nodes):
             assert node.ctx is not None, "Node has no function context."
             assert node.src is not None, "Node has no source nodes."
             grads = node.ctx.backward(node.grad)
@@ -740,17 +743,17 @@ def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
     return grad.reshape(target_shape)
 
 
-def _get_node_tree_dfs(node: Tensor, queue: list[Tensor], visited: set) -> list[Tensor]:
-    """Returns a list of nodes using depth-first-search."""
-    if node not in visited:
-        visited.add(node)
-        if not node.src:
-            return []
-        for p in node.src:
-            if p is not None and p.req_grad:
-                _ = _get_node_tree_dfs(p, queue, visited)
-        queue.append(node)
-    return queue
+def build_backward_node_queue(node: Tensor, queue: list[Tensor], visited: set) -> None:
+    """Returns a list of nodes for backprobagation using depth-first-search."""
+    if node in visited:
+        return
+    visited.add(node)
+    if not node.src:
+        return
+    for p in node.src:
+        if p is not None and p.req_grad:
+            build_backward_node_queue(p, queue, visited)
+    queue.append(node)
 
 
 def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
@@ -766,7 +769,7 @@ def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
     """
     tensor_args = [t for t in tensors if t is not None]
     device = tensor_args[0].device
-    ctx = op(device, kwargs)
+    ctx = op(device.xp, kwargs)
 
     # compute forward pass
     fwd_args = [t.data if t is not None else None for t in tensors]
