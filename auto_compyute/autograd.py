@@ -208,13 +208,11 @@ class Tensor:
             self.grad = dy
 
         # construct a list of nodes via depth-first-search
-        nodes = []
+        nodes: list[Tensor] = []
         build_backward_node_queue(self, nodes, set())
 
         # run backward through the list
         for node in reversed(nodes):
-            assert node.ctx is not None, "Node has no function context."
-            assert node.src is not None, "Node has no source nodes."
             grads = node.ctx.backward(node.grad)
             for src_tensor, grad in zip(node.src, grads):
                 if src_tensor is None or not src_tensor.req_grad:
@@ -744,15 +742,15 @@ def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
 
 
 def build_backward_node_queue(node: Tensor, queue: list[Tensor], visited: set) -> None:
-    """Returns a list of nodes for backprobagation using depth-first-search."""
+    """Returns a list of nodes for backpropagation using depth-first-search."""
     if node in visited:
         return
     visited.add(node)
     if not node.src:
         return
-    for p in node.src:
-        if p is not None and p.req_grad:
-            build_backward_node_queue(p, queue, visited)
+    for src_node in node.src:
+        if src_node is not None and src_node.req_grad:
+            build_backward_node_queue(src_node, queue, visited)
     queue.append(node)
 
 
