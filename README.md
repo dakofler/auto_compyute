@@ -1,6 +1,10 @@
 # AutoCompyute
 
-AutoCompyute is a lightweight deep learning library that provides automatic differentiation using only NumPy as the backend for computation (CuPy can be used as a drop-in replacement for NumPy). It is designed for simplicity and performance and enables you to train deep learning models with minimal dependencies while leveraging GPU acceleration. The package supports:
+Lightweight Autograd Engine in Pure Python
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/dakofler/auto_compyute)
+
+AutoCompyute is a deep learning library that provides automatic differentiation using only NumPy as the backend for computation (CuPy can be used as a drop-in replacement for NumPy). It is designed for simplicity and performance and enables you to train deep learning models with minimal dependencies while leveraging GPU acceleration. The package supports:
 
 - Tensor operations with gradient tracking.
 - Neural network layers and loss functions.
@@ -60,9 +64,9 @@ You can create a tensor from raw data or use a factory function to fill a tensor
 import auto_compyute as ac
 
 # randn creates a tensor with values drawn from a standard normal distribution.
-x1 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
-x2 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
-x3 = ac.randn(2, 3, req_grad=True)  # shape (2, 3)
+x1 = ac.randn(2, 3, req_grad=True)
+x2 = ac.randn(2, 3, req_grad=True)
+x3 = ac.randn(2, 3, req_grad=True)
 
 y = x1 ** 2 + 4 * x2 + x3 + 10
 y
@@ -77,7 +81,7 @@ The computational graph can also be visualized using the `mermaid-python` packag
 ```Python
 ac.autograd.draw_graph(y)
 ```
-![Compute Graph Visualization in AutoCompyute](examples/compute_graph_1.png)
+<img src="examples/compute_graph_1.png" alt="Compute Graph Visualization in AutoCompyute" width="75%"/>
 
 By defining a bunch of `Ops` this forms a basic framework, that allows you to build and train most machine learning models easily.
 
@@ -105,7 +109,7 @@ y = module(x)  # modules are callable
 
 ac.autograd.draw_graph(y) # the constructed graph can be visualized
 ```
-![Neural Network Compute Graph Visualization](examples/compute_graph_2.png)
+<img src="examples/compute_graph_2.png" alt="Neural Network Compute Graph Visualization" width="75%"/>
 
 And that's all you need to build all sorts of models.
 
@@ -113,7 +117,7 @@ And that's all you need to build all sorts of models.
 see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples)
 
 ## Author
-Daniel Kofler - ([dkofler@outlook.com](mailto:dkofler@outlook.com))
+Daniel Kofler - [dkofler@outlook.com](mailto:dkofler@outlook.com)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
