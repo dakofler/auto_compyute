@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
-from itertools import chain
+import importlib
 from typing import Any, Literal, Optional
 
 from .backends import (
@@ -31,6 +31,13 @@ from .ops.op import Op
 __all__ = ["Tensor", "no_autograd_tracking"]
 
 
+MERMAID_NODE_COLORS = {
+    "const": ("#CAEDFB", "#4D93D9"),
+    "leaf": ("#C6EFCE", "#4EA72E"),
+    "op": ("#F2F2F2", "#808080"),
+}
+
+
 class Tensor:
     """Represents a multi-dimensional tensor with automatic differentiation support.
 
@@ -55,7 +62,7 @@ class Tensor:
     ) -> None:
         self.data = data
         self.ctx = ctx
-        self.src = src
+        self.src = src if src is not None else ()
         self.req_grad = req_grad
         self._label = label
         self.grad: Optional[ArrayLike] = None
@@ -209,7 +216,7 @@ class Tensor:
 
         # construct a list of nodes via depth-first-search
         nodes: list[Tensor] = []
-        build_backward_node_queue(self, nodes, set())
+        tree_dfs(self, nodes, set())
 
         # run backward through the list
         for node in reversed(nodes):
@@ -741,17 +748,22 @@ def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
     return grad.reshape(target_shape)
 
 
-def build_backward_node_queue(node: Tensor, queue: list[Tensor], visited: set) -> None:
-    """Returns a list of nodes for backpropagation using depth-first-search."""
-    if node in visited:
+def tree_dfs(
+    root_node: Tensor,
+    nodes: list[Tensor],
+    visited: set,
+    *,
+    include_leaf_nodes: bool = False,
+) -> None:
+    """Traverses the computational graph using depth-first-search and returns the list of nodes."""
+    if root_node in visited:
         return
-    visited.add(node)
-    if not node.src:
-        return
-    for src_node in node.src:
-        if src_node is not None and src_node.req_grad:
-            build_backward_node_queue(src_node, queue, visited)
-    queue.append(node)
+    visited.add(root_node)
+    for src_node in root_node.src:
+        if src_node is not None:
+            tree_dfs(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
+    if include_leaf_nodes or len(root_node.src) > 0:
+        nodes.append(root_node)
 
 
 def apply_op(op: type[Op], *tensors: Optional[Tensor], **kwargs: Any) -> Tensor:
@@ -801,6 +813,31 @@ def no_autograd_tracking() -> Generator:
         _set_autograd_tracking_mode(True)
 
 
+def _get_mermaid_node_def(n: Tensor) -> str:
+    node_id = str(id(n))
+    node_name = n.label
+    node_data = str(n.shape).replace("shape", "shape=")
+    if n.ctx is not None:
+        op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
+        op_kwargs = ", ".join(op_kwargs)
+    else:
+        op_kwargs = ""
+    label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
+    label += f"{node_data}<br>dtype={str(n.dtype)}</small>"
+    return f'{node_id}("{label}")'
+
+
+def _get_mermaid_node_style(n: Tensor) -> str:
+    node_id = str(id(n))
+    if not n.req_grad:
+        fill_color, stroke_color = MERMAID_NODE_COLORS["const"]
+    elif n.ctx is None:
+        fill_color, stroke_color = MERMAID_NODE_COLORS["leaf"]
+    else:
+        fill_color, stroke_color = MERMAID_NODE_COLORS["op"]
+    return f"style {node_id} fill:{fill_color},stroke:{stroke_color}"
+
+
 def draw_graph(
     root_node: Tensor,
     orientation: Literal["LR", "TD"] = "LR",
@@ -824,74 +861,26 @@ def draw_graph(
     assert root_node.req_grad, "Node not in autograd graph"
 
     try:
-        from mermaid import Mermaid  # type: ignore
+        mermaid = importlib.import_module("mermaid")
     except ModuleNotFoundError as exc:
         raise ModuleNotFoundError("Install mermaid-python to draw graphs.") from exc
 
-    colors = {
-        "const": ("#CAEDFB", "#4D93D9"),
-        "leaf": ("#C6EFCE", "#4EA72E"),
-        "op": ("#F2F2F2", "#808080"),
-    }
-
-    def _get_mermaid_node_def(n: Tensor) -> str:
-        node_id = str(id(n))
-        node_name = n.label
-        node_data = str(n.shape).replace("shape", "shape=")
-        if n.ctx is not None:
-            op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
-            op_kwargs = ", ".join(op_kwargs)
-        else:
-            op_kwargs = ""
-        label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
-        label += f"{node_data}<br>dtype={str(n.dtype)}</small>"
-        return f'{node_id}("{label}")'
-
-    def _get_mermaid_node_style(n: Tensor) -> str:
-        node_id = str(id(n))
-        if not n.req_grad:
-            fill_color, stroke_color = colors["const"]
-        elif n.ctx is None:
-            fill_color, stroke_color = colors["leaf"]
-        else:
-            fill_color, stroke_color = colors["op"]
-        return f"style {node_id} fill:{fill_color},stroke:{stroke_color}"
-
     mermaid_script = f"graph {orientation}\n"
-    mermaid_script += f"{_get_mermaid_node_def(root_node)}\n"
-    mermaid_script += f"{_get_mermaid_node_style(root_node)}\n"
+    nodes: list[Tensor] = []
+    tree_dfs(root_node, nodes, set(), include_leaf_nodes=True)
 
-    def _build_mermaid_script(node: Tensor, mermaid_script: str) -> str:
-        if node.src is None:
-            return ""
+    for node in nodes:
+        # add node definition and style
+        mermaid_script += f"{_get_mermaid_node_def(node)}\n"
+        mermaid_script += f"{_get_mermaid_node_style(node)}\n"
 
+        # add edges from src nodes to node
         for src_node in node.src:
-            if src_node is None:
-                continue
+            src_node_id = str(id(src_node))
+            node_id = str(id(node))
+            mermaid_script += f"{src_node_id}-->{node_id}\n"
 
-            # build label, style and tooltip
-            node_def = _get_mermaid_node_def(src_node)
-
-            if node_def not in mermaid_script:
-                # add node definition
-                mermaid_script += f"{node_def}\n"
-
-                # add node style
-                node_style = _get_mermaid_node_style(src_node)
-                mermaid_script += f"{node_style}\n"
-
-            # add edge from src node to node
-            edge = f"{str(id(src_node))}-->{str(id(node))}\n"
-            if edge not in mermaid_script:
-                mermaid_script += edge
-
-            if src_node.src:
-                mermaid_script = _build_mermaid_script(src_node, mermaid_script)
-
-        return mermaid_script
-
-    mermaid_script = _build_mermaid_script(root_node, mermaid_script)
-    mermaid_html = Mermaid(mermaid_script)
+    mermaid_html = mermaid.Mermaid(mermaid_script)
     if save_to_file:
         with open("compute_graph.html", "w", encoding="utf-8") as f:
             f.write(mermaid_html._repr_html_())
