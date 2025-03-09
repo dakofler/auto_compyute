@@ -77,7 +77,7 @@ The computational graph can also be visualized using the `mermaid-python` packag
 ```Python
 ac.autograd.draw_graph(y)
 ```
-![Compute Graph Visualization in AutoCompyute](examples/compute_graph.png)
+![Compute Graph Visualization in AutoCompyute](examples/compute_graph_1.png)
 
 By defining a bunch of `Ops` this forms a basic framework, that allows you to build and train most machine learning models easily.
 
@@ -93,15 +93,19 @@ class MyModule(nn.Module):  # inherit from Module
         self.lin1 = nn.Linear(in_dim=4, out_dim=5)
         self.lin2 = nn.Linear(in_dim=5, out_dim=3)
 
-   def forward(self, x):  # implement a forward method
+    def forward(self, x):  # implement a forward method
         x = self.lin1(x)
         x = F.relu(x)
         x = self.lin2(x)
         return x
 
 module = MyModule()
+x = ac.randn(1, 4)
 y = module(x)  # modules are callable
+
+ac.autograd.draw_graph(y) # the constructed graph can be visualized
 ```
+![Neural Network Compute Graph Visualization](examples/compute_graph_2.png)
 
 And that's all you need to build all sorts of models.
 
