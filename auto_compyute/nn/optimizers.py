@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from ..backends import ArrayLike
+from ..backends import Array
 from .modules import Parameter
 
 
@@ -34,7 +34,7 @@ class Optimizer(ABC):
                 continue
             self._parameters.append(param)
             ptrs.add(id(param))
-        self._state: dict[int, dict[str, ArrayLike]] = {
+        self._state: dict[int, dict[str, Array]] = {
             i: {} for i in range(len(self._parameters))
         }
 

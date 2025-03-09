@@ -8,7 +8,7 @@ import importlib
 from typing import Any, Literal, Optional
 
 from .backends import (
-    ArrayLike,
+    Array,
     Device,
     DeviceLike,
     Dim,
@@ -54,7 +54,7 @@ class Tensor:
 
     def __init__(
         self,
-        data: ArrayLike,
+        data: Array,
         ctx: Optional[Op] = None,
         src: Optional[tuple[Optional[Tensor], ...]] = None,
         req_grad: bool = False,
@@ -65,7 +65,7 @@ class Tensor:
         self.src = src if src is not None else ()
         self.req_grad = req_grad
         self._label = label
-        self.grad: Optional[ArrayLike] = None
+        self.grad: Optional[Array] = None
 
     @property
     def label(self) -> str:
@@ -178,7 +178,7 @@ class Tensor:
     # AUTOGRAD METHODS
     # ----------------------------------------------------------------------------------
 
-    def accumulate_grad(self, dy: ArrayLike) -> None:
+    def accumulate_grad(self, dy: Array) -> None:
         """Accumulates the gradient for the current tensor.
 
         Args:
@@ -190,7 +190,7 @@ class Tensor:
         assert dy.dtype == float32, f"Gradient has invalid dtype {dy.dtype}"
         self.grad = dy if self.grad is None else self.grad + dy
 
-    def backward(self, dy: Optional[ArrayLike] = None):
+    def backward(self, dy: Optional[Array] = None):
         """Performs backpropagation to compute the gradient.
 
         - Computes and stores the gradient for all nodes in the computation graph.
@@ -211,7 +211,7 @@ class Tensor:
         if dy is None:
             self.grad = self.device.xp.ones(self.shape, dtype=float32)
         else:
-            assert isinstance(dy, ArrayLike), "Gradient must be an array."
+            assert isinstance(dy, Array), "Gradient must be an array."
             self.grad = dy
 
         # construct a list of nodes via depth-first-search
@@ -577,7 +577,7 @@ class Tensor:
         """
         if self.dtype == dtype:
             return self
-        data: ArrayLike = self.data.astype(dtype)
+        data: Array = self.data.astype(dtype)
         if self.req_grad:
             assert is_float(dtype), "Cannot change autograd node dtype to non float."
             arr = Tensor(data, self.ctx, self.src, self.req_grad)
@@ -731,7 +731,7 @@ class Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def _undo_broadcast(grad: ArrayLike, target_shape: ShapeLike) -> ArrayLike:
+def _undo_broadcast(grad: Array, target_shape: ShapeLike) -> Array:
     """Assures that the resulting gradient of some operation matches the target shape."""
     if grad.shape == target_shape:
         return grad

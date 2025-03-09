@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 from types import ModuleType
 
-from ..backends import ArrayLike
+from ..backends import Array
 
 
 class Op(ABC):
@@ -46,7 +46,7 @@ class Op(ABC):
         return values
 
     @abstractmethod
-    def forward(self, *arrays: Optional[ArrayLike], **kwargs: Any) -> ArrayLike:
+    def forward(self, *arrays: Optional[Array], **kwargs: Any) -> Array:
         """Computes the forward pass of the operation.
 
         Args:
@@ -58,7 +58,7 @@ class Op(ABC):
         """
 
     @abstractmethod
-    def backward(self, dy: ArrayLike) -> tuple[ArrayLike, ...]:
+    def backward(self, dy: Array) -> tuple[Array, ...]:
         """Computes the backward pass (gradient) of the operation.
 
         Args:

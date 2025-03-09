@@ -51,7 +51,7 @@ try:
 except ImportError:
     GPU_BACKEND = None
 
-ArrayLike: TypeAlias = numpy.ndarray
+Array: TypeAlias = numpy.ndarray
 
 
 def gpu_available():
@@ -74,7 +74,7 @@ def set_random_seed(seed: int):
         GPU_BACKEND.random.seed(seed)
 
 
-def array_to_string(data: ArrayLike, prefix: str) -> str:
+def array_to_string(data: Array, prefix: str) -> str:
     """Converts an array to a formatted string.
 
     Args:
@@ -167,7 +167,7 @@ def get_available_devices() -> list[str]:
     return devices
 
 
-def get_array_device(x: ArrayLike) -> Device:
+def get_array_device(x: Array) -> Device:
     """Determines the device of the given array.
 
     Args:
@@ -205,7 +205,7 @@ def parse_device(device: DeviceLike) -> Device:
     return device if isinstance(device, Device) else Device(device)
 
 
-def move_to_device(data: ArrayLike, device: Device) -> ArrayLike:
+def move_to_device(data: Array, device: Device) -> Array:
     """Moves an array to the specified device.
 
     Args:

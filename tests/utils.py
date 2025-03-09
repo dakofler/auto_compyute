@@ -5,12 +5,12 @@ import torch
 from torch import Tensor
 
 import auto_compyute as ac
-from auto_compyute.backends import ArrayLike, ShapeLike
+from auto_compyute.backends import Array, ShapeLike
 
 np.random.seed(0)
 
 
-def close(ac_in: ArrayLike, torch_in: Tensor, tol: float = 1e-5):
+def close(ac_in: Array, torch_in: Tensor, tol: float = 1e-5):
     return np.allclose(ac_in, torch_in.detach().numpy(), atol=tol, rtol=tol)
 
 
