@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from .autograd import Tensor
 from .backends import Device, DeviceLike, Scalar, select_device
-from .dtypes import DType, int64, select_dtype, is_float
+from .dtypes import DType, int64, is_float, select_dtype
 
 __all__ = [
     "tensor",
@@ -202,9 +202,7 @@ def full_like(x: Tensor, value: Scalar, req_grad: bool = False) -> Tensor:
     Returns:
         Tensor: The created tensor.
     """
-    return full(
-        *x.shape, value=value, device=x.device, dtype=x.dtype, req_grad=req_grad
-    )
+    return full(*x.shape, value=value, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def randi(
@@ -249,9 +247,7 @@ def randi_like(x: Tensor, low: int, high: int, req_grad: bool = False) -> Tensor
     Returns:
         Tensor: The created tensor.
     """
-    return randi(
-        *x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad
-    )
+    return randi(*x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def randn(
@@ -283,9 +279,7 @@ def randn(
     return Tensor(data, req_grad=req_grad)
 
 
-def randn_like(
-    x: Tensor, mean: float = 0, var: float = 1, req_grad: bool = False
-) -> Tensor:
+def randn_like(x: Tensor, mean: float = 0, var: float = 1, req_grad: bool = False) -> Tensor:
     """Creates an tensor of random values from a normal distribution, matching the shape of another
         tensor.
 
@@ -299,9 +293,7 @@ def randn_like(
     Returns:
         Tensor: The created tensor.
     """
-    return randn(
-        *x.shape, mean=mean, var=var, device=x.device, dtype=x.dtype, req_grad=req_grad
-    )
+    return randn(*x.shape, mean=mean, var=var, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def randu(
@@ -333,9 +325,7 @@ def randu(
     return Tensor(data, req_grad=req_grad)
 
 
-def randu_like(
-    x: Tensor, low: float = -1, high: float = 1, req_grad: bool = False
-) -> Tensor:
+def randu_like(x: Tensor, low: float = -1, high: float = 1, req_grad: bool = False) -> Tensor:
     """Creates an tensor of random values from a uniform distribution, matching the shape of another
         tensor.
 
@@ -349,9 +339,7 @@ def randu_like(
     Returns:
         Tensor: The created tensor.
     """
-    return randu(
-        *x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad
-    )
+    return randu(*x.shape, low=low, high=high, device=x.device, dtype=x.dtype, req_grad=req_grad)
 
 
 def randperm(

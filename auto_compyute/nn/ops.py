@@ -7,8 +7,8 @@ from typing import Optional
 from opt_einsum import contract as einsum  # type: ignore
 
 from ..backends import Array, ShapeLike
-from ..ops.op import Op
 from ..ops.movement_ops import Select
+from ..ops.op import Op
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTION OPERATIONS
@@ -126,9 +126,7 @@ class Linear(Op):
 # -------------------------------------------------------------------------------------
 
 
-def _pad1d_fwd(
-    xp: ModuleType, x: Array, left_pad: int, right_pad: Optional[int] = None
-) -> Array:
+def _pad1d_fwd(xp: ModuleType, x: Array, left_pad: int, right_pad: Optional[int] = None) -> Array:
     right_pad = right_pad if right_pad is not None else left_pad
     paddings = tuple([(0, 0)] * (x.ndim - 1) + [(left_pad, right_pad)])
     return xp.pad(x, paddings)
@@ -186,9 +184,7 @@ def _pad_to_shape(xp: ModuleType, x: Array, shape: ShapeLike) -> Array:
     return xp.pad(x, padding)
 
 
-def _windowed_view_1d(
-    xp: ModuleType, x: Array, window_size: int, stride: int = 1
-) -> Array:
+def _windowed_view_1d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Array:
     # compute strided shape
     out = (x.shape[-1] - window_size) // stride + 1
     out_shape = (*x.shape[:-1], out, window_size)
@@ -237,9 +233,7 @@ class Conv1D(Op):
         return dx, dw
 
 
-def _pad2d_fwd(
-    xp: ModuleType, x: Array, left_pad: int, right_pad: Optional[int] = None
-) -> Array:
+def _pad2d_fwd(xp: ModuleType, x: Array, left_pad: int, right_pad: Optional[int] = None) -> Array:
     right_pad = right_pad if right_pad is not None else left_pad
     paddings = tuple([(0, 0)] * (x.ndim - 2) + [(left_pad, right_pad)] * 2)
     return xp.pad(x, paddings)
@@ -306,9 +300,7 @@ class Dilate2D(Op):
         return (dx,)
 
 
-def _windowed_view_2d(
-    xp: ModuleType, x: Array, window_size: int, stride: int = 1
-) -> Array:
+def _windowed_view_2d(xp: ModuleType, x: Array, window_size: int, stride: int = 1) -> Array:
     # compute strided shape
     out = (x.shape[-1] - window_size) // stride + 1
     out_shape = (*x.shape[:-2], out, out, window_size, window_size)

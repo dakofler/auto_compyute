@@ -1,8 +1,8 @@
 """Differentiable operation base class."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
 from types import ModuleType
+from typing import Any, Optional
 
 from ..backends import Array
 

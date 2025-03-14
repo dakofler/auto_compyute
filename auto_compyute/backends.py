@@ -20,7 +20,7 @@ class Shape(tuple):
     """Array shape as a tuple of integers."""
 
     def __repr__(self) -> str:
-        return f"shape({super().__repr__().replace("(", "").replace(")", "")})"
+        return f"shape({super().__repr__().replace('(', '').replace(')', '')})"
 
 
 ShapeLike: TypeAlias = Shape | tuple[int, ...]
@@ -36,17 +36,13 @@ PREC = 4
 FLOATMODE = "maxprec_equal"
 
 CPU_BACKEND = numpy
-CPU_BACKEND.set_printoptions(
-    precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-)
+CPU_BACKEND.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 
 try:
     import cupy  # type: ignore
 
     GPU_BACKEND = cupy  # type: ignore
-    GPU_BACKEND.set_printoptions(
-        precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE
-    )
+    GPU_BACKEND.set_printoptions(precision=PREC, linewidth=MAX_LINE_WIDTH, floatmode=FLOATMODE)
 
 except ImportError:
     GPU_BACKEND = None

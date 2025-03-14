@@ -4,7 +4,7 @@ Lightweight Autograd Engine in Pure Python
 
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/dakofler/auto_compyute)
 
-AutoCompyute is a deep learning library that provides automatic differentiation using only NumPy as the backend for computation (CuPy can be used as a drop-in replacement for NumPy). It is designed for simplicity and performance and enables you to train deep learning models with minimal dependencies while leveraging GPU acceleration. The package supports:
+AutoCompyute is a deep learning library that provides automatic differentiation using only [NumPy](https://numpy.org/) as the backend for computation ([CuPy](https://cupy.dev/) can be used as a drop-in replacement for NumPy). It is designed for simplicity and performance and enables you to train deep learning models with minimal dependencies while leveraging GPU acceleration. The package supports:
 
 - Tensor operations with gradient tracking.
 - Neural network layers and loss functions.
@@ -41,7 +41,7 @@ The `Op` object represents a differentiable operation applied to tensors. Each o
 
 1. Clone or download the repo
 
-2. pip-install it
+2. Install it with `pip`
 
 CPU:
 ```bash

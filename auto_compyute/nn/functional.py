@@ -360,9 +360,7 @@ def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
 # -------------------------------------------------------------------------------------
 
 
-def mse_loss(
-    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
-):
+def mse_loss(logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"):
     """Computes Mean Squared Error (MSE) loss.
 
     Args:
@@ -401,14 +399,10 @@ def cross_entropy_loss(
     """
     assert not targets.req_grad, "Targets cannot require gradients."
     assert is_int(targets.dtype), "Targets must be integers."
-    return apply_op(
-        NNOps.CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction
-    )
+    return apply_op(NNOps.CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction)
 
 
-def bce_loss(
-    logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"
-):
+def bce_loss(logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] = "mean"):
     """Computes Binary Cross-Entropy (BCE) loss.
 
     Args:

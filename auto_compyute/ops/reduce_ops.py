@@ -9,9 +9,7 @@ from .op import Op
 class Sum(Op):
     """Sum of array elements."""
 
-    def forward(
-        self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool
-    ) -> Array:
+    def forward(self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool) -> Array:
         y = x.sum(dim, keepdims=keepdims)
         self.save_to_cache(x.shape, dim, keepdims)
         return y
@@ -27,9 +25,7 @@ class Sum(Op):
 class Mean(Op):
     """Mean of array elements."""
 
-    def forward(
-        self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool
-    ) -> Array:
+    def forward(self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool) -> Array:
         y = x.mean(dim, keepdims=keepdims)
         self.save_to_cache(x.shape, dim, keepdims, x.size / y.size)
         return y

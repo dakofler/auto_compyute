@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
-import importlib
 from typing import Any, Literal, Optional
 
 from .backends import (
@@ -23,8 +23,8 @@ from .backends import (
 )
 from .dtypes import DType, float32, int32, int64, is_float
 from .ops import binary_ops as BOps
-from .ops import reduce_ops as ROps
 from .ops import movement_ops as MOps
+from .ops import reduce_ops as ROps
 from .ops import unary_ops as UOps
 from .ops.op import Op
 
@@ -419,9 +419,7 @@ class Tensor:
         """
         return apply_op(ROps.Mean, self, dim=dim, keepdims=keepdims)
 
-    def var(
-        self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
-    ) -> Tensor:
+    def var(self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False) -> Tensor:
         """Computes the variance of elements along a specified dimension.
 
         Args:
@@ -435,9 +433,7 @@ class Tensor:
         """
         return apply_op(ROps.Var, self, dim=dim, ddof=ddof, keepdims=keepdims)
 
-    def std(
-        self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False
-    ) -> Tensor:
+    def std(self, dim: Optional[Dim] = None, *, ddof: int = 1, keepdims: bool = False) -> Tensor:
         """Computes the standard deviation of elements along a specified dimension.
 
         Args:

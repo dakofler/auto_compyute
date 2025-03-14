@@ -7,11 +7,11 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
-from ..tensor_factory import ones, randn, randu, zeros
-from ..tensor_functions import stack
 from ..autograd import Tensor
 from ..backends import Device, DeviceLike, ShapeLike
 from ..dtypes import DType
+from ..tensor_factory import ones, randn, randu, zeros
+from ..tensor_functions import stack
 from . import functional as F
 
 __all__ = [
@@ -116,7 +116,6 @@ class Module(ABC):
         return self.forward(*tensors)
 
     def __setattr__(self, key: str, value: Any) -> None:
-
         # register parameters, buffers and sub-modules
         if isinstance(value, Parameter):
             self._parameters[key] = value
@@ -336,9 +335,7 @@ class Linear(Module):
 
         k = 1 / math.sqrt(in_dim)
         self.w = Parameter(randu(out_dim, in_dim, low=-k, high=k), "Weights")
-        self.b = (
-            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
-        )
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.linear(x, self.w, self.b)
@@ -381,12 +378,8 @@ class Conv1D(Module):
         self.bias = bias
 
         k = 1 / math.sqrt(in_dim * kernel_size)
-        self.w = Parameter(
-            randu(out_dim, in_dim, kernel_size, low=-k, high=k), "KernelWeights"
-        )
-        self.b = (
-            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
-        )
+        self.w = Parameter(randu(out_dim, in_dim, kernel_size, low=-k, high=k), "KernelWeights")
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv1d(x, self.w, self.b, self.stride, self.padding, self.dilation)
@@ -433,9 +426,7 @@ class Conv2D(Module):
             randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k),
             "KernelWeights",
         )
-        self.b = (
-            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
-        )
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv2d(x, self.w, self.b, self.stride, self.padding, self.dilation)
@@ -485,9 +476,7 @@ class ConvTranspose2D(Module):
             randu(out_dim, in_dim, kernel_size, kernel_size, low=-k, high=k),
             "KernelWeights",
         )
-        self.b = (
-            None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
-        )
+        self.b = None if not bias else Parameter(randu(out_dim, low=-k, high=k), "Biases")
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
         return F.conv_transpose2d(

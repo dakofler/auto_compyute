@@ -14,9 +14,7 @@ class Optimizer(ABC):
         learning_rate (float): Step size for parameter updates.
     """
 
-    def __init__(
-        self, parameters: Iterable[Parameter], learning_rate: float = 1e-3
-    ) -> None:
+    def __init__(self, parameters: Iterable[Parameter], learning_rate: float = 1e-3) -> None:
         """Base class for all optimizers.
 
         Args:
@@ -34,9 +32,7 @@ class Optimizer(ABC):
                 continue
             self._parameters.append(param)
             ptrs.add(id(param))
-        self._state: dict[int, dict[str, Array]] = {
-            i: {} for i in range(len(self._parameters))
-        }
+        self._state: dict[int, dict[str, Array]] = {i: {} for i in range(len(self._parameters))}
 
     def reset_param_grads(self) -> None:
         """Sets gradients of all parameters to `None`."""
