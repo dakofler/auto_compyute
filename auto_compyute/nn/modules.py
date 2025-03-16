@@ -3,43 +3,48 @@
 from __future__ import annotations
 
 import math
+import typing
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
 from typing import Any, Optional, OrderedDict
 
 from ..autograd import Tensor
-from ..backends import Device, DeviceLike, ShapeLike
-from ..dtypes import DType
 from ..tensor_factory import ones, randn, randu, zeros
 from ..tensor_functions import stack
 from . import functional as F
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
+
+    from ..backends import Device, DeviceLike, ShapeLike
+    from ..dtypes import DType
+
+
 __all__ = [
-    "Parameter",
-    "Buffer",
-    "Module",
-    "Modulelist",
-    "Sequential",
     "GELU",
-    "ReLU",
-    "LeakyReLU",
-    "Sigmoid",
-    "Tanh",
-    "Linear",
+    "GRU",
+    "LSTM",
+    "RNN",
+    "Batchnorm",
+    "Buffer",
     "Conv1D",
     "Conv2D",
     "ConvTranspose2D",
-    "MaxPooling2D",
-    "RNN",
-    "LSTM",
-    "GRU",
-    "MultiHeadSelfAttention",
-    "Batchnorm",
-    "Layernorm",
-    "Embedding",
     "Dropout",
+    "Embedding",
     "Flatten",
+    "Layernorm",
+    "LeakyReLU",
+    "Linear",
+    "MaxPooling2D",
+    "Module",
+    "Modulelist",
+    "MultiHeadSelfAttention",
+    "Parameter",
+    "ReLU",
     "Reshape",
+    "Sequential",
+    "Sigmoid",
+    "Tanh",
 ]
 
 

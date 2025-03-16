@@ -5,6 +5,7 @@ from typing import Optional, TypeAlias
 import numpy as np
 
 __all__ = [
+    "bool_",
     "float16",
     "float32",
     "float64",
@@ -16,7 +17,6 @@ __all__ = [
     "uint16",
     "uint32",
     "uint64",
-    "bool_",
 ]
 
 DType: TypeAlias = type

@@ -7,21 +7,21 @@ from .backends import Device, DeviceLike, Scalar, select_device
 from .dtypes import DType, int64, is_float, select_dtype
 
 __all__ = [
-    "tensor",
     "arange",
-    "ones",
-    "ones_like",
-    "zeros",
-    "zeros_like",
     "full",
     "full_like",
+    "ones",
+    "ones_like",
     "randi",
     "randi_like",
     "randn",
     "randn_like",
+    "randperm",
     "randu",
     "randu_like",
-    "randperm",
+    "tensor",
+    "zeros",
+    "zeros_like",
 ]
 
 

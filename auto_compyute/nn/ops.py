@@ -180,7 +180,7 @@ class Dilate1D(Op):
 
 
 def _pad_to_shape(xp: ModuleType, x: Array, shape: ShapeLike) -> Array:
-    padding = tuple((int(0), shape[i] - x.shape[i]) for i in range(x.ndim))
+    padding = tuple((0, shape[i] - x.shape[i]) for i in range(x.ndim))
     return xp.pad(x, padding)
 
 
@@ -483,7 +483,7 @@ class Batchnorm(Op):
         eps: float,
         training: bool,
     ) -> Array:
-        b_dims = (0,) + tuple(d for d in range(x.ndim) if d > 1)
+        b_dims = (0, *tuple(d for d in range(x.ndim) if d > 1))
         ext_shape = (1,) * (x.ndim - 2)
         n = x.size / w.size
 

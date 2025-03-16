@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Generator, Iterator
+import typing
 from contextlib import contextmanager
 from typing import Any, Literal, Optional
 
@@ -26,10 +26,14 @@ from .ops import binary_ops as BOps
 from .ops import movement_ops as MOps
 from .ops import reduce_ops as ROps
 from .ops import unary_ops as UOps
-from .ops.op import Op
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Generator, Iterator
+
+    from .ops.op import Op
+
 
 __all__ = ["Tensor", "no_autograd_tracking"]
-
 
 MERMAID_NODE_COLORS = {
     "const": ("#CAEDFB", "#4D93D9"),
@@ -518,7 +522,7 @@ class Tensor:
         pre_dim_slice = (slice(None),) * dim
         post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
         return [
-            self._split(pre_dim_slice + (slice(i, i + split_size),) + post_dim_slice)
+            self._split((*pre_dim_slice, slice(i, i + split_size), *post_dim_slice))
             for i in range(0, self.shape[dim], split_size)
         ]
 
@@ -706,7 +710,7 @@ class Tensor:
         pre_dim_slice = (slice(None),) * dim
         post_dim_slice = (slice(None),) * (self.ndim - dim - 1)
         for i in range(self.shape[dim]):
-            yield self[pre_dim_slice + (i,) + post_dim_slice]
+            yield self[(*pre_dim_slice, i, *post_dim_slice)]
 
     def argmax(self, dim: Optional[Dim] = None, *, keepdims: bool = False) -> Tensor:
         """Returns the index of the maximum value along a specified dimension.
@@ -755,6 +759,9 @@ def tree_dfs(
     if root_node in visited:
         return
     visited.add(root_node)
+    assert root_node.src is not None, (
+        "Node has no src nodes. This might happen if backward was run."
+    )
     for src_node in root_node.src:
         if src_node is not None:
             tree_dfs(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
@@ -819,7 +826,7 @@ def _get_mermaid_node_def(n: Tensor) -> str:
     else:
         op_kwargs = ""
     label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
-    label += f"{node_data}<br>dtype={str(n.dtype)}</small>"
+    label += f"{node_data}<br>dtype={n.dtype!s}</small>"
     return f'{node_id}("{label}")'
 
 
@@ -898,6 +905,6 @@ def _parse_key(key: Any) -> Any:
     return key
 
 
-def _get_shape_diff(shape1: ShapeLike, shape2: ShapeLike) -> Dim:
+def _get_shape_diff(shape1: ShapeLike, shape2: ShapeLike):
     """Returns the dims where two shapes do not match."""
     return tuple(i for i in range(len(shape1)) if shape1[i] != shape2[i])

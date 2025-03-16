@@ -1,10 +1,13 @@
 """Neural network optimizers."""
 
+import typing
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from ..backends import Array
 from .modules import Parameter
+
+if typing.TYPE_CHECKING:
+    from ..backends import Array
 
 
 class Optimizer(ABC):
