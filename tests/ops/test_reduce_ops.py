@@ -2,7 +2,7 @@
 
 import pytest
 
-from ..utils import close, get_random_floats
+from tests.utils import close, get_random_floats
 
 
 def _reduce_function_verify(x, torch_x, y, torch_y):

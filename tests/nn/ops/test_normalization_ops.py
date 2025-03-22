@@ -4,8 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-
-from ...utils import close, get_ones, get_random_floats, get_zeros
+from tests.utils import close, get_ones, get_random_floats, get_zeros
 
 
 def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
@@ -42,9 +41,7 @@ def test_batchnorm(x, w, b, m):
     ac_rmean, torch_rmean = get_zeros((ac_x.shape[1],))
     ac_rvar, torch_rvar = get_ones((ac_x.shape[1],))
     ac_y = F.batchnorm(ac_x, ac_rmean, ac_rvar, ac_w, ac_b, m, 1e-5, True)
-    torch_y = tF.batch_norm(
-        torch_x, torch_rmean, torch_rvar, torch_w, torch_b, True, m, 1e-5
-    )
+    torch_y = tF.batch_norm(torch_x, torch_rmean, torch_rvar, torch_w, torch_b, True, m, 1e-5)
     _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
 
 

@@ -4,8 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-
-from ...utils import close, get_random_floats, get_random_ints
+from tests.utils import close, get_random_floats, get_random_ints
 
 
 def _loss_function_verify(x, torch_x, y, torch_y):
@@ -72,9 +71,7 @@ def test_cross_entropy_loss(x, t, reduction):
 
     ac_y = F.cross_entropy_loss(ac_x, ac_t, reduction=reduction)
     permutation = (0, ac_x.ndim - 1) + tuple(d for d in range(ac_x.ndim - 1) if d > 0)
-    torch_y = tF.cross_entropy(
-        torch_x.permute(*permutation), torch_t, reduction=reduction
-    )
+    torch_y = tF.cross_entropy(torch_x.permute(*permutation), torch_t, reduction=reduction)
     _loss_function_verify(ac_x, torch_x, ac_y, torch_y)
 
 

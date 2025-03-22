@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from ..utils import close, get_random_floats, get_random_positive_floats
+from tests.utils import close, get_random_floats, get_random_positive_floats
 
 
 def _unary_function_verify(x, torch_x, y, torch_y):

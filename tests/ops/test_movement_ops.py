@@ -4,8 +4,7 @@ import pytest
 import torch
 
 import auto_compyute as ac
-
-from ..utils import close, get_random_bools, get_random_floats
+from tests.utils import close, get_random_bools, get_random_floats
 
 
 def _shape_function_verify(x, torch_x, y, torch_y):
@@ -120,9 +119,7 @@ def test_stack(x1, x2, x3, dim):
     ac_x3, torch_x3 = x3
     ac_y = ac.stack(ac_x1, ac_x2, ac_x3, dim=dim)
     torch_y = torch.stack((torch_x1, torch_x2, torch_x3), dim=dim)
-    _combine_function_verify(
-        ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y
-    )
+    _combine_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y)
 
 
 @pytest.mark.parametrize("x1", comb_x1s)
@@ -136,9 +133,7 @@ def test_concat(x1, x2, x3, dim):
     ac_x3, torch_x3 = x3
     ac_y = ac.concat(ac_x1, ac_x2, ac_x3, dim=dim)
     torch_y = torch.concat((torch_x1, torch_x2, torch_x3), dim=dim)
-    _combine_function_verify(
-        ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y
-    )
+    _combine_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_x3, torch_x3, ac_y, torch_y)
 
 
 def _where_function_verify(x, torch_x, y, torch_y, z, torch_z):

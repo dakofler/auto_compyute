@@ -4,8 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-
-from ...utils import close, get_random_floats
+from tests.utils import close, get_random_floats
 
 
 def _conv_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
@@ -103,9 +102,7 @@ def test_conv_transpose2d(x, w, b, stride, padding, output_padding, dilation):
     ac_x, torch_x = x
     ac_w, torch_w = w
     ac_b, torch_b = b
-    ac_y = F.conv_transpose2d(
-        ac_x, ac_w, ac_b, stride, padding, output_padding, dilation
-    )
+    ac_y = F.conv_transpose2d(ac_x, ac_w, ac_b, stride, padding, output_padding, dilation)
     torch_y = tF.conv_transpose2d(
         torch_x,
         torch_w.transpose(0, 1),
