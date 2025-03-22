@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from ..backends import Array
-from .op import Op
+from auto_compyute.backends import Array
+from auto_compyute.ops.op import Op
 
 
 class Sum(Op):

@@ -7,16 +7,16 @@ import typing
 from abc import ABC, abstractmethod
 from typing import Any, Optional, OrderedDict
 
-from ..autograd import Tensor
-from ..tensor_factory import ones, randn, randu, zeros
-from ..tensor_functions import stack
-from . import functional as F
+from auto_compyute.autograd import Tensor
+from auto_compyute.nn import functional as F
+from auto_compyute.tensor_factory import ones, randn, randu, zeros
+from auto_compyute.tensor_functions import stack
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
 
-    from ..backends import Device, DeviceLike, ShapeLike
-    from ..dtypes import DType
+    from auto_compyute.backends import Device, DeviceLike, ShapeLike
+    from auto_compyute.dtypes import DType
 
 
 __all__ = [

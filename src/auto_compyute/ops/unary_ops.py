@@ -1,7 +1,7 @@
 """Unary operations."""
 
-from ..backends import Array, Scalar
-from .op import Op
+from auto_compyute.backends import Array, Scalar
+from auto_compyute.ops.op import Op
 
 
 class Abs(Op):

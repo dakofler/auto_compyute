@@ -2,9 +2,9 @@
 
 from typing import Literal, Optional
 
-from ..autograd import Tensor, _parse_key, apply_op
-from ..dtypes import is_int
-from . import ops as NNOps
+from auto_compyute.autograd import Tensor, _parse_key, apply_op
+from auto_compyute.dtypes import is_int
+from auto_compyute.nn import ops as NNOps
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTIONS

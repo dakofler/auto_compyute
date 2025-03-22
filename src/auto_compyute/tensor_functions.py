@@ -1,10 +1,10 @@
 """Tensor functions."""
 
-from .autograd import Tensor, apply_op
-from .backends import Scalar
-from .dtypes import float32
-from .ops.movement_ops import Concat, Stack, Where
-from .tensor_factory import tensor
+from auto_compyute.autograd import Tensor, apply_op
+from auto_compyute.backends import Scalar
+from auto_compyute.dtypes import float32
+from auto_compyute.ops.movement_ops import Concat, Stack, Where
+from auto_compyute.tensor_factory import tensor
 
 __all__ = ["concat", "stack", "where"]
 

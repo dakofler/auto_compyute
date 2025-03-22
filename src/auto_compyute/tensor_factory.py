@@ -2,9 +2,9 @@
 
 from typing import Any, Optional
 
-from .autograd import Tensor
-from .backends import Device, DeviceLike, Scalar, select_device
-from .dtypes import DType, int64, is_float, select_dtype
+from auto_compyute.autograd import Tensor
+from auto_compyute.backends import Device, DeviceLike, Scalar, select_device
+from auto_compyute.dtypes import DType, int64, is_float, select_dtype
 
 __all__ = [
     "arange",

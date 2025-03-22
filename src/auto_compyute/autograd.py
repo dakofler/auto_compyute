@@ -7,7 +7,7 @@ import typing
 from contextlib import contextmanager
 from typing import Any, Literal, Optional
 
-from .backends import (
+from auto_compyute.backends import (
     Array,
     Device,
     DeviceLike,
@@ -21,11 +21,11 @@ from .backends import (
     numpy,
     parse_device,
 )
-from .dtypes import DType, float32, int32, int64, is_float
-from .ops import binary_ops as BOps
-from .ops import movement_ops as MOps
-from .ops import reduce_ops as ROps
-from .ops import unary_ops as UOps
+from auto_compyute.dtypes import DType, float32, int32, int64, is_float
+from auto_compyute.ops import binary_ops as BOps
+from auto_compyute.ops import movement_ops as MOps
+from auto_compyute.ops import reduce_ops as ROps
+from auto_compyute.ops import unary_ops as UOps
 
 if typing.TYPE_CHECKING:
     from collections.abc import Generator, Iterator

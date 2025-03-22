@@ -1,3 +1,0 @@
-graft compyute
-include pyproject.toml
-global-exclude *.py[cod]

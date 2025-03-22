@@ -20,11 +20,11 @@ The package supports:
 
 import importlib.metadata
 
-from . import nn
-from .autograd import *
-from .backends import *
-from .dtypes import *
-from .tensor_factory import *
-from .tensor_functions import *
+from auto_compyute import nn
+from auto_compyute.autograd import *
+from auto_compyute.backends import *
+from auto_compyute.dtypes import *
+from auto_compyute.tensor_factory import *
+from auto_compyute.tensor_functions import *
 
 __version__ = importlib.metadata.version("auto_compyute")

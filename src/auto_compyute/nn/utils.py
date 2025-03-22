@@ -2,9 +2,9 @@
 
 from collections.abc import Iterator
 
-from ..autograd import Tensor
-from ..backends import Device, DeviceLike
-from ..tensor_factory import arange, randperm
+from auto_compyute.autograd import Tensor
+from auto_compyute.backends import Device, DeviceLike
+from auto_compyute.tensor_factory import arange, randperm
 
 __all__ = ["Dataloader"]
 

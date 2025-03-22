@@ -3,8 +3,8 @@
 from itertools import accumulate
 from typing import Any
 
-from ..backends import Array, ShapeLike
-from .op import Op
+from auto_compyute.backends import Array, ShapeLike
+from auto_compyute.ops.op import Op
 
 
 class Concat(Op):

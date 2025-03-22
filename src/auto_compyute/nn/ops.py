@@ -6,9 +6,9 @@ from typing import Optional
 
 from opt_einsum import contract as einsum  # type: ignore
 
-from ..backends import Array, ShapeLike
-from ..ops.movement_ops import Select
-from ..ops.op import Op
+from auto_compyute.backends import Array, ShapeLike
+from auto_compyute.ops.movement_ops import Select
+from auto_compyute.ops.op import Op
 
 # -------------------------------------------------------------------------------------
 # ACTIVATION FUNCTION OPERATIONS

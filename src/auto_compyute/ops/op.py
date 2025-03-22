@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from types import ModuleType
 from typing import Any, Optional
 
-from ..backends import Array
+from auto_compyute.backends import Array
 
 
 class Op(ABC):

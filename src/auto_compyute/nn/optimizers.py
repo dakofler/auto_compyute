@@ -4,10 +4,10 @@ import typing
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from .modules import Parameter
+from auto_compyute.nn.modules import Parameter
 
 if typing.TYPE_CHECKING:
-    from ..backends import Array
+    from auto_compyute.backends import Array
 
 
 class Optimizer(ABC):
@@ -28,7 +28,7 @@ class Optimizer(ABC):
         self._t = 1
         self._parameters: list[Parameter] = []
 
-        # init state
+        # init optimizer state
         ptrs: set[int] = set()
         for param in parameters:
             if id(param) in ptrs:
