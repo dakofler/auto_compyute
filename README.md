@@ -11,7 +11,7 @@ AutoCompyute is a deep learning library that provides automatic differentiation 
 - Performant computation for both CPU and GPU.
 - A focus on clarity and simplicity.
 
-## Under The Hood
+## Under the Hood
 
 At its core, AutoCompyute features a `Tensor` object for storing data and gradients, and `Op` objects for defining differentiable operations.
 
