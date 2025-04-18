@@ -14,7 +14,7 @@ class Op(ABC):
         xp (ModuleType): The backend used for computations.
     """
 
-    def __init__(self, xp: ModuleType, kwargs: Any) -> None:
+    def __init__(self, xp: ModuleType, kwargs: dict[str, Any]) -> None:
         self.xp = xp
         self.kwargs = kwargs  # for graph visualization
         self._cache: Any = None

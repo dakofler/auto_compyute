@@ -34,3 +34,10 @@ dev = [
 
 [project.urls]
 Repository = "https://github.com/dakofler/auto_compyute"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+ignore = ["F403", "S101"]
+select = ["ARG", "C4", "E", "F", "RUF", "S", "SIM", "TC", "W"]

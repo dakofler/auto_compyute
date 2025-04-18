@@ -123,7 +123,7 @@ class Tensor:
         return self.sub(x)
 
     def __rsub__(self, x: Scalar) -> Tensor:
-        return self.align(x).sub(self)
+        return self.cast_other(x).sub(self)
 
     def __mul__(self, x: Tensor | Scalar) -> Tensor:
         return self.mul(x)
@@ -134,7 +134,7 @@ class Tensor:
         return self.truediv(x)
 
     def __rtruediv__(self, x: Scalar) -> Tensor:
-        return self.align(x).truediv(self)
+        return self.cast_other(x).truediv(self)
 
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.dot(x)
@@ -146,22 +146,22 @@ class Tensor:
         return self.mul(-1)
 
     def __eq__(self, x: Tensor | Scalar) -> Tensor:  # type: ignore
-        return Tensor(self.data == self.align(x).data)
+        return Tensor(self.data == self.cast_other(x).data)
 
     def __neq__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data != self.align(x).data)
+        return Tensor(self.data != self.cast_other(x).data)
 
     def __lt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data < self.align(x).data)
+        return Tensor(self.data < self.cast_other(x).data)
 
     def __gt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data > self.align(x).data)
+        return Tensor(self.data > self.cast_other(x).data)
 
     def __le__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data <= self.align(x).data)
+        return Tensor(self.data <= self.cast_other(x).data)
 
     def __ge__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data >= self.align(x).data)
+        return Tensor(self.data >= self.cast_other(x).data)
 
     def __getitem__(self, key: Any) -> Tensor:
         return self.select(key)
@@ -325,7 +325,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise sum.
         """
-        return apply_op(BOps.Add, self, self.align(x))
+        return apply_op(BOps.Add, self, self.cast_other(x))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise subtraction.
@@ -336,7 +336,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise difference.
         """
-        return apply_op(BOps.Sub, self, self.align(x))
+        return apply_op(BOps.Sub, self, self.cast_other(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise multiplication.
@@ -347,7 +347,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise product.
         """
-        return apply_op(BOps.Mul, self, self.align(x))
+        return apply_op(BOps.Mul, self, self.cast_other(x))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise division.
@@ -358,7 +358,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise quotient.
         """
-        return apply_op(BOps.Div, self, self.align(x))
+        return apply_op(BOps.Div, self, self.cast_other(x))
 
     def dot(self, x: Tensor) -> Tensor:
         """Performs the dot product of the tensors. For higher dimensional tensors it performs
@@ -381,7 +381,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise maximum values.
         """
-        return apply_op(BOps.Maximum, self, self.align(x))
+        return apply_op(BOps.Maximum, self, self.cast_other(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
         """Computes the element-wise minimum.
@@ -392,7 +392,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise minimum values.
         """
-        return apply_op(BOps.Minimum, self, self.align(x))
+        return apply_op(BOps.Minimum, self, self.cast_other(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -676,14 +676,14 @@ class Tensor:
         data = self.device.xp.ascontiguousarray(self.data)
         return Tensor(data, self.ctx, self.src, self.req_grad)
 
-    def align(self, x: Tensor | Scalar) -> Tensor:
-        """Aligns the input to match the tensor's data type.
+    def cast_other(self, x: Tensor | Scalar) -> Tensor:
+        """Casts the input's data type to match self.
 
         Args:
             x (Tensor | Scalar): The input tensor or scalar.
 
         Returns:
-            Tensor: A new tensor with the aligned data type.
+            Tensor: A new tensor with matching data type.
         """
         if isinstance(x, Tensor):
             return x.as_type(self.dtype)
@@ -821,6 +821,7 @@ def _get_mermaid_node_def(n: Tensor) -> str:
     node_name = n.label
     node_data = str(n.shape).replace("shape", "shape=")
     if n.ctx is not None:
+        # exclue select ops key
         op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
         op_kwargs = ", ".join(op_kwargs)
     else:

@@ -70,7 +70,7 @@ def test_cross_entropy_loss(x, t, reduction):
         return
 
     ac_y = F.cross_entropy_loss(ac_x, ac_t, reduction=reduction)
-    permutation = (0, ac_x.ndim - 1) + tuple(d for d in range(ac_x.ndim - 1) if d > 0)
+    permutation = (0, ac_x.ndim - 1, *tuple(d for d in range(ac_x.ndim - 1) if d > 0))
     torch_y = tF.cross_entropy(torch_x.permute(*permutation), torch_t, reduction=reduction)
     _loss_function_verify(ac_x, torch_x, ac_y, torch_y)
 

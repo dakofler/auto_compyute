@@ -27,4 +27,5 @@ from auto_compyute.dtypes import *
 from auto_compyute.tensor_factory import *
 from auto_compyute.tensor_functions import *
 
+__all__ = ["nn"]
 __version__ = importlib.metadata.version("auto_compyute")
