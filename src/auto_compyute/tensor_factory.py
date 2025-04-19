@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from auto_compyute.autograd import Tensor
 from auto_compyute.backends import Device, DeviceLike, Scalar, select_device
-from auto_compyute.dtypes import DType, int64, is_float, select_dtype
+from auto_compyute.dtypes import DType, int64, select_dtype
 
 __all__ = [
     "arange",
@@ -55,7 +55,6 @@ def tensor(
     device, _ = _parse_factory_kwargs(device, dtype)
     with device:
         data = device.xp.asarray(data, dtype)
-    assert not req_grad or is_float(data.dtype), "Tensors that req. grad must be float."
     return Tensor(data, req_grad=req_grad)
 
 

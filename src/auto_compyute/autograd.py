@@ -64,6 +64,8 @@ class Tensor:
         req_grad: bool = False,
         label: Optional[str] = None,
     ) -> None:
+        assert not req_grad or is_float(data.dtype), "Tensors that req. grad must be float."
+
         self.data = data
         self.ctx = ctx
         self.src = src if src is not None else ()
@@ -816,19 +818,21 @@ def no_autograd_tracking() -> Generator:
         _set_autograd_tracking_mode(True)
 
 
-def _get_mermaid_node_def(n: Tensor) -> str:
-    node_id = str(id(n))
-    node_name = n.label
-    node_data = str(n.shape).replace("shape", "shape=")
-    if n.ctx is not None:
+def _get_mermaid_node_def(node: Tensor) -> str:
+    node_id = str(id(node))
+    node_name = node.label
+    node_data_shape = str(node.shape).replace("shape", "")
+    if node.ctx is not None:
         # exclue select ops key
-        op_kwargs = [f"{k}={v}" for k, v in n.ctx.kwargs.items() if k != "key"]
-        op_kwargs = ", ".join(op_kwargs)
+        node_op_kwargs = ", ".join(f"{k}={v}" for k, v in node.ctx.kwargs.items() if k != "key")
     else:
-        op_kwargs = ""
-    label = f"<b>{node_name}</b><br><small>kwargs=({op_kwargs})<br>"
-    label += f"{node_data}<br>dtype={n.dtype!s}</small>"
-    return f'{node_id}("{label}")'
+        node_op_kwargs = ""
+
+    node_label = f"<b>{node_name}</b><br>"
+    node_label += f"<small>kwargs: {node_op_kwargs}<br>"
+    node_label += f"shape: {node_data_shape}<br>"
+    node_label += f"dtype: {node.dtype!s}</small>"
+    return f'{node_id}("{node_label}")'
 
 
 def _get_mermaid_node_style(n: Tensor) -> str:
