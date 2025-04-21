@@ -63,11 +63,12 @@ You can create a tensor from raw data or use a factory function to fill a tensor
 ```Python
 import auto_compyute as ac
 
-# randn creates a tensor with values drawn from a standard normal distribution.
+# creates 2x3 matrices with values drawn from a normal distribution.
 x1 = ac.randn(2, 3, req_grad=True)
 x2 = ac.randn(2, 3, req_grad=True)
 x3 = ac.randn(2, 3, req_grad=True)
 
+# do some computation
 y = x1 ** 2 + 4 * x2 + x3 + 10
 y
 ```
@@ -76,7 +77,7 @@ Tensor([[13.8923, 11.5502,  5.2445],
         [15.6469, 18.8092, 16.2810]], dtype=float32, device=cpu, grad_fn=Add)
 ```
 
-The computational graph can also be visualized using the `mermaid-python` package.
+Because the tensors require gradients, when the expression is evaluated, a computational graph is created. It can be visualized (requires the the `mermaid-python` package).
 
 ```Python
 ac.autograd.draw_graph(y)
