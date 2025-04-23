@@ -622,14 +622,12 @@ class Tensor:
             Tensor: A new tensor on the specified device.
         """
         device = parse_device(device)
-        if device == self.device:
-            return self
-        data = move_to_device(self.data, device)
+        data = self.data if device == self.device else move_to_device(self.data, device)
         if self.req_grad:
-            arr = Tensor(data, self.ctx, self.src, self.req_grad)
+            tensor = Tensor(data, self.ctx, self.src, self.req_grad)
             if self.grad is not None:
-                arr.grad = move_to_device(self.grad, device)
-            return arr
+                tensor.grad = move_to_device(self.grad, device)
+            return tensor
         return Tensor(data)
 
     def cpu(self) -> Tensor:

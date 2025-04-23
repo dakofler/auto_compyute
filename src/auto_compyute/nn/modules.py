@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import typing
 from abc import ABC, abstractmethod
-from typing import Any, Optional, OrderedDict
+from typing import Any, Optional, OrderedDict, TypeAlias
 
 from auto_compyute.autograd import Tensor
 from auto_compyute.nn import functional as F
@@ -80,9 +80,9 @@ class Module(ABC):
 
     def __init__(self) -> None:
         self._training = True
-        self._parameters: OrderedDict[str, Parameter] = OrderedDict()
-        self._buffers: OrderedDict[str, Buffer] = OrderedDict()
-        self._modules: OrderedDict[str, Module] = OrderedDict()
+        self._parameters = ParameterDict()
+        self._buffers = BufferDict()
+        self._modules = ModuleDict()
 
     @property
     def device(self) -> Device:
@@ -242,6 +242,51 @@ class Module(ABC):
 
         return self
 
+    def _get_ptr_state_dict(self) -> StateDict:
+        """Returns a state dict containing pointers to module parameters and buffers."""
+        # get states
+        state_dict = self._parameters.copy()
+        state_dict.update(self._buffers)
+
+        # get states from child modules
+        for module_key, module in self._modules.items():
+            module_dict = module._get_ptr_state_dict()
+            module_dict = {module_key + "." + k: v for k, v in module_dict.items()}
+            state_dict.update(module_dict)
+
+        return state_dict
+
+    def get_state_dict(self) -> StateDict:
+        """Returns a state dict containing module parameters and buffers.
+
+        Returns:
+            StateDict: State dict containing parameters and buffers.
+        """
+        # always return state tensors on cpu
+        return OrderedDict({k: v.cpu() for k, v in self._get_ptr_state_dict().items()})
+
+    def load_state_dict(
+        self, state_dict: StateDict, target_device: Optional[Device] = "cpu"
+    ) -> None:
+        """Loads the module state from a state dict.
+
+        Args:
+            state_dict (StateDict): State dict containing parameters and buffers.
+            target_device (Device, optional): Device to move the parameters and buffers to.
+                Defaults to `cpu`.
+        """
+        for (k1, v1), (k2, v2) in zip(self._get_ptr_state_dict().items(), state_dict.items()):
+            if k1 != k2:
+                raise ValueError(f"State dict key mismatch: {k1},  {k2}")
+            v2_on_target_device = v2.to(target_device)
+            v1.data, v1.grad = v2_on_target_device.data, v2_on_target_device.grad
+
+
+ParameterDict: TypeAlias = OrderedDict[str, Parameter]
+BufferDict: TypeAlias = OrderedDict[str, Buffer]
+ModuleDict: TypeAlias = OrderedDict[str, Module]
+StateDict: TypeAlias = OrderedDict[str, Tensor]
+
 
 def _is_repr_attr(key: str, value: Any) -> bool:
     return not key.startswith("_") and not isinstance(value, (Tensor, Module))
@@ -268,10 +313,11 @@ class Sequential(Module):
 
     def __init__(self, *layers: Module) -> None:
         super().__init__()
-        self.layers = Modulelist(layers)
+        indices = [str(i) for i in range(len(layers))]
+        self._modules = ModuleDict(list(zip(indices, layers)))
 
     def forward(self, x: Tensor) -> Tensor:  # type: ignore
-        for layer in self.layers:
+        for layer in self.modules(recursive=False):
             x = layer(x)
         return x
 
