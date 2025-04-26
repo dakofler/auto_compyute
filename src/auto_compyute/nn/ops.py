@@ -434,31 +434,39 @@ class ScaledDotProductAttention(Op):
         attn = q @ k.swapaxes(-1, -2) / math.sqrt(head_size)  # q @ k.T / scale
         if attn_mask is not None:
             attn += attn_mask[:seq_len, :seq_len]
+
         attn_weights = _softmax_fwd(self.xp, attn, dim=-1)
+
         if dropout_p > 0:
             drop_mask = _dropout_mask(self.xp, attn.shape, dropout_p)
-            attn_weights = _dropout_fwd(attn_weights, drop_mask, dropout_p)
-        y = attn_weights @ v
+            attn_weights_drop = _dropout_fwd(attn_weights, drop_mask, dropout_p)
+            y = attn_weights_drop @ v
+            self.save_to_cache(q, k, v, attn_weights, attn_weights_drop, dropout_p, drop_mask)
+        else:
+            y = attn_weights @ v
+            self.save_to_cache(q, k, v, attn_weights, None, 0.0, None)
 
-        self.save_to_cache(q, k, v, attn_weights, dropout_p)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        q, k, v, attn_weights, dropout_p = self.retrieve_from_cache()
+        q, k, v, attn_weights, attn_weights_drop, dropout_p, drop_mask = self.retrieve_from_cache()
         head_size = q.shape[-1]
 
         # attention gradients
         dattn_weights = dy @ v.swapaxes(-1, -2)  # dy @ v.T
+
         if dropout_p > 0:
-            drop_mask = attn_weights != 0
             dattn_weights = _dropout_bwd(dattn_weights, drop_mask, dropout_p)
-        dattn = _softmax_bwd(attn_weights, dattn_weights, -1)
+
+        dattn = _softmax_bwd(attn_weights, dattn_weights, dim=-1)
         dattn /= math.sqrt(head_size)
 
         # query, key, value gradients
         dq = dattn @ k
         dk = dattn.swapaxes(-1, -2) @ q  # dattn.T @ q
-        dv = attn_weights.swapaxes(-1, -2) @ dy  # attn_weights.T @ dy
+
+        attn_weights_used = attn_weights_drop if dropout_p > 0 else attn_weights
+        dv = attn_weights_used.swapaxes(-1, -2) @ dy  # attn_weights.T @ dy
 
         return dq, dk, dv, None
 
