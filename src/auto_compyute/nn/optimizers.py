@@ -134,7 +134,7 @@ class Adam(Optimizer):
             grad = param.grad
             state["m"] = m = state.get("m", 0) * self.beta1 + grad * (1 - self.beta1)
             state["v"] = v = state.get("v", 0) * self.beta2 + grad**2 * (1 - self.beta2)
-            param.data -= self.learning_rate * (m / m_div) / (v**0.5 / v_div + self.eps)
+            param.data -= self.learning_rate * (m / m_div) / ((v / v_div) ** 0.5 + self.eps)
 
         self._t += 1
 
@@ -190,6 +190,6 @@ class AdamW(Optimizer):
             grad = param.grad
             state["m"] = m = state.get("m", 0) * self.beta1 + grad * (1 - self.beta1)
             state["v"] = v = state.get("v", 0) * self.beta2 + grad**2 * (1 - self.beta2)
-            param.data -= self.learning_rate * (m / m_div) / (v**0.5 / v_div + self.eps)
+            param.data -= self.learning_rate * (m / m_div) / ((v / v_div) ** 0.5 + self.eps)
 
         self._t += 1
