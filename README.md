@@ -40,17 +40,16 @@ The `Op` object represents a differentiable operation applied to tensors. Each o
 ## Installation
 
 1. Clone or download the repo
-
 2. Install it with `pip`
 
 CPU:
 ```bash
-pip install .
+pip3 install .
 ```
 
 GPU (uses CuPy, make sure to install the CUDA libraries beforehand, see the [CuPy docs](https://docs.cupy.dev/en/stable/install.html)):
 ```bash
-pip install .[cuda]
+pip3 install .[cuda]
 ```
 
 ## Usage
@@ -115,13 +114,24 @@ ac.autograd.draw_graph(y) # the constructed graph can be visualized
 And that's all you need to build all sorts of models.
 
 ## Examples
-see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples)
+see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples).
 
 ## Author
 Daniel Kofler - [dkofler@outlook.com](mailto:dkofler@outlook.com)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
+
+## Citation
+```
+@misc{kofler2025auto,
+  author       = {Kofler, Daniel},
+  howpublished = {\url{https://github.com/dakofler/auto_compyute}},
+  note         = {Version 0.1.0},
+  title        = {Auto Compyute},
+  year         = {2025}
+}
+```
 
 ## Final Notes
 This project is an extension of my previously developed library [Compyute](https://github.com/dakofler/compyute) which did not feature automatic differentiation. This made it hard and time consuming to implement new models. I use this new project to dive deeper into the idea of autograd and learn as I go. The code is therefore by far not perfect. If you have any suggestions or find any bugs, please don't hesitate to contact me.
