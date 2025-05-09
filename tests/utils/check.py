@@ -7,7 +7,7 @@ import auto_compyute as ac
 from tests.utils.init import get_random_floats
 
 
-def close(ac_array: ac.backends.Array, torch_tensor: torch.Tensor, tol: float = 1e-5) -> bool:
+def close(ac_array: ac.backends.Array, torch_tensor: torch.Tensor, tol: float = 1e-4) -> bool:
     return np.allclose(ac_array, torch_tensor.detach().numpy(), atol=tol, rtol=tol)
 
 

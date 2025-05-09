@@ -13,16 +13,25 @@ def get_unary_test_func(func_name: str) -> Callable[[Any], None]:
 
     def _test(x: tuple[ac.Tensor, torch.Tensor], *args, **kwargs: Any) -> None:
         ac_x, torch_x = x
-        ac_y = (
-            getattr(ac_x, func_name)(*args, **kwargs)
-            if hasattr(ac_x, func_name)
-            else getattr(ac, func_name)(ac_x, *args, **kwargs)
-        )
-        torch_y = (
-            getattr(torch_x, func_name)(*args, **kwargs)
-            if hasattr(torch_x, func_name)
-            else getattr(torch, func_name)(torch_x, *args, **kwargs)
-        )
+
+        if hasattr(ac_x, func_name):
+            ac_y = getattr(ac_x, func_name)(*args, **kwargs)
+        elif hasattr(ac.nn.functional, func_name):
+            ac_y = getattr(ac.nn.functional, func_name)(ac_x, *args, **kwargs)
+        elif hasattr(ac, func_name):
+            ac_y = getattr(ac, func_name)(ac_x, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
+
+        if hasattr(torch_x, func_name):
+            torch_y = getattr(torch_x, func_name)(*args, **kwargs)
+        elif hasattr(torch.nn.functional, func_name):
+            torch_y = getattr(torch.nn.functional, func_name)(torch_x, *args, **kwargs)
+        elif hasattr(torch, func_name):
+            torch_y = getattr(torch, func_name)(torch_x, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
+
         single_input_op_check(ac_x, ac_y, torch_x, torch_y)
 
     return _test
@@ -38,16 +47,25 @@ def get_binary_test_func(func_name: str) -> Callable[[Any], None]:
         **kwargs: Any,
     ) -> None:
         (ac_x_1, torch_x_1), (ac_x_2, torch_x_2) = x_1, x_2
-        ac_y = (
-            getattr(ac_x_1, func_name)(ac_x_2, *args, **kwargs)
-            if hasattr(ac_x_1, func_name)
-            else getattr(ac, func_name)(ac_x_1, ac_x_2, *args, **kwargs)
-        )
-        torch_y = (
-            getattr(torch_x_1, func_name)(torch_x_2, *args, **kwargs)
-            if hasattr(torch_x_1, func_name)
-            else getattr(torch, func_name)(torch_x_1, torch_x_2, *args, **kwargs)
-        )
+
+        if hasattr(ac_x_1, func_name):
+            ac_y = getattr(ac_x_1, func_name)(ac_x_2, *args, **kwargs)
+        elif hasattr(ac.nn.functional, func_name):
+            ac_y = getattr(ac.nn.functional, func_name)(ac_x_1, ac_x_2, *args, **kwargs)
+        elif hasattr(ac, func_name):
+            ac_y = getattr(ac, func_name)(ac_x_1, ac_x_2, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
+
+        if hasattr(torch_x_1, func_name):
+            torch_y = getattr(torch_x_1, func_name)(torch_x_2, *args, **kwargs)
+        elif hasattr(torch.nn.functional, func_name):
+            torch_y = getattr(torch.nn.functional, func_name)(torch_x_1, torch_x_2, *args, **kwargs)
+        elif hasattr(torch, func_name):
+            torch_y = getattr(torch, func_name)(torch_x_1, torch_x_2, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
+
         dual_input_op_check(ac_x_1, ac_x_2, ac_y, torch_x_1, torch_x_2, torch_y)
 
     return _test
@@ -65,13 +83,29 @@ def get_tertiary_test_func(func_name: str) -> Callable[[Any], None]:
     ) -> None:
         (ac_x_1, torch_x_1), (ac_x_2, torch_x_2), (ac_x_3, torch_x_3) = x_1, x_2, x_3
 
-        ac_x = (ac_x_1, ac_x_2, ac_x_3)
-        ac_y = getattr(ac, func_name)(*ac_x, *args, **kwargs)
+        if hasattr(ac_x_1, func_name):
+            ac_y = getattr(ac_x_1, func_name)(ac_x_2, ac_x_3, *args, **kwargs)
+        elif hasattr(ac.nn.functional, func_name):
+            ac_y = getattr(ac.nn.functional, func_name)(ac_x_1, ac_x_2, ac_x_3, *args, **kwargs)
+        elif hasattr(ac, func_name):
+            ac_y = getattr(ac, func_name)(ac_x_1, ac_x_2, ac_x_3, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
 
-        torch_x = (torch_x_1, torch_x_2, torch_x_3)
-        torch_y = getattr(torch, func_name)(torch_x, *args, **kwargs)
+        if hasattr(torch_x_1, func_name):
+            torch_y = getattr(torch_x_1, func_name)(torch_x_2, torch_x_3, *args, **kwargs)
+        elif hasattr(torch.nn.functional, func_name):
+            torch_y = getattr(torch.nn.functional, func_name)(
+                torch_x_1, torch_x_2, torch_x_3, *args, **kwargs
+            )
+        elif hasattr(torch, func_name):
+            torch_y = getattr(torch, func_name)(torch_x_1, torch_x_2, torch_x_3, *args, **kwargs)
+        else:
+            raise AttributeError("Unknown function.")
 
-        triple_input_op_check(*ac_x, ac_y, *torch_x, torch_y)
+        triple_input_op_check(
+            ac_x_1, ac_x_2, ac_x_3, ac_y, torch_x_1, torch_x_2, torch_x_3, torch_y
+        )
 
     return _test
 

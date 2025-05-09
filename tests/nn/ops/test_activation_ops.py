@@ -1,72 +1,44 @@
 """Tests for activation function operations."""
 
 import pytest
-import torch.nn.functional as tF
+import torch
 
-import auto_compyute.nn.functional as F
-from tests.utils.init import close, get_random_floats
+import auto_compyute as ac
+from tests.utils.check import single_input_op_check
+from tests.utils.init import get_random_floats
+from tests.utils.test_factory import get_unary_test_func
 
-
-def _unary_function_verify(x, torch_x, y, torch_y):
-    assert close(y.data, torch_y)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(x.grad, torch_x.grad)
-
-
-ac_x1, torch_x1 = get_random_floats((10, 20))
-xs = ((ac_x1, torch_x1),)
+IN_SHAPES = ((10, 20), (10, 20, 30))
+RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in IN_SHAPES)
+LEAKY_RELU_ALPHAS = (0.1, 0.2)
+SOFTMAX_DIMS = (0, 1)
 
 
-@pytest.mark.parametrize("x", xs)
-def test_gelu(x):
-    """GELU function test"""
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_gelu(x: tuple[ac.Tensor, torch.Tensor]) -> None:
     ac_x, torch_x = x
-    ac_y = F.gelu(ac_x)
-    torch_y = tF.gelu(torch_x, approximate="tanh")
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+    ac_y = ac.nn.functional.gelu(ac_x)
+    torch_y = torch.nn.functional.gelu(torch_x, approximate="tanh")
+    single_input_op_check(ac_x, ac_y, torch_x, torch_y)
 
 
-@pytest.mark.parametrize("x", xs)
-def test_relu(x):
-    """ReLU function test"""
-    ac_x, torch_x = x
-    ac_y = F.relu(ac_x)
-    torch_y = tF.relu(torch_x)
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_relu(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("relu")(x)
 
 
-alphas = (0.1, 0.2)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("alpha", LEAKY_RELU_ALPHAS)
+def test_leaky_relu(x: tuple[ac.Tensor, torch.Tensor], alpha: float) -> None:
+    get_unary_test_func("leaky_relu")(x, alpha)
 
 
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("alpha", alphas)
-def test_leaky_relu(x, alpha):
-    """Leaky ReLU function test"""
-    ac_x, torch_x = x
-    ac_y = F.leaky_relu(ac_x, alpha)
-    torch_y = tF.leaky_relu(torch_x, alpha)
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_sigmoid(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("sigmoid")(x)
 
 
-@pytest.mark.parametrize("x", xs)
-def test_sigmoid(x):
-    """Sigmoid function test"""
-    ac_x, torch_x = x
-    ac_y = F.sigmoid(ac_x)
-    torch_y = tF.sigmoid(torch_x)
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
-
-
-dims = (0, 1)
-
-
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("dim", dims)
-def test_softmax(x, dim):
-    """Softmax function test"""
-    ac_x, torch_x = x
-    ac_y = F.softmax(ac_x, dim=dim)
-    torch_y = tF.softmax(torch_x, dim)
-    _unary_function_verify(ac_x, torch_x, ac_y, torch_y)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("dim", SOFTMAX_DIMS)
+def test_softmax(x: tuple[ac.Tensor, torch.Tensor], dim: int) -> None:
+    get_unary_test_func("softmax")(x, dim=dim)
