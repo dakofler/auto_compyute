@@ -1,54 +1,49 @@
 """Tests for unary operations."""
 
-from typing import Any, Callable
-
 import pytest
 import torch
 
 import auto_compyute as ac
-from tests.utils.check import single_input_op_check
 from tests.utils.init import get_random_floats, get_random_positive_floats
+from tests.utils.test_factory import get_unary_test_func
 
-SHAPES = ((10, 20), (10, 20, 30))
-FLOAT_IN_TENSORS = tuple(get_random_floats(shape) for shape in SHAPES)
-POSITIVE_FLOAT_IN_TENSORS = tuple(get_random_positive_floats(shape) for shape in SHAPES)
-
-
-def _get_unary_test_func(func_name: str) -> Callable[[Any], None]:
-    def _test(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-        ac_in_tensor, torch_in_tensor = in_tensors
-        ac_out_tensor = getattr(ac_in_tensor, func_name)()
-        torch_out_tensor = getattr(torch, func_name)(torch_in_tensor)
-        single_input_op_check(ac_in_tensor, ac_out_tensor, torch_in_tensor, torch_out_tensor)
-
-    return _test
+IN_SHAPES = ((10, 20), (10, 20, 30))
+RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in IN_SHAPES)
+RANDOM_POSITIVE_FLOAT_TENSORS = tuple(get_random_positive_floats(shape) for shape in IN_SHAPES)
+POW_EXPONENTS = (2.0, 0.5, -0.5)
 
 
-@pytest.mark.parametrize("in_tensors", FLOAT_IN_TENSORS)
-def test_abs(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("abs")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_abs(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("abs")(x)
 
 
-@pytest.mark.parametrize("in_tensors", FLOAT_IN_TENSORS)
-def test_exp(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("exp")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_exp(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("exp")(x)
 
 
-@pytest.mark.parametrize("in_tensors", POSITIVE_FLOAT_IN_TENSORS)
-def test_sqrt(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("sqrt")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_POSITIVE_FLOAT_TENSORS)
+@pytest.mark.parametrize("exponent", POW_EXPONENTS)
+def test_pow(x: tuple[ac.Tensor, torch.Tensor], exponent: float) -> None:
+    get_unary_test_func("pow")(x, exponent)
 
 
-@pytest.mark.parametrize("in_tensors", FLOAT_IN_TENSORS)
-def test_tanh(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("tanh")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_POSITIVE_FLOAT_TENSORS)
+def test_sqrt(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("sqrt")(x)
 
 
-@pytest.mark.parametrize("in_tensors", FLOAT_IN_TENSORS)
-def test_tril(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("tril")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_tanh(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("tanh")(x)
 
 
-@pytest.mark.parametrize("in_tensors", FLOAT_IN_TENSORS)
-def test_triu(in_tensors: tuple[ac.Tensor, torch.Tensor]) -> None:
-    _get_unary_test_func("triu")(in_tensors)
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_tril(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("tril")(x)
+
+
+@pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
+def test_triu(x: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_unary_test_func("triu")(x)

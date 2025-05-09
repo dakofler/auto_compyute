@@ -68,7 +68,7 @@ class Tensor:
 
         self.data = data
         self.ctx = ctx
-        self.src = src if src is not None else ()
+        self.src = src or ()
         self.req_grad = req_grad
         self._label = label
         self.grad: Optional[Array] = None

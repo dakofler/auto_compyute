@@ -12,44 +12,56 @@ def close(ac_array: ac.backends.Array, torch_tensor: torch.Tensor, tol: float = 
 
 
 def single_input_op_check(
-    ac_in_tensor: ac.Tensor,
-    ac_out_tensor: ac.Tensor,
-    torch_in_tensor: torch.Tensor,
-    torch_out_tensor: torch.Tensor,
+    ac_x: ac.Tensor, ac_y: ac.Tensor, torch_x: torch.Tensor, torch_y: torch.Tensor
 ) -> None:
-    # check out
-    assert close(ac_out_tensor.numpy(), torch_out_tensor)
-
-    # compute gradients
-    ac_out_tensor_grad, torch_out_tensor_grad = get_random_floats(
-        ac_out_tensor.shape, req_grad=False
-    )
-    ac_out_tensor.backward(ac_out_tensor_grad.data)
-    torch_out_tensor.backward(torch_out_tensor_grad)
-
-    # check gradients
-    assert close(ac_in_tensor.grad, torch_in_tensor.grad)
+    assert close(ac_y.numpy(), torch_y)
+    if not ac_y.req_grad:
+        return
+    ac_y_grad, torch_y_grad = get_random_floats(ac_y.shape, False)
+    ac_y.backward(ac_y_grad.data)
+    torch_y.backward(torch_y_grad)
+    assert close(ac_x.grad, torch_x.grad)
 
 
 def dual_input_op_check(
-    ac_in_tensor1: ac.Tensor,
-    ac_in_tensor2: ac.Tensor,
-    ac_out_tensor: ac.Tensor,
-    torch_in_tensor1: torch.Tensor,
-    torch_in_tensor2: torch.Tensor,
-    torch_out_tensor: torch.Tensor,
+    ac_x_1: ac.Tensor,
+    ac_x_2: ac.Tensor,
+    ac_y: ac.Tensor,
+    torch_x_1: torch.Tensor,
+    torch_x_2: torch.Tensor,
+    torch_y: torch.Tensor,
 ) -> None:
-    # check out
-    assert close(ac_out_tensor.numpy(), torch_out_tensor)
+    assert close(ac_y.numpy(), torch_y)
+    if not ac_y.req_grad:
+        return
+    ac_y_grad, torch_y_grad = get_random_floats(ac_y.shape, False)
+    ac_y.backward(ac_y_grad.data)
+    torch_y.backward(torch_y_grad)
+    if isinstance(ac_x_1, ac.Tensor):
+        assert close(ac_x_1.grad, torch_x_1.grad)
+    if isinstance(ac_x_2, ac.Tensor):
+        assert close(ac_x_2.grad, torch_x_2.grad)
 
-    # compute gradients
-    ac_out_tensor_grad, torch_out_tensor_grad = get_random_floats(
-        ac_out_tensor.shape, req_grad=False
-    )
-    ac_out_tensor.backward(ac_out_tensor_grad.data)
-    torch_out_tensor.backward(torch_out_tensor_grad)
 
-    # check gradients
-    assert close(ac_in_tensor1.grad, torch_in_tensor1.grad)
-    if isinstance(ac_in_tensor2, ac.Tensor):
-        assert close(ac_in_tensor2.grad, torch_in_tensor2.grad)
+def triple_input_op_check(
+    ac_x_1: ac.Tensor,
+    ac_x_2: ac.Tensor,
+    ac_x_3: ac.Tensor,
+    ac_y: ac.Tensor,
+    torch_x_1: torch.Tensor,
+    torch_x_2: torch.Tensor,
+    torch_x_3: torch.Tensor,
+    torch_y: torch.Tensor,
+) -> None:
+    assert close(ac_y.numpy(), torch_y)
+    if not ac_y.req_grad:
+        return
+    ac_y_grad, torch_y_grad = get_random_floats(ac_y.shape, False)
+    ac_y.backward(ac_y_grad.data)
+    torch_y.backward(torch_y_grad)
+    if isinstance(ac_x_1, ac.Tensor):
+        assert close(ac_x_1.grad, torch_x_1.grad)
+    if isinstance(ac_x_2, ac.Tensor):
+        assert close(ac_x_2.grad, torch_x_2.grad)
+    if isinstance(ac_x_3, ac.Tensor):
+        assert close(ac_x_3.grad, torch_x_3.grad)
