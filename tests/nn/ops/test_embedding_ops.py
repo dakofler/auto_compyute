@@ -4,7 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-from tests.utils import close, get_random_floats, get_random_ints
+from tests.utils.init import close, get_random_floats, get_random_ints
 
 
 def _emb_function_verify(w, torch_w, y, torch_y):

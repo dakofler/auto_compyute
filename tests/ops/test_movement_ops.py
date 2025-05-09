@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import auto_compyute as ac
-from tests.utils import close, get_random_bools, get_random_floats
+from tests.utils.init import close, get_random_bools, get_random_floats
 
 
 def _shape_function_verify(x, torch_x, y, torch_y):

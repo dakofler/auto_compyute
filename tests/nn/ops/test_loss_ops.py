@@ -4,7 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-from tests.utils import close, get_random_floats, get_random_ints
+from tests.utils.init import close, get_random_floats, get_random_ints
 
 
 def _loss_function_verify(x, torch_x, y, torch_y):

@@ -4,7 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-from tests.utils import close, get_ones, get_random_floats, get_zeros
+from tests.utils.init import close, get_ones, get_random_floats, get_zeros
 
 
 def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):

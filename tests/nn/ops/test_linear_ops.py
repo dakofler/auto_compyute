@@ -4,7 +4,7 @@ import pytest
 import torch.nn.functional as tF
 
 import auto_compyute.nn.functional as F
-from tests.utils import close, get_random_floats
+from tests.utils.init import close, get_random_floats
 
 
 def _linear_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):

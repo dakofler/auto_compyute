@@ -6,7 +6,7 @@ import torch.nn.functional as tF
 
 import auto_compyute as ac
 import auto_compyute.nn.functional as F
-from tests.utils import close, get_random_floats
+from tests.utils.init import close, get_random_floats
 
 
 def _attn_function_verify(q, torch_q, k, torch_k, v, torch_v, y, torch_y):

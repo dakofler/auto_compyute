@@ -3,18 +3,8 @@
 import pytest
 import torch
 
-from tests.utils import close, get_random_floats
-
-
-def _binary_function_verify(x1, torch_x1, x2, torch_x2, y, torch_y):
-    assert close(y.data, torch_y)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(x1.grad, torch_x1.grad)
-    if not isinstance(x2, float):
-        assert close(x2.grad, torch_x2.grad)
-
+from tests.utils.check import dual_input_op_check
+from tests.utils.init import get_random_floats
 
 ac_x11, torch_x11 = get_random_floats((10, 20))
 x1s = ((ac_x11, torch_x11),)
@@ -33,7 +23,7 @@ def test_add(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1 + ac_x2
     torch_y = torch_x1 + torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 @pytest.mark.parametrize("x1", x1s)
@@ -44,7 +34,7 @@ def test_sub(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1 - ac_x2
     torch_y = torch_x1 - torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 @pytest.mark.parametrize("x1", x1s)
@@ -55,7 +45,7 @@ def test_mul(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1 * ac_x2
     torch_y = torch_x1 * torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 @pytest.mark.parametrize("x1", x1s)
@@ -66,7 +56,7 @@ def test_truediv(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1 / ac_x2
     torch_y = torch_x1 / torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 mm_ac_x11, mm_torch_x11 = get_random_floats((10, 20))
@@ -85,7 +75,7 @@ def test_matmul(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1 @ ac_x2
     torch_y = torch_x1 @ torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 pow_ac_x11, pow_torch_x11 = get_random_floats((20,))
@@ -107,7 +97,7 @@ def test_pow(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1**ac_x2
     torch_y = torch_x1**torch_x2
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 min_ac_x11, min_torch_x11 = get_random_floats((20,))
@@ -135,7 +125,7 @@ def test_minimum(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1.minimum(ac_x2)
     torch_y = torch.minimum(torch_x1, torch_x2)
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
 
 
 @pytest.mark.parametrize("x1", min_x1s)
@@ -146,4 +136,4 @@ def test_maximum(x1, x2):
     ac_x2, torch_x2 = x2
     ac_y = ac_x1.maximum(ac_x2)
     torch_y = torch.maximum(torch_x1, torch_x2)
-    _binary_function_verify(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
+    dual_input_op_check(ac_x1, torch_x1, ac_x2, torch_x2, ac_y, torch_y)
