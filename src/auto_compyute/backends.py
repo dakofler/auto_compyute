@@ -5,7 +5,7 @@ from typing import Any, Optional, TypeAlias
 
 import numpy  # type: ignore
 
-__all__ = ["Device", "set_random_seed"]
+__all__ = ["Device", "get_available_devices", "gpu_available", "set_random_seed"]
 
 
 # -------------------------------------------------------------------------------------

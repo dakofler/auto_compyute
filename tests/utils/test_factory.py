@@ -1,7 +1,7 @@
 """Test factory functions."""
 
 from types import ModuleType
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import torch
 
@@ -29,7 +29,7 @@ def _get_func_result(module: ModuleType, func_name: str, *args: Any, **kwargs: A
 
 
 def get_op_test(
-    ac_func_name: str, torch_func_name: str | None = None, tol: float = DEFAULT_TOL
+    ac_func_name: str, torch_func_name: Optional[str] = None, tol: float = DEFAULT_TOL
 ) -> Callable[[Any], None]:
     """Returns a test function for one input tensor."""
     torch_func_name = torch_func_name or ac_func_name
