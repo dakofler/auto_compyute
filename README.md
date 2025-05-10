@@ -85,7 +85,17 @@ ac.viz.draw_graph(y)
 
 By defining a bunch of `Ops` this forms a basic framework, that allows you to build and train most machine learning models easily.
 
-AutoCompyute also offers a module base class for holding the state of a neural network layer (parameters, buffers, etc.). To create your own modules, simply inherit from the `auto_compyute.nn.Module` base class, make sure to call `super().__init__()` in your init method and implement a `forward()` method. The rest is up to you.
+AutoCompyute also offers the `auto_compyute.nn.Module` base class for holding the state of a neural network layer (parameters, buffers, etc.). Already implemented modules in `auto_compyute.nn` include:
+- Activation Functions (ReLU, GELU, ...)
+- Linear
+- Convolutions (Conv1D, Conv2D, ...)
+- RNNs (RNN, LSTM, GRU)
+- Multi-Head Self-Attention
+- Normalizations (Batchnorm, Layernorm)
+- Embedding
+- ...
+
+ To create your own modules, simply inherit from the `auto_compyute.nn.Module` base class, make sure to call `super().__init__()` in your init method and implement a `forward()` method. The rest is up to you.
 
 ```Python
 from auto_compyute import nn
@@ -111,7 +121,8 @@ ac.viz.draw_graph(y) # the constructed graph can be visualized
 ```
 <img src="examples/compute_graph_2.png" alt="Neural Network Compute Graph Visualization" width="75%"/>
 
-And that's all you need to build all sorts of models.
+And that's all you need to build all sorts of models!
+
 
 ## Examples
 see [Examples](https://github.com/dakofler/auto_compyute/tree/main/examples).
