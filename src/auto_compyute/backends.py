@@ -13,7 +13,7 @@ __all__ = ["Device", "get_available_devices", "gpu_available", "set_random_seed"
 # -------------------------------------------------------------------------------------
 
 Scalar: TypeAlias = int | float
-Dim = int | tuple[int, ...]
+Dim: TypeAlias = int | tuple[int, ...]
 
 
 class Shape(tuple):
@@ -50,7 +50,7 @@ except ImportError:
 Array: TypeAlias = numpy.ndarray
 
 
-def gpu_available():
+def gpu_available() -> bool:
     """Returns `True` if at least one GPU device is available.
 
     Returns:
@@ -59,7 +59,7 @@ def gpu_available():
     return GPU_BACKEND is not None and GPU_BACKEND.cuda.is_available()
 
 
-def set_random_seed(seed: int):
+def set_random_seed(seed: int) -> None:
     """Sets the random seed for reproducibility on all devices.
 
     Args:
@@ -114,34 +114,34 @@ class Device:
         dev_type (str): The type and optionally the id of device (e.g. "cpu" or "cuda:0").
     """
 
-    def __init__(self, dev_type: str):
-        dev_type, dev_id = _get_type_and_id(dev_type)
-        self.dev_type = dev_type
+    def __init__(self, device_type: str) -> None:
+        device_type, dev_id = _get_type_and_id(device_type)
+        self.device_type = device_type
         self.dev_id = dev_id
-        self.xp = CPU_BACKEND if dev_type == "cpu" else GPU_BACKEND
+        self.xp = CPU_BACKEND if device_type == "cpu" else GPU_BACKEND
 
     def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, Device)
-            and other.dev_type == self.dev_type
+            and other.device_type == self.device_type
             and other.dev_id == self.dev_id
         )
 
     def __repr__(self) -> str:
-        id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
-        return f"device('{self.dev_type}{id_suffix}')"
+        id_suffix = f":{self.dev_id}" if self.device_type == "cuda" else ""
+        return f"device('{self.device_type}{id_suffix}')"
 
     def __str__(self) -> str:
-        id_suffix = f":{self.dev_id}" if self.dev_type == "cuda" else ""
-        return f"{self.dev_type}{id_suffix}"
+        id_suffix = f":{self.dev_id}" if self.device_type == "cuda" else ""
+        return f"{self.device_type}{id_suffix}"
 
     def __enter__(self) -> None:
-        if self.dev_type == "cpu":
+        if self.device_type == "cpu":
             return None
         return GPU_BACKEND.cuda.Device(self.dev_id).__enter__()
 
     def __exit__(self, *args: Any) -> None:
-        if self.dev_type == "cpu":
+        if self.device_type == "cpu":
             return None
         return GPU_BACKEND.cuda.Device(self.dev_id).__exit__(*args)
 
@@ -156,7 +156,7 @@ def get_available_devices() -> list[str]:
         list[str]: A list of device names (e.g., ["cpu", "cuda:0", "cuda:1", ...]).
     """
     devices = ["cpu"]
-    if GPU_BACKEND is not None:
+    if gpu_available():
         num_gpu_devices = GPU_BACKEND.cuda.runtime.getDeviceCount()
         gpu_devices = [f"cuda:{i}" for i in range(num_gpu_devices)]
         devices.extend(gpu_devices)
@@ -172,7 +172,7 @@ def get_array_device(x: Array) -> Device:
     Returns:
         Device: A Device instance representing either CPU or CUDA.
     """
-    return Device("cpu") if "numpy" in str(type(x)) else Device("cuda:0")
+    return Device("cpu") if "numpy" in str(type(x)) else Device(f"cuda:{x.device.id}")
 
 
 def select_device(device: Optional[DeviceLike]) -> Device:
@@ -211,7 +211,7 @@ def move_to_device(data: Array, device: Device) -> Array:
     Returns:
         ArrayLike: The array moved to the specified device.
     """
+    assert gpu_available(), "GPUs are not available."
     if device == Device("cpu"):
         return GPU_BACKEND.asnumpy(data)
-    assert gpu_available(), "GPUs are not available."
     return cupy.asarray(data)
