@@ -73,13 +73,13 @@ y
 ```
 ```bash
 Tensor([[13.8923, 11.5502,  5.2445],
-        [15.6469, 18.8092, 16.2810]], dtype=float32, device=cpu, grad_fn=Add)
+        [15.6469, 18.8092, 16.2810]], grad_fn=Add)
 ```
 
 Because the tensors require gradients, when the expression is evaluated, a computational graph is created. It can be visualized (requires the the `mermaid-python` package).
 
 ```Python
-ac.autograd.draw_graph(y)
+ac.viz.draw_graph(y)
 ```
 <img src="examples/compute_graph_1.png" alt="Compute Graph Visualization in AutoCompyute" width="75%"/>
 
@@ -126,10 +126,12 @@ Daniel Kofler - [dkofler@outlook.com](mailto:dkofler@outlook.com)
 ```
 @misc{kofler2025auto,
   author       = {Kofler, Daniel},
-  howpublished = {\url{https://github.com/dakofler/auto_compyute}},
-  note         = {Version 0.1.0},
   title        = {Auto Compyute},
-  year         = {2025}
+  year         = {2025},
+  howpublished = {\url{https://github.com/dakofler/auto_compyute}},
+  publisher    = {GitHub},
+  journal      = {GitHub repository},
+  note         = {Version 0.1.0}
 }
 ```
 
