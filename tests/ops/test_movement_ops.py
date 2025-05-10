@@ -5,9 +5,9 @@ import torch
 
 import auto_compyute as ac
 from auto_compyute.backends import ShapeLike
-from tests.utils.check import dual_input_op_check, single_input_op_check
 from tests.utils.init import get_random_bools, get_random_floats
-from tests.utils.test_factory import get_tertiary_test_func, get_unary_test_func
+from tests.utils.test_factory import get_op_test
+from tests.utils.verifications import verify_op
 
 IN_SHAPES = ((10, 20), (10, 20, 30))
 RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in IN_SHAPES)
@@ -31,7 +31,7 @@ WHERE_RANDOM_FLOAT_TENSORS_2 = (get_random_floats(IN_SHAPES[0]), (1.0, 1.0))
 @pytest.mark.parametrize("x", EXPAND_RANDOM_FLOAT_TENSORS)
 @pytest.mark.parametrize("shape", EXPAND_SHAPES)
 def test_expand(x: tuple[ac.Tensor, torch.Tensor], shape: ShapeLike) -> None:
-    get_unary_test_func("expand")(x, *shape)
+    get_op_test("expand")((x,), *shape)
 
 
 @pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
@@ -40,30 +40,30 @@ def test_select(x: tuple[ac.Tensor, torch.Tensor], key: int | tuple[int, ...] | 
     ac_x, torch_x = x
     ac_y = ac_x[key]
     torch_y = torch_x[torch.tensor(key.data) if isinstance(key, ac.Tensor) else key]
-    single_input_op_check(ac_x, ac_y, torch_x, torch_y)
+    verify_op((ac_x,), ac_y, (torch_x,), torch_y)
 
 
 @pytest.mark.parametrize("x", RANDOM_FLOAT_TENSORS)
 @pytest.mark.parametrize("dims", TRANSPOSE_DIMS)
 def test_transpose(x: tuple[ac.Tensor, torch.Tensor], dims: tuple[int, ...]) -> None:
-    get_unary_test_func("transpose")(x, *dims)
+    get_op_test("transpose")((x,), *dims)
 
 
 @pytest.mark.parametrize("x", (RANDOM_FLOAT_TENSORS[0],))
 @pytest.mark.parametrize("shape", VIEW_SHAPES)
 def test_view(x: tuple[ac.Tensor, torch.Tensor], shape: ShapeLike) -> None:
-    get_unary_test_func("view")(x, *shape)
+    get_op_test("view")((x,), *shape)
 
 
 @pytest.mark.parametrize("x", (RANDOM_FLOAT_TENSORS[0],))
 @pytest.mark.parametrize("split_size", SPLIT_SIZES)
 @pytest.mark.parametrize("dim", DIMS)
-def test_split(x: tuple[ac.Tensor, torch.Tensor], split_size: int, dim: int):
+def test_split(x: tuple[ac.Tensor, torch.Tensor], split_size: int, dim: int) -> None:
     ac_x, torch_x = x
     ac_y = ac_x.split(split_size, dim=dim)
     torch_y = torch_x.split(split_size, dim=dim)
     for ac_y, torch_y in zip(ac_y, torch_y):
-        single_input_op_check(ac_x, ac_y, torch_x, torch_y)
+        verify_op((ac_x,), ac_y, (torch_x,), torch_y)
 
 
 @pytest.mark.parametrize("x_1", COMB_RANDOM_FLOAT_TENSORS_1)
@@ -75,8 +75,11 @@ def test_stack(
     x_2: tuple[ac.Tensor, torch.Tensor],
     x_3: tuple[ac.Tensor, torch.Tensor],
     dim: int,
-):
-    get_tertiary_test_func("stack")(x_1, x_2, x_3, dim=dim)
+) -> None:
+    ac_x, torch_x = tuple(zip(*[x_1, x_2, x_3]))
+    ac_y = ac.stack(*ac_x, dim=dim)
+    torch_y = torch.stack(torch_x, dim=dim)
+    verify_op(ac_x, ac_y, torch_x, torch_y)
 
 
 @pytest.mark.parametrize("x_1", COMB_RANDOM_FLOAT_TENSORS_1)
@@ -88,8 +91,11 @@ def test_concat(
     x_2: tuple[ac.Tensor, torch.Tensor],
     x_3: tuple[ac.Tensor, torch.Tensor],
     dim: int,
-):
-    get_tertiary_test_func("concat")(x_1, x_2, x_3, dim=dim)
+) -> None:
+    ac_x, torch_x = tuple(zip(*[x_1, x_2, x_3]))
+    ac_y = ac.concat(*ac_x, dim=dim)
+    torch_y = torch.concat(torch_x, dim=dim)
+    verify_op(ac_x, ac_y, torch_x, torch_y)
 
 
 @pytest.mark.parametrize("condition_tensors", WHERE_RANDOM_BOOL_TENSORS)
@@ -100,9 +106,7 @@ def test_where(
     x_1: tuple[ac.Tensor, torch.Tensor],
     x_2: tuple[ac.Tensor, torch.Tensor],
 ) -> None:
-    ac_condition_tensor, torch_condition_tensor = condition_tensors
-    ac_x_1, torch_x_1 = x_1
-    ac_x_2, torch_x_2 = x_2
-    ac_y = ac.where(ac_condition_tensor, ac_x_1, ac_x_2)
-    torch_y = torch.where(torch_condition_tensor, torch_x_1, torch_x_2)
-    dual_input_op_check(ac_x_1, ac_x_2, ac_y, torch_x_1, torch_x_2, torch_y)
+    ac_x, torch_x = tuple(zip(*[condition_tensors, x_1, x_2]))
+    ac_y = ac.where(*ac_x)
+    torch_y = torch.where(*torch_x)
+    verify_op(ac_x, ac_y, torch_x, torch_y)

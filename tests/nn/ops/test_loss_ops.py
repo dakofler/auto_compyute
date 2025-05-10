@@ -1,92 +1,68 @@
 """Tests for loss function operations."""
 
 import pytest
-import torch.nn.functional as tF
+import torch
 
-import auto_compyute.nn.functional as F
-from tests.utils.init import close, get_random_floats, get_random_ints
+import auto_compyute as ac
+from tests.utils.init import get_random_floats, get_random_ints
+from tests.utils.test_factory import get_op_test
+from tests.utils.verifications import verify_op
 
-
-def _loss_function_verify(x, torch_x, y, torch_y):
-    assert close(y.data, torch_y)
-    y.backward()
-    torch_y.backward()
-    assert close(x.grad, torch_x.grad)
-
-
-ac_x1, torch_x1 = get_random_floats((4, 8))
-ac_x2, torch_x2 = get_random_floats((4, 8, 16))
-ac_x3, torch_x3 = get_random_floats((4, 8, 16, 32))
-xs = ((ac_x1, torch_x1), (ac_x2, torch_x2), (ac_x3, torch_x3))
-reductions = ("mean", "sum")
-
-mse_ac_t1, mse_torch_t1 = get_random_floats((4, 8), req_grad=False)
-mse_ac_t2, mse_torch_t2 = get_random_floats((4, 8, 16), req_grad=False)
-mse_ac_t3, mse_torch_t3 = get_random_floats((4, 8, 16, 32), req_grad=False)
-mse_ts = (
-    (mse_ac_t1, mse_torch_t1),
-    (mse_ac_t2, mse_torch_t2),
-    (mse_ac_t3, mse_torch_t3),
+FLOAT_IN_SHAPES = ((4, 8), (4, 8, 16), (4, 8, 16, 32))
+PRED_RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in FLOAT_IN_SHAPES)
+TARGET_RANDOM_FLOAT_TENSORS = tuple(
+    get_random_floats(shape, req_grad=False) for shape in FLOAT_IN_SHAPES
 )
-
-
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("t", mse_ts)
-@pytest.mark.parametrize("reduction", reductions)
-def test_mse_loss(x, t, reduction):
-    """MSE function test"""
-    ac_x, torch_x = x
-    ac_t, torch_t = t
-
-    # skip tests with shape mismatch
-    if ac_x.shape != ac_t.shape:
-        return
-
-    ac_y = F.mse_loss(ac_x, ac_t, reduction)
-    torch_y = tF.mse_loss(torch_x, torch_t, reduction=reduction)
-    _loss_function_verify(ac_x, torch_x, ac_y, torch_y)
-
-
-ce_ac_t1, ce_torch_t1 = get_random_ints((4,), 0, 8)
-ce_ac_t2, ce_torch_t2 = get_random_ints((4, 8), 0, 16)
-ce_ac_t3, ce_torch_t3 = get_random_ints((4, 8, 16), 0, 32)
-ce_ts = (
-    (ce_ac_t1, ce_torch_t1),
-    (ce_ac_t2, ce_torch_t2),
-    (ce_ac_t3, ce_torch_t3),
+INT_IN_SHAPES = ((4,), (4, 8), (4, 8, 16))
+INT_RANGES = (8, 16, 32)
+TARGET_RANDOM_INT_TENSORS = tuple(
+    get_random_ints(shape, 0, range) for shape, range in zip(INT_IN_SHAPES, INT_RANGES)
 )
+REDUCTIONS = ("mean", "sum")
 
 
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("t", ce_ts)
-@pytest.mark.parametrize("reduction", reductions)
-def test_cross_entropy_loss(x, t, reduction):
-    """Cross entropy function test"""
-    ac_x, torch_x = x
-    ac_t, torch_t = t
+@pytest.mark.parametrize("pred", PRED_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("target", TARGET_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("reduction", REDUCTIONS)
+def test_mse_loss(
+    pred: tuple[ac.Tensor, torch.Tensor], target: tuple[ac.Tensor, torch.Tensor], reduction: str
+) -> None:
+    # skip tests with shape mismatch
+    if pred[0].shape != target[0].shape:
+        return
+    get_op_test("mse_loss")((pred, target), reduction=reduction)
+
+
+@pytest.mark.parametrize("pred", PRED_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("target", TARGET_RANDOM_INT_TENSORS)
+@pytest.mark.parametrize("reduction", REDUCTIONS)
+def test_cross_entropy_loss(
+    pred: tuple[ac.Tensor, torch.Tensor], target: tuple[ac.Tensor, torch.Tensor], reduction: str
+) -> None:
+    ac_pred, torch_pred = pred
+    ac_target, torch_target = target
 
     # skip tests with shape mismatch
-    if ac_x.shape[:-1] != ac_t.shape:
+    if ac_pred.shape[:-1] != ac_target.shape:
         return
 
-    ac_y = F.cross_entropy_loss(ac_x, ac_t, reduction=reduction)
-    permutation = (0, ac_x.ndim - 1, *tuple(d for d in range(ac_x.ndim - 1) if d > 0))
-    torch_y = tF.cross_entropy(torch_x.permute(*permutation), torch_t, reduction=reduction)
-    _loss_function_verify(ac_x, torch_x, ac_y, torch_y)
+    ac_loss = ac.nn.functional.cross_entropy_loss(ac_pred, ac_target, reduction=reduction)
+
+    # torch requires inputs to be  of shape (B, C, ...)
+    permutation = (0, ac_pred.ndim - 1, *tuple(d for d in range(ac_pred.ndim - 1) if d > 0))
+    torch_loss = torch.nn.functional.cross_entropy(
+        torch_pred.permute(*permutation), torch_target, reduction=reduction
+    )
+    verify_op((ac_pred,), ac_loss, (torch_pred,), torch_loss)
 
 
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("t", mse_ts)
-@pytest.mark.parametrize("reduction", reductions)
-def test_bce_loss(x, t, reduction):
-    """BCE function test"""
-    ac_x, torch_x = x
-    ac_t, torch_t = t
-
+@pytest.mark.parametrize("pred", PRED_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("target", TARGET_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("reduction", REDUCTIONS)
+def test_bce_loss(
+    pred: tuple[ac.Tensor, torch.Tensor], target: tuple[ac.Tensor, torch.Tensor], reduction: str
+) -> None:
     # skip tests with shape mismatch
-    if ac_x.shape != ac_t.shape:
+    if pred[0].shape != target[0].shape:
         return
-
-    ac_y = F.bce_loss(ac_x, ac_t, reduction)
-    torch_y = tF.binary_cross_entropy_with_logits(torch_x, torch_t, reduction=reduction)
-    _loss_function_verify(ac_x, torch_x, ac_y, torch_y)
+    get_op_test("bce_loss", "binary_cross_entropy_with_logits")((pred, target), reduction=reduction)

@@ -37,11 +37,11 @@ def get_random_bools(shape: ShapeLike) -> tuple[ac.Tensor, torch.Tensor]:
 
 def get_ones(shape: ShapeLike, req_grad: bool = False) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.ones(*shape, req_grad=req_grad)
-    torch_tensor = torch.tensor(ac_tensor.numpy(), requires_grad=req_grad)
+    torch_tensor = torch.ones(shape, requires_grad=req_grad)
     return ac_tensor, torch_tensor
 
 
 def get_zeros(shape: ShapeLike, req_grad: bool = False) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.zeros(*shape, req_grad=req_grad)
-    torch_tensor = torch.tensor(ac_tensor.numpy(), requires_grad=req_grad)
+    torch_tensor = torch.zeros(shape, requires_grad=req_grad)
     return ac_tensor, torch_tensor

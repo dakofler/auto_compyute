@@ -1,127 +1,43 @@
 """Test factory functions."""
 
+from types import ModuleType
 from typing import Any, Callable
 
 import torch
 
 import auto_compyute as ac
-from tests.utils.check import dual_input_op_check, single_input_op_check, triple_input_op_check
+from tests.utils.verifications import DEFAULT_TOL, verify_op
 
 
-def get_unary_test_func(func_name: str) -> Callable[[Any], None]:
-    """Returns a test function for one input."""
+def _get_func_result(module: ModuleType, func_name: str, *args: Any, **kwargs: Any) -> Callable:
+    """Selects the function or method and calls with given args and kwargs."""
 
-    def _test(x: tuple[ac.Tensor, torch.Tensor], *args, **kwargs: Any) -> None:
-        ac_x, torch_x = x
+    # specified function is a function of the functional module
+    if hasattr(module.nn.functional, func_name):
+        return getattr(module.nn.functional, func_name)(*args, **kwargs)
 
-        if hasattr(ac_x, func_name):
-            ac_y = getattr(ac_x, func_name)(*args, **kwargs)
-        elif hasattr(ac.nn.functional, func_name):
-            ac_y = getattr(ac.nn.functional, func_name)(ac_x, *args, **kwargs)
-        elif hasattr(ac, func_name):
-            ac_y = getattr(ac, func_name)(ac_x, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
+    # specified function is a Tensor method
+    tensor = args[0]
+    if hasattr(tensor, func_name):
+        return getattr(tensor, func_name)(*args[1:], **kwargs)
 
-        if hasattr(torch_x, func_name):
-            torch_y = getattr(torch_x, func_name)(*args, **kwargs)
-        elif hasattr(torch.nn.functional, func_name):
-            torch_y = getattr(torch.nn.functional, func_name)(torch_x, *args, **kwargs)
-        elif hasattr(torch, func_name):
-            torch_y = getattr(torch, func_name)(torch_x, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
+    # specified function is a function of the module
+    if hasattr(module, func_name):
+        return getattr(module, func_name)(*args, **kwargs)
 
-        single_input_op_check(ac_x, ac_y, torch_x, torch_y)
-
-    return _test
+    raise AttributeError("Unknown function.")
 
 
-def get_binary_test_func(func_name: str) -> Callable[[Any], None]:
-    """Returns a test function for one input that uses module functions."""
+def get_op_test(
+    ac_func_name: str, torch_func_name: str | None = None, tol: float = DEFAULT_TOL
+) -> Callable[[Any], None]:
+    """Returns a test function for one input tensor."""
+    torch_func_name = torch_func_name or ac_func_name
 
-    def _test(
-        x_1: tuple[ac.Tensor, torch.Tensor],
-        x_2: tuple[ac.Tensor, torch.Tensor],
-        *args,
-        **kwargs: Any,
-    ) -> None:
-        (ac_x_1, torch_x_1), (ac_x_2, torch_x_2) = x_1, x_2
-
-        if hasattr(ac_x_1, func_name):
-            ac_y = getattr(ac_x_1, func_name)(ac_x_2, *args, **kwargs)
-        elif hasattr(ac.nn.functional, func_name):
-            ac_y = getattr(ac.nn.functional, func_name)(ac_x_1, ac_x_2, *args, **kwargs)
-        elif hasattr(ac, func_name):
-            ac_y = getattr(ac, func_name)(ac_x_1, ac_x_2, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
-
-        if hasattr(torch_x_1, func_name):
-            torch_y = getattr(torch_x_1, func_name)(torch_x_2, *args, **kwargs)
-        elif hasattr(torch.nn.functional, func_name):
-            torch_y = getattr(torch.nn.functional, func_name)(torch_x_1, torch_x_2, *args, **kwargs)
-        elif hasattr(torch, func_name):
-            torch_y = getattr(torch, func_name)(torch_x_1, torch_x_2, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
-
-        dual_input_op_check(ac_x_1, ac_x_2, ac_y, torch_x_1, torch_x_2, torch_y)
-
-    return _test
-
-
-def get_tertiary_test_func(func_name: str) -> Callable[[Any], None]:
-    """Returns a test function for three inputs that uses module functions."""
-
-    def _test(
-        x_1: tuple[ac.Tensor, torch.Tensor],
-        x_2: tuple[ac.Tensor, torch.Tensor],
-        x_3: tuple[ac.Tensor, torch.Tensor],
-        *args,
-        **kwargs: Any,
-    ) -> None:
-        (ac_x_1, torch_x_1), (ac_x_2, torch_x_2), (ac_x_3, torch_x_3) = x_1, x_2, x_3
-
-        if hasattr(ac_x_1, func_name):
-            ac_y = getattr(ac_x_1, func_name)(ac_x_2, ac_x_3, *args, **kwargs)
-        elif hasattr(ac.nn.functional, func_name):
-            ac_y = getattr(ac.nn.functional, func_name)(ac_x_1, ac_x_2, ac_x_3, *args, **kwargs)
-        elif hasattr(ac, func_name):
-            ac_y = getattr(ac, func_name)(ac_x_1, ac_x_2, ac_x_3, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
-
-        if hasattr(torch_x_1, func_name):
-            torch_y = getattr(torch_x_1, func_name)(torch_x_2, torch_x_3, *args, **kwargs)
-        elif hasattr(torch.nn.functional, func_name):
-            torch_y = getattr(torch.nn.functional, func_name)(
-                torch_x_1, torch_x_2, torch_x_3, *args, **kwargs
-            )
-        elif hasattr(torch, func_name):
-            torch_y = getattr(torch, func_name)(torch_x_1, torch_x_2, torch_x_3, *args, **kwargs)
-        else:
-            raise AttributeError("Unknown function.")
-
-        triple_input_op_check(
-            ac_x_1, ac_x_2, ac_x_3, ac_y, torch_x_1, torch_x_2, torch_x_3, torch_y
-        )
-
-    return _test
-
-
-def get_min_max_test_func(func_name: str) -> Callable[[Any], None]:
-    def _test(
-        x: tuple[ac.Tensor, torch.Tensor], dim: int | tuple[int, ...] | None, keepdims: bool
-    ) -> None:
-        if dim is None and keepdims:
-            return
-        ac_x, torch_x = x
-        ac_y = getattr(ac_x, func_name)(dim=dim, keepdims=keepdims)
-        if dim is None:
-            torch_y = getattr(torch_x, func_name)()
-        else:
-            torch_y = getattr(torch_x, func_name)(dim=dim, keepdims=keepdims)[0]
-        single_input_op_check(ac_x, ac_y, torch_x, torch_y)
+    def _test(xs: tuple[tuple[ac.Tensor, torch.Tensor], ...], *args: Any, **kwargs: Any) -> None:
+        ac_x, torch_x = tuple(zip(*xs))  # get tuple of ac tensors and tuple of torch tensors
+        ac_y = _get_func_result(ac, ac_func_name, *ac_x, *args, **kwargs)
+        torch_y = _get_func_result(torch, torch_func_name, *torch_x, *args, **kwargs)
+        verify_op(ac_x, ac_y, torch_x, torch_y, tol=tol)
 
     return _test

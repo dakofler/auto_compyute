@@ -1,65 +1,56 @@
 """Tests for normalization operations."""
 
 import pytest
-import torch.nn.functional as tF
+import torch
 
-import auto_compyute.nn.functional as F
-from tests.utils.init import close, get_ones, get_random_floats, get_zeros
+import auto_compyute as ac
+from tests.utils.init import get_ones, get_random_floats, get_zeros
+from tests.utils.verifications import verify_op
 
-
-def _norm_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
-    assert close(y.data, torch_y, tol=1e-4)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(x.grad, torch_x.grad)
-    assert close(w.grad, torch_w.grad, tol=1e-3)
-    assert close(b.grad, torch_b.grad, tol=1e-3)
-
-
-ac_w1, torch_w1 = get_random_floats((32,))
-ac_b1, torch_b1 = get_random_floats((32,))
-
-bn_ac_x1, bn_torch_x1 = get_random_floats((16, 32))
-bn_ac_x2, bn_torch_x2 = get_random_floats((16, 32, 8))
-bn_ac_x3, bn_torch_x3 = get_random_floats((16, 32, 28, 28))
-bn_xs = ((bn_ac_x1, bn_torch_x1), (bn_ac_x2, bn_torch_x2), (bn_ac_x3, bn_torch_x3))
-ws = ((ac_w1, torch_w1),)
-bs = ((ac_b1, torch_b1),)
-ms = (0.1, 0.2)
+NORM_DIM = 32
+W_RANDOM_FLOAT_TENSORS = (get_random_floats((NORM_DIM,)),)
+B_RANDOM_FLOAT_TENSORS = (get_random_floats((NORM_DIM,)),)
+BN_IN_SHAPES = ((16, NORM_DIM), (16, NORM_DIM, 8), (16, NORM_DIM, 28, 28))
+BN_X_RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in BN_IN_SHAPES)
+BN_RMEAN_ZEROS_TENSORS = (get_zeros((NORM_DIM,), req_grad=False),)
+BN_RVAR_ONES_TENSORS = (get_ones((NORM_DIM,), req_grad=False),)
+BN_MS = (0.1, 0.2)
+LN_IN_SHAPES = ((16, NORM_DIM), (16, 8, NORM_DIM), (16, 8, 8, NORM_DIM))
+LN_X_RANDOM_FLOAT_TENSORS = tuple(get_random_floats(shape) for shape in LN_IN_SHAPES)
 
 
-@pytest.mark.parametrize("x", bn_xs)
-@pytest.mark.parametrize("w", ws)
-@pytest.mark.parametrize("b", bs)
-@pytest.mark.parametrize("m", ms)
-def test_batchnorm(x, w, b, m):
-    """Batchnorm function test"""
-    ac_x, torch_x = x
-    ac_w, torch_w = w
-    ac_b, torch_b = b
-    ac_rmean, torch_rmean = get_zeros((ac_x.shape[1],))
-    ac_rvar, torch_rvar = get_ones((ac_x.shape[1],))
-    ac_y = F.batchnorm(ac_x, ac_rmean, ac_rvar, ac_w, ac_b, m, 1e-5, True)
-    torch_y = tF.batch_norm(torch_x, torch_rmean, torch_rvar, torch_w, torch_b, True, m, 1e-5)
-    _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+@pytest.mark.parametrize("x", BN_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("rmean", BN_RMEAN_ZEROS_TENSORS)
+@pytest.mark.parametrize("rvar", BN_RVAR_ONES_TENSORS)
+@pytest.mark.parametrize("w", W_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("b", B_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("m", BN_MS)
+def test_batchnorm(
+    x: tuple[ac.Tensor, torch.Tensor],
+    rmean: tuple[ac.Tensor, torch.Tensor],
+    rvar: tuple[ac.Tensor, torch.Tensor],
+    w: tuple[ac.Tensor, torch.Tensor],
+    b: tuple[ac.Tensor, torch.Tensor],
+    m: float,
+) -> None:
+    ac_x, torch_x = tuple(zip(*[x, rmean, rvar, w, b]))
+    ac_y = ac.nn.functional.batchnorm(*ac_x, momentum=m, eps=1e-5, training=True)
+    torch_y = torch.nn.functional.batch_norm(*torch_x, training=True, momentum=m, eps=1e-5)
+    verify_op(ac_x, ac_y, torch_x, torch_y)
 
 
-ln_ac_x1, ln_torch_x1 = get_random_floats((16, 32))
-ln_ac_x2, ln_torch_x2 = get_random_floats((16, 8, 32))
-ln_ac_x3, ln_torch_x3 = get_random_floats((16, 8, 8, 32))
-ln_xs = ((ln_ac_x1, ln_torch_x1), (ln_ac_x2, ln_torch_x2), (ln_ac_x3, ln_torch_x3))
-
-
-@pytest.mark.parametrize("x", ln_xs)
-@pytest.mark.parametrize("w", ws)
-@pytest.mark.parametrize("b", bs)
-def test_layernorm(x, w, b):
-    """Layernorm function test"""
-    ac_x, torch_x = x
-    ac_w, torch_w = w
-    ac_b, torch_b = b
-    ac_y = F.layernorm(ac_x, ac_w, ac_b, 1e-5)
-    torch_norm_shape = (torch_x.shape[-1],)
-    torch_y = tF.layer_norm(torch_x, torch_norm_shape, torch_w, torch_b, 1e-5)
-    _norm_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+@pytest.mark.parametrize("x", LN_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("w", W_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("b", B_RANDOM_FLOAT_TENSORS)
+def test_layernorm(
+    x: tuple[ac.Tensor, torch.Tensor],
+    w: tuple[ac.Tensor, torch.Tensor],
+    b: tuple[ac.Tensor, torch.Tensor],
+) -> None:
+    ac_x, torch_x = tuple(zip(*[x, w, b]))
+    ac_y = ac.nn.functional.layernorm(*ac_x, eps=1e-5)
+    torch_x_, torch_w, torch_b = torch_x
+    torch_y = torch.nn.functional.layer_norm(
+        torch_x_, (torch_x_.shape[-1],), torch_w, torch_b, eps=1e-5
+    )
+    verify_op(ac_x, ac_y, torch_x, torch_y)

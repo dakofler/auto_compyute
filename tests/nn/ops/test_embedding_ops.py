@@ -1,33 +1,18 @@
-"""Tests for linear operations."""
+"""Tests for embedding operations."""
 
 import pytest
-import torch.nn.functional as tF
+import torch
 
-import auto_compyute.nn.functional as F
-from tests.utils.init import close, get_random_floats, get_random_ints
+import auto_compyute as ac
+from tests.utils.init import get_random_floats, get_random_ints
+from tests.utils.test_factory import get_op_test
 
-
-def _emb_function_verify(w, torch_w, y, torch_y):
-    assert close(y.data, torch_y)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(w.grad, torch_w.grad, tol=1e-4)
+X_IN_SHAPES = ((16, 32), (8, 16, 32))
+X_RANDOM_INT_TENSORS = tuple(get_random_ints(shape, 0, 256) for shape in X_IN_SHAPES)
+W_RANDOM_FLOAT_TENSORS = (get_random_floats((256, 64)),)
 
 
-ac_x1, torch_x1 = get_random_ints((16, 32), 0, 256)
-ac_x2, torch_x2 = get_random_ints((8, 16, 32), 0, 256)
-ac_w1, torch_w1 = get_random_floats((256, 64))
-xs = ((ac_x1, torch_x1), (ac_x2, torch_x2))
-ws = ((ac_w1, torch_w1),)
-
-
-@pytest.mark.parametrize("x", xs)
-@pytest.mark.parametrize("w", ws)
-def test_embed(x, w):
-    """Embedding function test"""
-    ac_x, torch_x = x
-    ac_w, torch_w = w
-    ac_y = F.embedding(ac_x, ac_w)
-    torch_y = tF.embedding(torch_x, torch_w)
-    _emb_function_verify(ac_w, torch_w, ac_y, torch_y)
+@pytest.mark.parametrize("x", X_RANDOM_INT_TENSORS)
+@pytest.mark.parametrize("w", W_RANDOM_FLOAT_TENSORS)
+def test_embed(x: tuple[ac.Tensor, torch.Tensor], w: tuple[ac.Tensor, torch.Tensor]) -> None:
+    get_op_test("embedding")((x, w))

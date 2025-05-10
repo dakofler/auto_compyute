@@ -1,109 +1,88 @@
 """Tests for convolution operations."""
 
 import pytest
-import torch.nn.functional as tF
+import torch
 
-import auto_compyute.nn.functional as F
-from tests.utils.init import close, get_random_floats
+import auto_compyute as ac
+from tests.utils.init import get_random_floats
+from tests.utils.test_factory import get_op_test
+from tests.utils.verifications import verify_op
 
-
-def _conv_function_verify(x, torch_x, w, torch_w, b, torch_b, y, torch_y):
-    assert close(y.data, torch_y)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(x.grad, torch_x.grad, tol=1e-3)
-    assert close(w.grad, torch_w.grad, tol=1e-3)
-    assert close(b.grad, torch_b.grad, tol=1e-3)
-
-
-def _pool_function_verify(x, torch_x, y, torch_y):
-    assert close(y.data, torch_y)
-    dy, torch_dy = get_random_floats(y.shape, False)
-    y.backward(dy.data)
-    torch_y.backward(torch_dy)
-    assert close(x.grad, torch_x.grad, tol=1e-3)
-
-
-c1d_ac_x1, c1d_torch_x1 = get_random_floats((32, 16, 8))  # B, I, T
-c1d_ac_w1, c1d_torch_w1 = get_random_floats((4, 16, 3))  # O, I, K
-c1d_ac_b1, c1d_torch_b1 = get_random_floats((4,))
-c1d_xs = ((c1d_ac_x1, c1d_torch_x1),)
-c1d_ws = ((c1d_ac_w1, c1d_torch_w1),)
-c1d_bs = ((c1d_ac_b1, c1d_torch_b1),)
-paddings = (0, 1)
-strides = (1, 2)
-dilations = (1, 2)
+PADDINGS = (0, 1)
+STRIDES = (1, 2)
+DILATIONS = (1, 2)
+CONV1D_X_RANDOM_FLOAT_TENSORS = (get_random_floats((32, 16, 8)),)
+CONV1D_W_RANDOM_FLOAT_TENSORS = (get_random_floats((4, 16, 3)),)
+CONV1D_B_RANDOM_FLOAT_TENSORS = (get_random_floats((4,)),)
+CONV2D_X_RANDOM_FLOAT_TENSORS = (get_random_floats((16, 3, 28, 28)),)
+CONV2D_W_RANDOM_FLOAT_TENSORS = (get_random_floats((32, 3, 5, 5)),)
+CONV2D_B_RANDOM_FLOAT_TENSORS = (get_random_floats((32,)),)
+TCONV2D_X_RANDOM_FLOAT_TENSORS = (get_random_floats((16, 3, 14, 14)),)
+TCONV2D_W_RANDOM_FLOAT_TENSORS = (get_random_floats((5, 3, 3, 3)),)
+TCONV2D_B_RANDOM_FLOAT_TENSORS = (get_random_floats((5,)),)
+TCONV2D_OUT_PADDINGS = (0, 1)
+POOL_WINDOWS = (2, 3, 4)
 
 
-@pytest.mark.parametrize("x", c1d_xs)
-@pytest.mark.parametrize("w", c1d_ws)
-@pytest.mark.parametrize("b", c1d_bs)
-@pytest.mark.parametrize("padding", paddings)
-@pytest.mark.parametrize("stride", strides)
-@pytest.mark.parametrize("dilation", dilations)
-def test_conv1d(x, w, b, padding, stride, dilation):
-    """Conv 1d function test"""
-    ac_x, torch_x = x
-    ac_w, torch_w = w
-    ac_b, torch_b = b
-    ac_y = F.conv1d(ac_x, ac_w, ac_b, stride, padding, dilation)
-    torch_y = tF.conv1d(torch_x, torch_w, torch_b, stride, padding, dilation)
-    _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+@pytest.mark.parametrize("x", CONV1D_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("w", CONV1D_W_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("b", CONV1D_B_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("padding", PADDINGS)
+@pytest.mark.parametrize("stride", STRIDES)
+@pytest.mark.parametrize("dilation", DILATIONS)
+def test_conv1d(
+    x: tuple[ac.Tensor, torch.Tensor],
+    w: tuple[ac.Tensor, torch.Tensor],
+    b: tuple[ac.Tensor, torch.Tensor],
+    padding: int,
+    stride: int,
+    dilation: int,
+) -> None:
+    get_op_test("conv1d")((x, w, b), stride=stride, padding=padding, dilation=dilation)
 
 
-c2d_ac_x1, c2d_torch_x1 = get_random_floats((16, 3, 28, 28))
-c2d_ac_w1, c2d_torch_w1 = get_random_floats((32, 3, 5, 5))
-c2d_ac_b1, c2d_torch_b1 = get_random_floats((32,))
-c2d_bs = ((c2d_ac_b1, c2d_torch_b1),)
-c2d_xs = ((c2d_ac_x1, c2d_torch_x1),)
-c2d_ws = ((c2d_ac_w1, c2d_torch_w1),)
+@pytest.mark.parametrize("x", CONV2D_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("w", CONV2D_W_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("b", CONV2D_B_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("padding", PADDINGS)
+@pytest.mark.parametrize("stride", STRIDES)
+@pytest.mark.parametrize("dilation", DILATIONS)
+def test_conv2d(
+    x: tuple[ac.Tensor, torch.Tensor],
+    w: tuple[ac.Tensor, torch.Tensor],
+    b: tuple[ac.Tensor, torch.Tensor],
+    padding: int,
+    stride: int,
+    dilation: int,
+) -> None:
+    get_op_test("conv2d")((x, w, b), stride=stride, padding=padding, dilation=dilation)
 
 
-@pytest.mark.parametrize("x", c2d_xs)
-@pytest.mark.parametrize("w", c2d_ws)
-@pytest.mark.parametrize("b", c2d_bs)
-@pytest.mark.parametrize("padding", paddings)
-@pytest.mark.parametrize("stride", strides)
-@pytest.mark.parametrize("dilation", dilations)
-def test_conv2d(x, w, b, padding, stride, dilation):
-    """Conv 2d function test"""
-    ac_x, torch_x = x
-    ac_w, torch_w = w
-    ac_b, torch_b = b
-    ac_y = F.conv2d(ac_x, ac_w, ac_b, stride, padding, dilation)
-    torch_y = tF.conv2d(torch_x, torch_w, torch_b, stride, padding, dilation)
-    _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
-
-
-t2d_ac_x1, t2d_torch_x1 = get_random_floats((16, 3, 14, 14))
-t2d_ac_w1, t2d_torch_w1 = get_random_floats((5, 3, 3, 3))
-t2d_ac_b1, t2d_torch_b1 = get_random_floats((5,))
-t2d_xs = ((t2d_ac_x1, t2d_torch_x1),)
-t2d_ws = ((t2d_ac_w1, t2d_torch_w1),)
-t2d_bs = ((t2d_ac_b1, t2d_torch_b1),)
-t2d_strides = (1, 2)
-t2d_paddings = (0, 1)
-t2d_output_paddings = (0, 1)
-t2d_dilations = (1, 2)
-
-
-@pytest.mark.parametrize("x", t2d_xs)
-@pytest.mark.parametrize("w", t2d_ws)
-@pytest.mark.parametrize("b", t2d_bs)
-@pytest.mark.parametrize("stride", t2d_strides)
-@pytest.mark.parametrize("padding", t2d_paddings)
-@pytest.mark.parametrize("output_padding", t2d_output_paddings)
-@pytest.mark.parametrize("dilation", t2d_dilations)
-def test_conv_transpose2d(x, w, b, stride, padding, output_padding, dilation):
-    """Conv function test"""
+@pytest.mark.parametrize("x", TCONV2D_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("w", TCONV2D_W_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("b", TCONV2D_B_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("padding", PADDINGS)
+@pytest.mark.parametrize("stride", STRIDES)
+@pytest.mark.parametrize("dilation", DILATIONS)
+@pytest.mark.parametrize("output_padding", TCONV2D_OUT_PADDINGS)
+def test_conv_transpose2d(
+    x: tuple[ac.Tensor, torch.Tensor],
+    w: tuple[ac.Tensor, torch.Tensor],
+    b: tuple[ac.Tensor, torch.Tensor],
+    padding: int,
+    stride: int,
+    dilation: int,
+    output_padding: int,
+) -> None:
     if padding >= stride or padding >= dilation or output_padding > padding:
         return
     ac_x, torch_x = x
     ac_w, torch_w = w
     ac_b, torch_b = b
-    ac_y = F.conv_transpose2d(ac_x, ac_w, ac_b, stride, padding, output_padding, dilation)
-    torch_y = tF.conv_transpose2d(
+    ac_y = ac.nn.functional.conv_transpose2d(
+        ac_x, ac_w, ac_b, stride, padding, output_padding, dilation
+    )
+    torch_y = torch.nn.functional.conv_transpose2d(
         torch_x,
         torch_w.transpose(0, 1),
         torch_b,
@@ -112,17 +91,10 @@ def test_conv_transpose2d(x, w, b, stride, padding, output_padding, dilation):
         output_padding,
         dilation=dilation,
     )
-    _conv_function_verify(ac_x, torch_x, ac_w, torch_w, ac_b, torch_b, ac_y, torch_y)
+    verify_op((ac_x, ac_w, ac_b), ac_y, (torch_x, torch_w, torch_b), torch_y)
 
 
-windows = (2, 3, 4)
-
-
-@pytest.mark.parametrize("x", c2d_xs)
-@pytest.mark.parametrize("window_size", windows)
-def test_maxpool2d(x, window_size):
-    """Maxpool function test"""
-    ac_x, torch_x = x
-    ac_y = F.maxpool2d(ac_x, window_size)
-    torch_y = tF.max_pool2d(torch_x, window_size)
-    _pool_function_verify(ac_x, torch_x, ac_y, torch_y)
+@pytest.mark.parametrize("x", CONV2D_X_RANDOM_FLOAT_TENSORS)
+@pytest.mark.parametrize("window_size", POOL_WINDOWS)
+def test_maxpool2d(x: tuple[ac.Tensor, torch.Tensor], window_size: int) -> None:
+    get_op_test("maxpool2d", "max_pool2d")((x,), window_size)
