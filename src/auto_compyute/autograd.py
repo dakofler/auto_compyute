@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import importlib
 import typing
 from contextlib import contextmanager
-from typing import Any, Literal, Optional
+from typing import Any, Optional
 
 from auto_compyute.backends import (
     Array,
@@ -34,12 +33,6 @@ if typing.TYPE_CHECKING:
 
 
 __all__ = ["Tensor", "no_autograd_tracking"]
-
-MERMAID_NODE_COLORS = {
-    "const": ("#CAEDFB", "#4D93D9"),
-    "leaf": ("#C6EFCE", "#4EA72E"),
-    "op": ("#F2F2F2", "#808080"),
-}
 
 
 class Tensor:
@@ -221,7 +214,7 @@ class Tensor:
 
         # construct a list of nodes via depth-first-search
         nodes: list[Tensor] = []
-        tree_dfs(self, nodes, set())
+        dfs(self, nodes, set())
 
         # run backward through the list
         for node in reversed(nodes):
@@ -731,7 +724,7 @@ class Tensor:
 
 
 def _undo_broadcast(grad: Array, target_shape: ShapeLike) -> Array:
-    """Assures that the resulting gradient of some operation matches the target shape."""
+    """Ensures that the resulting gradient of some operation matches the target shape."""
     if grad.shape == target_shape:
         return grad
     target_ndim = len(target_shape)
@@ -747,14 +740,10 @@ def _undo_broadcast(grad: Array, target_shape: ShapeLike) -> Array:
     return grad.reshape(target_shape)
 
 
-def tree_dfs(
-    root_node: Tensor,
-    nodes: list[Tensor],
-    visited: set,
-    *,
-    include_leaf_nodes: bool = False,
+def dfs(
+    root_node: Tensor, nodes: list[Tensor], visited: set, *, include_leaf_nodes: bool = False
 ) -> None:
-    """Traverses the computational graph using depth-first-search and returns the list of nodes."""
+    """Traverses the computational graph using depth-first-search and fills the list of nodes."""
     if root_node in visited:
         return
     visited.add(root_node)
@@ -763,7 +752,7 @@ def tree_dfs(
     )
     for src_node in root_node.src:
         if src_node is not None:
-            tree_dfs(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
+            dfs(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
     if include_leaf_nodes or len(root_node.src) > 0:
         nodes.append(root_node)
 
@@ -813,84 +802,6 @@ def no_autograd_tracking() -> Generator:
         yield
     finally:
         _set_autograd_tracking_mode(True)
-
-
-def _get_mermaid_node_def(node: Tensor) -> str:
-    node_id = str(id(node))
-    node_name = node.label
-    node_data_shape = str(node.shape).replace("shape", "")
-    if node.ctx is not None:
-        # exclue select ops key
-        node_op_kwargs = ", ".join(f"{k}={v}" for k, v in node.ctx.kwargs.items() if k != "key")
-    else:
-        node_op_kwargs = ""
-
-    node_label = f"<b>{node_name}</b><br>"
-    node_label += f"<small>kwargs: {node_op_kwargs}<br>"
-    node_label += f"shape: {node_data_shape}<br>"
-    node_label += f"dtype: {node.dtype!s}</small>"
-    return f'{node_id}("{node_label}")'
-
-
-def _get_mermaid_node_style(n: Tensor) -> str:
-    node_id = str(id(n))
-    if not n.req_grad:
-        fill_color, stroke_color = MERMAID_NODE_COLORS["const"]
-    elif n.ctx is None:
-        fill_color, stroke_color = MERMAID_NODE_COLORS["leaf"]
-    else:
-        fill_color, stroke_color = MERMAID_NODE_COLORS["op"]
-    return f"style {node_id} fill:{fill_color},stroke:{stroke_color}"
-
-
-def draw_graph(
-    root_node: Tensor,
-    orientation: Literal["LR", "TD"] = "LR",
-    save_to_file: bool = False,
-) -> Any:
-    """Draws the compute graph based on a root node.
-
-    Args:
-        root_node (Tensor): Root node of the compute graph.
-        orientation (Literal["LR", "TD"]): Layout of the drawn graph (LR=left-to-right,
-            TD=top-to-bottom). Defaults to `LR`.
-        save_to_file (bool): Whether to save the graph to an HTML-file. Defaults to `False`.
-
-    Returns:
-        Mermaid: The resulting Mermaid diagram, if `save_to_file=False`.
-
-    Raises:
-        AssertionError: If the root node is not part of a compute graph.
-        ModuleNotFoundError: If `mermaid-python` is not installed.
-    """
-    assert root_node.req_grad, "Node not in autograd graph"
-
-    try:
-        mermaid = importlib.import_module("mermaid")
-    except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError("Install mermaid-python to draw graphs.") from exc
-
-    mermaid_script = f"graph {orientation}\n"
-    nodes: list[Tensor] = []
-    tree_dfs(root_node, nodes, set(), include_leaf_nodes=True)
-
-    for node in nodes:
-        # add node definition and style
-        mermaid_script += f"{_get_mermaid_node_def(node)}\n"
-        mermaid_script += f"{_get_mermaid_node_style(node)}\n"
-
-        # add edges from src nodes to node
-        for src_node in node.src:
-            src_node_id = str(id(src_node))
-            node_id = str(id(node))
-            mermaid_script += f"{src_node_id}-->{node_id}\n"
-
-    mermaid_html = mermaid.Mermaid(mermaid_script)
-    if save_to_file:
-        with open("compute_graph.html", "w", encoding="utf-8") as f:
-            f.write(mermaid_html._repr_html_())
-    else:
-        return mermaid_html
 
 
 # -------------------------------------------------------------------------------------

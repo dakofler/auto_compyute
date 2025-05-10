@@ -20,12 +20,12 @@ The package supports:
 
 import importlib.metadata
 
-from auto_compyute import nn
+from auto_compyute import nn, viz
 from auto_compyute.autograd import *
 from auto_compyute.backends import *
 from auto_compyute.dtypes import *
 from auto_compyute.tensor_factory import *
 from auto_compyute.tensor_functions import *
 
-__all__ = ["nn"]
+__all__ = ["nn", "viz"]
 __version__ = importlib.metadata.version("auto_compyute")

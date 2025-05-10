@@ -107,7 +107,7 @@ module = MyModule()
 x = ac.randn(1, 4)
 y = module(x)  # modules are callable
 
-ac.autograd.draw_graph(y) # the constructed graph can be visualized
+ac.viz.draw_graph(y) # the constructed graph can be visualized
 ```
 <img src="examples/compute_graph_2.png" alt="Neural Network Compute Graph Visualization" width="75%"/>
 
