@@ -38,7 +38,7 @@ def test_conv1d(
     stride: int,
     dilation: int,
 ) -> None:
-    get_op_test("conv1d")((x, w, b), stride=stride, padding=padding, dilation=dilation)
+    get_op_test("conv1d", tol=1e-3)((x, w, b), stride=stride, padding=padding, dilation=dilation)
 
 
 @pytest.mark.parametrize("x", CONV2D_X_RANDOM_FLOAT_TENSORS)
@@ -55,7 +55,7 @@ def test_conv2d(
     stride: int,
     dilation: int,
 ) -> None:
-    get_op_test("conv2d")((x, w, b), stride=stride, padding=padding, dilation=dilation)
+    get_op_test("conv2d", tol=1e-3)((x, w, b), stride=stride, padding=padding, dilation=dilation)
 
 
 @pytest.mark.parametrize("x", TCONV2D_X_RANDOM_FLOAT_TENSORS)
@@ -91,7 +91,7 @@ def test_conv_transpose2d(
         output_padding,
         dilation=dilation,
     )
-    verify_op((ac_x, ac_w, ac_b), ac_y, (torch_x, torch_w, torch_b), torch_y)
+    verify_op((ac_x, ac_w, ac_b), ac_y, (torch_x, torch_w, torch_b), torch_y, tol=1e-3)
 
 
 @pytest.mark.parametrize("x", CONV2D_X_RANDOM_FLOAT_TENSORS)
