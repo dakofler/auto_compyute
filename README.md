@@ -21,7 +21,7 @@ The `Tensor` object is the fundamental data structure in this autograd engine. I
 
 **Most Important Attributes:**
 - `data`: A NumPy array containing the numerical values.
-- `grad`: A NumPy array holding the computed gradients (initialized as `None`, filled by calling `backward()`).
+- `grad`: A NumPy array holding the computed gradient (initialized as `None`, filled by calling `backward()`).
 - `ctx`: Stores a reference to the operation (`Op`) that created this tensor.
 - `src`: References the parent tensors involved in the creation of the tensor.
 
@@ -35,7 +35,7 @@ The `Op` object represents a differentiable operation applied to tensors. Each o
 
 2. **Backpropagation**: Calling `backward()` on the final tensor (e.g. a loss value) initiates gradient computation. The gradients propagate in reverse through the computational graph by calling `backward()` on each `Op`, which distributes gradients to parent tensors.
 
-3. **Gradient Storage**: As the gradients are propagated, they are stored in the `grad` attribute of each `Tensor`, enabling later parameter updates for optimization.
+3. **Gradient Storage**: As gradients are propagated, they are stored in the `grad` attribute of each `Tensor`, enabling later parameter updates for optimization.
 
 ## Installation
 
@@ -56,7 +56,7 @@ pip3 install .[cuda]
 
 AutoCompyute closely follows the PyTorch syntax.
 
-You can create a tensor from raw data or use a factory function to fill a tensor with data. Setting the tensor to require gradients (`req_grads=True`) signals, that it should be part of a computational graph for backpropagation.
+You can create a tensor from raw data or use a factory function to fill a tensor with data. Setting the tensor to require a gradient (`req_grad=True`) signals, that it should be part of a computational graph for backpropagation.
 
 
 ```Python
@@ -76,7 +76,7 @@ Tensor([[13.8923, 11.5502,  5.2445],
         [15.6469, 18.8092, 16.2810]], grad_fn=Add)
 ```
 
-Because the tensors require gradients, when the expression is evaluated, a computational graph is created. It can be visualized (requires the the `mermaid-python` package).
+When the expression is evaluated, a computational graph is created. It can be visualized (requires the the `mermaid-python` package).
 
 ```Python
 ac.viz.draw_graph(y)

@@ -64,7 +64,7 @@ def is_float(dtype: DType) -> bool:
     Returns:
         bool: True if the dtype is `float16`, `float32`, or `float64` otherwise, `False`.
     """
-    return any(dtype == d for d in [float16, float32, float64])
+    return dtype in (float16, float32, float64)
 
 
 def is_int(dtype: DType) -> bool:
@@ -76,4 +76,4 @@ def is_int(dtype: DType) -> bool:
     Returns:
         bool: True if the dtype is `int16`, `int32`, or `int64` otherwise, `False`.
     """
-    return any(dtype == d for d in [int16, int32, int64])
+    return dtype in (int16, int32, int64)

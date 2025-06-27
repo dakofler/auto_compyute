@@ -10,7 +10,7 @@ ac.set_random_seed(0)
 
 def get_random_floats(shape: ShapeLike, req_grad: bool = True) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.randn(*shape, req_grad=req_grad)
-    torch_tensor = torch.tensor(ac_tensor.numpy(), requires_grad=req_grad)
+    torch_tensor = torch.tensor(ac_tensor.as_numpy(), requires_grad=req_grad)
     return ac_tensor, torch_tensor
 
 
@@ -19,19 +19,19 @@ def get_random_positive_floats(
 ) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.randn(*shape).abs()
     ac_tensor.req_grad = req_grad
-    torch_tensor = torch.tensor(ac_tensor.numpy(), requires_grad=req_grad)
+    torch_tensor = torch.tensor(ac_tensor.as_numpy(), requires_grad=req_grad)
     return ac_tensor, torch_tensor
 
 
 def get_random_ints(shape: ShapeLike, low: int, high: int) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.randi(*shape, low=low, high=high, dtype=ac.int64)
-    torch_tensor = torch.tensor(ac_tensor.numpy())
+    torch_tensor = torch.tensor(ac_tensor.as_numpy())
     return ac_tensor, torch_tensor
 
 
 def get_random_bools(shape: ShapeLike) -> tuple[ac.Tensor, torch.Tensor]:
     ac_tensor = ac.randn(*shape) < 0
-    torch_tensor = torch.tensor(ac_tensor.numpy())
+    torch_tensor = torch.tensor(ac_tensor.as_numpy())
     return ac_tensor, torch_tensor
 
 

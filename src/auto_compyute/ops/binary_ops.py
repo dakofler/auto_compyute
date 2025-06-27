@@ -35,11 +35,11 @@ class Mul(Op):
 
     def forward(self, x1: Array, x2: Array) -> Array:
         y = x1 * x2
-        self.save_to_cache(x1, x2)
+        self.stash(x1, x2)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1, x2 = self.retrieve_from_cache()
+        x1, x2 = self.unstash()
         dx1 = dy * x2
         dx2 = dy * x1
         return dx1, dx2
@@ -50,11 +50,11 @@ class Div(Op):
 
     def forward(self, x1: Array, x2: Array) -> Array:
         y = x1 / x2
-        self.save_to_cache(x1, x2)
+        self.stash(x1, x2)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1, x2 = self.retrieve_from_cache()
+        x1, x2 = self.unstash()
         dx1 = dy / x2
         dx2 = -(dy * x1) / (x2 * x2)
         return dx1, dx2
@@ -65,11 +65,11 @@ class Dot(Op):
 
     def forward(self, x1: Array, x2: Array) -> Array:
         y = x1 @ x2
-        self.save_to_cache(x1, x2)
+        self.stash(x1, x2)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x1, x2 = self.retrieve_from_cache()
+        x1, x2 = self.unstash()
         dx1 = dy @ x2.swapaxes(-1, -2)  # dy @ x2.T
         dx2 = x1.swapaxes(-1, -2) @ dy  # x1.T @ dy
         return dx1, dx2
@@ -80,11 +80,11 @@ class Maximum(Op):
 
     def forward(self, x1: Array, x2: Array) -> Array:
         y = self.xp.maximum(x1, x2)
-        self.save_to_cache(y == x1)
+        self.stash(y == x1)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        mask = self.retrieve_from_cache()
+        mask = self.unstash()
         dx1 = dy * mask
         dx2 = dy * self.xp.invert(mask)
         return dx1, dx2
@@ -95,11 +95,11 @@ class Minimum(Op):
 
     def forward(self, x1: Array, x2: Array) -> Array:
         y = self.xp.minimum(x1, x2)
-        self.save_to_cache(y == x1)
+        self.stash(y == x1)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        mask = self.retrieve_from_cache()
+        mask = self.unstash()
         dx1 = dy * mask
         dx2 = dy * self.xp.invert(mask)
         return dx1, dx2

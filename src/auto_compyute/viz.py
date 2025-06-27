@@ -3,7 +3,7 @@
 from importlib import import_module
 from typing import Any, Literal
 
-from auto_compyute.autograd import Tensor, dfs
+from auto_compyute.autograd import Tensor, depth_first_search
 
 MERMAID_NODE_COLORS = {
     "const": ("#CAEDFB", "#4D93D9"),
@@ -70,7 +70,7 @@ def draw_graph(
 
     mermaid_script = f"graph {orientation}\n"
     nodes: list[Tensor] = []
-    dfs(root_node, nodes, set(), include_leaf_nodes=True)
+    depth_first_search(root_node, nodes, set(), include_leaf_nodes=True)
 
     for node in nodes:
         # add node definition and style

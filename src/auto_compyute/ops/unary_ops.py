@@ -9,11 +9,11 @@ class Abs(Op):
 
     def forward(self, x: Array) -> Array:
         y = self.xp.absolute(x)
-        self.save_to_cache(y != x)
+        self.stash(y != x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (mask,) = self.retrieve_from_cache()
+        (mask,) = self.unstash()
         dx = dy
         self.xp.multiply.at(dx, mask, -1)
         return (dx,)
@@ -24,11 +24,11 @@ class Exp(Op):
 
     def forward(self, x: Array) -> Array:
         y = self.xp.exp(x)
-        self.save_to_cache(y)
+        self.stash(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (y,) = self.retrieve_from_cache()
+        (y,) = self.unstash()
         dx = dy * y
         return (dx,)
 
@@ -38,11 +38,11 @@ class Log(Op):
 
     def forward(self, x: Array) -> Array:
         y = self.xp.log(x)
-        self.save_to_cache(x)
+        self.stash(x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x = self.retrieve_from_cache()
+        x = self.unstash()
         dx = dy / x
         return (dx,)
 
@@ -52,11 +52,11 @@ class Pow(Op):
 
     def forward(self, x: Array, *, exp: Scalar) -> Array:
         y = x**exp
-        self.save_to_cache(x, exp)
+        self.stash(x, exp)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, exp = self.retrieve_from_cache()
+        x, exp = self.unstash()
         dx = dy * exp * x ** (exp - 1)
         return (dx,)
 
@@ -66,11 +66,11 @@ class Sqrt(Op):
 
     def forward(self, x: Array) -> Array:
         y = self.xp.sqrt(x)
-        self.save_to_cache(y)
+        self.stash(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (y,) = self.retrieve_from_cache()
+        (y,) = self.unstash()
         dx = dy * 0.5 / y
         return (dx,)
 
@@ -80,11 +80,11 @@ class Tanh(Op):
 
     def forward(self, x: Array) -> Array:
         y = self.xp.tanh(x)
-        self.save_to_cache(y)
+        self.stash(y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (y,) = self.retrieve_from_cache()
+        (y,) = self.unstash()
         dx = dy * (1 - y * y)
         return (dx,)
 
@@ -94,11 +94,11 @@ class Tril(Op):
 
     def forward(self, x: Array, *, diag: int) -> Array:
         y = self.xp.tril(x, diag)
-        self.save_to_cache(y == x)
+        self.stash(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (mask,) = self.retrieve_from_cache()
+        (mask,) = self.unstash()
         dx = dy * mask
         return (dx,)
 
@@ -108,10 +108,10 @@ class Triu(Op):
 
     def forward(self, x: Array, *, diag: int) -> Array:
         y = self.xp.triu(x, diag)
-        self.save_to_cache(y == x)
+        self.stash(y == x)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        (mask,) = self.retrieve_from_cache()
+        (mask,) = self.unstash()
         dx = dy * mask
         return (dx,)

@@ -2,7 +2,7 @@
 
 from typing import Literal, Optional
 
-from auto_compyute.autograd import Tensor, _parse_key, apply_op
+from auto_compyute.autograd import Tensor, apply_op, parse_key
 from auto_compyute.dtypes import is_int
 from auto_compyute.nn import ops as NNOps
 
@@ -351,7 +351,7 @@ def embedding(x: Tensor, emb_table: Tensor) -> Tensor:
         Tensor: Output embeddings corresponding to input indices.
     """
     assert is_int(x.dtype)
-    key = _parse_key(x)
+    key = parse_key(x)
     return apply_op(NNOps.Embedding, emb_table, key=key)
 
 
@@ -372,7 +372,7 @@ def mse_loss(logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] 
     Returns:
         Tensor: Computed MSE loss.
     """
-    assert not targets.req_grad, "Targets cannot require gradients."
+    assert not targets.req_grad, "Targets cannot require a gradient."
     return apply_op(NNOps.MSELoss, logits, targets, reduction=reduction)
 
 
@@ -397,7 +397,7 @@ def cross_entropy_loss(
     Returns:
         Tensor: Computed cross-entropy loss.
     """
-    assert not targets.req_grad, "Targets cannot require gradients."
+    assert not targets.req_grad, "Targets cannot require a gradient."
     assert is_int(targets.dtype), "Targets must be integers."
     return apply_op(NNOps.CrossEntropyLoss, logits, targets, eta=eta, reduction=reduction)
 
@@ -414,5 +414,5 @@ def bce_loss(logits: Tensor, targets: Tensor, reduction: Literal["sum", "mean"] 
     Returns:
         Tensor: Computed BCE loss.
     """
-    assert not targets.req_grad, "Targets cannot require gradients."
+    assert not targets.req_grad, "Targets cannot require a gradient."
     return apply_op(NNOps.BCELoss, logits, targets, reduction=reduction)

@@ -11,11 +11,11 @@ class Sum(Op):
 
     def forward(self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool) -> Array:
         y = x.sum(dim, keepdims=keepdims)
-        self.save_to_cache(x.shape, dim, keepdims)
+        self.stash(x.shape, dim, keepdims)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x_shape, dim, keepdims = self.retrieve_from_cache()
+        x_shape, dim, keepdims = self.unstash()
         if not keepdims and dim is not None:
             dy = self.xp.expand_dims(dy, dim)
         dx = self.xp.broadcast_to(dy, x_shape)
@@ -27,11 +27,11 @@ class Mean(Op):
 
     def forward(self, x: Array, *, dim: Optional[int | tuple[int, ...]], keepdims: bool) -> Array:
         y = x.mean(dim, keepdims=keepdims)
-        self.save_to_cache(x.shape, dim, keepdims, x.size / y.size)
+        self.stash(x.shape, dim, keepdims, x.size / y.size)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x_shape, dim, keepdims, size = self.retrieve_from_cache()
+        x_shape, dim, keepdims, size = self.unstash()
         if not keepdims and dim is not None:
             dy = self.xp.expand_dims(dy, dim)
         dx = self.xp.broadcast_to(dy / size, x_shape)
@@ -50,11 +50,11 @@ class Var(Op):
         keepdims: bool,
     ) -> Array:
         y = x.var(dim, ddof=ddof, keepdims=keepdims)
-        self.save_to_cache(x, dim, x.size / y.size - ddof)
+        self.stash(x, dim, x.size / y.size - ddof)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, dim, n = self.retrieve_from_cache()
+        x, dim, n = self.unstash()
         dx = dy * 2.0 * (x - x.mean(dim, keepdims=True)) / n
         return (dx,)
 
@@ -71,11 +71,11 @@ class Std(Op):
         keepdims: bool,
     ) -> Array:
         y = x.std(dim, ddof=ddof, keepdims=keepdims)
-        self.save_to_cache(x, dim, ddof, y)
+        self.stash(x, dim, ddof, y)
         return y
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        x, dim, ddof, y = self.retrieve_from_cache()
+        x, dim, ddof, y = self.unstash()
         n = x.size / y.size - ddof
         dx = dy * (x - x.mean(dim, keepdims=True)) / (n * y)
         return (dx,)
@@ -86,11 +86,11 @@ class Max(Op):
 
     def forward(self, x: Array, *, dim: Optional[int], keepdims: bool) -> Array:
         y = x.max(dim, keepdims=True)
-        self.save_to_cache(dim, keepdims, x == y)
+        self.stash(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim, keepdims, mask = self.retrieve_from_cache()
+        dim, keepdims, mask = self.unstash()
         if not keepdims and dim is not None:
             dy = self.xp.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, dtype=dy.dtype, keepdims=True)
@@ -102,11 +102,11 @@ class Min(Op):
 
     def forward(self, x: Array, *, dim: Optional[int], keepdims: bool) -> Array:
         y = x.min(dim, keepdims=True)
-        self.save_to_cache(dim, keepdims, x == y)
+        self.stash(dim, keepdims, x == y)
         return y if keepdims else y.squeeze()
 
     def backward(self, dy: Array) -> tuple[Array, ...]:
-        dim, keepdims, mask = self.retrieve_from_cache()
+        dim, keepdims, mask = self.unstash()
         if not keepdims and dim is not None:
             dy = self.xp.expand_dims(dy, dim)
         dx = mask * dy / mask.sum(dim, dtype=dy.dtype, keepdims=True)
