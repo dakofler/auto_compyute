@@ -24,8 +24,8 @@ def verify_op(
     *,
     tol: float = DEFAULT_TOL,
 ) -> None:
-    """Asserts closeness for the output and input gradients of a AutoCompyute and Torch function"""
-    assert allclose(ac_y.numpy(), torch_y, tol=tol)
+    """Asserts closeness for the output and input gradient of a AutoCompyute and Torch function"""
+    assert allclose(ac_y.as_numpy(), torch_y, tol=tol)
     if not ac_y.req_grad:
         return
     ac_y_grad, torch_y_grad = get_random_floats(ac_y.shape, False)

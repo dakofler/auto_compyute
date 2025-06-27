@@ -38,7 +38,7 @@ class Optimizer(ABC):
         self._state: dict[int, dict[str, Array]] = {i: {} for i in range(len(self._parameters))}
 
     def reset_param_grads(self) -> None:
-        """Sets gradients of all parameters to `None`."""
+        """Sets the gradient of all parameters to `None`."""
         for p in self._parameters:
             p.grad = None
 

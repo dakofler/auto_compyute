@@ -17,32 +17,32 @@ class Op(ABC):
     def __init__(self, xp: ModuleType, kwargs: dict[str, Any]) -> None:
         self.xp = xp
         self.kwargs = kwargs  # for graph visualization
-        self._cache: Any = None
+        self._stash: Optional[tuple[Any, ...]] = None
 
     @property
     def name(self) -> str:
         """Returns the operation name."""
         return self.__class__.__name__
 
-    def save_to_cache(self, *args: Any):
-        """Saves values to the cache.
+    def stash(self, *args: Any):
+        """Saves items for later retrieval.
 
         Args:
-            *args: Values to be cached.
+            *args: Items to be stashed.
         """
-        self._cache = args
+        self._stash = args
 
-    def retrieve_from_cache(self) -> tuple[Any, ...]:
-        """Retrieves the cached values and resets the cache afterwards.
+    def unstash(self) -> tuple[Any, ...]:
+        """Pops stashed items.
 
         Returns:
-            tuple[Any, ...]: The cached values.
+            tuple[Any, ...]: Stashed items.
 
         Raises:
-            AssertionError: If no values are cached.
+            AssertionError: If no items are stashed.
         """
-        assert self._cache is not None
-        values, self._cache = self._cache, None  # reset cache to None
+        assert self._stash is not None, f"No items stashed for {self.__class__.__name__}"
+        values, self._stash = self._stash, None  # reset stash
         return values
 
     @abstractmethod

@@ -118,7 +118,7 @@ class Tensor:
         return self.sub(x)
 
     def __rsub__(self, x: Scalar) -> Tensor:
-        return self.cast_other(x).sub(self)
+        return self.cast_to_self_dtype(x).sub(self)
 
     def __mul__(self, x: Tensor | Scalar) -> Tensor:
         return self.mul(x)
@@ -129,7 +129,7 @@ class Tensor:
         return self.truediv(x)
 
     def __rtruediv__(self, x: Scalar) -> Tensor:
-        return self.cast_other(x).truediv(self)
+        return self.cast_to_self_dtype(x).truediv(self)
 
     def __matmul__(self, x: Tensor) -> Tensor:
         return self.dot(x)
@@ -141,22 +141,22 @@ class Tensor:
         return self.mul(-1)
 
     def __eq__(self, x: Tensor | Scalar) -> Tensor:  # type: ignore
-        return Tensor(self.data == self.cast_other(x).data)
+        return Tensor(self.data == self.cast_to_self_dtype(x).data)
 
     def __neq__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data != self.cast_other(x).data)
+        return Tensor(self.data != self.cast_to_self_dtype(x).data)
 
     def __lt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data < self.cast_other(x).data)
+        return Tensor(self.data < self.cast_to_self_dtype(x).data)
 
     def __gt__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data > self.cast_other(x).data)
+        return Tensor(self.data > self.cast_to_self_dtype(x).data)
 
     def __le__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data <= self.cast_other(x).data)
+        return Tensor(self.data <= self.cast_to_self_dtype(x).data)
 
     def __ge__(self, x: Tensor | Scalar) -> Tensor:
-        return Tensor(self.data >= self.cast_other(x).data)
+        return Tensor(self.data >= self.cast_to_self_dtype(x).data)
 
     def __getitem__(self, key: Any) -> Tensor:
         return self.select(key)
@@ -214,7 +214,7 @@ class Tensor:
 
         # construct a list of nodes via depth-first-search
         nodes: list[Tensor] = []
-        dfs(self, nodes, set())
+        depth_first_search(self, nodes, set())
 
         # run backward through the list
         for node in reversed(nodes):
@@ -319,7 +319,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise sum.
         """
-        return apply_op(BOps.Add, self, self.cast_other(x))
+        return apply_op(BOps.Add, self, self.cast_to_self_dtype(x))
 
     def sub(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise subtraction.
@@ -330,7 +330,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise difference.
         """
-        return apply_op(BOps.Sub, self, self.cast_other(x))
+        return apply_op(BOps.Sub, self, self.cast_to_self_dtype(x))
 
     def mul(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise multiplication.
@@ -341,7 +341,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise product.
         """
-        return apply_op(BOps.Mul, self, self.cast_other(x))
+        return apply_op(BOps.Mul, self, self.cast_to_self_dtype(x))
 
     def truediv(self, x: Tensor | Scalar) -> Tensor:
         """Performs element-wise division.
@@ -352,7 +352,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise quotient.
         """
-        return apply_op(BOps.Div, self, self.cast_other(x))
+        return apply_op(BOps.Div, self, self.cast_to_self_dtype(x))
 
     def dot(self, x: Tensor) -> Tensor:
         """Performs the dot product of the tensors. For higher dimensional tensors it performs
@@ -375,7 +375,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise maximum values.
         """
-        return apply_op(BOps.Maximum, self, self.cast_other(x))
+        return apply_op(BOps.Maximum, self, self.cast_to_self_dtype(x))
 
     def minimum(self, x: Tensor | Scalar) -> Tensor:
         """Computes the element-wise minimum.
@@ -386,7 +386,7 @@ class Tensor:
         Returns:
             Tensor: The element-wise minimum values.
         """
-        return apply_op(BOps.Minimum, self, self.cast_other(x))
+        return apply_op(BOps.Minimum, self, self.cast_to_self_dtype(x))
 
     # ----------------------------------------------------------------------------------
     # REDUCE OPS
@@ -495,11 +495,11 @@ class Tensor:
         Returns:
             Tensor: A new tensor containing the selected elements.
         """
-        key = _parse_key(key)
+        key = parse_key(key)
         return apply_op(MOps.Select, self, key=key)
 
     def _split(self, key: Any) -> Tensor:
-        key = _parse_key(key)
+        key = parse_key(key)
         return apply_op(MOps.Split, self, key=key)
 
     def split(self, split_size: int, *, dim: int = -1) -> list[Tensor]:
@@ -668,7 +668,7 @@ class Tensor:
         data = self.device.xp.ascontiguousarray(self.data)
         return Tensor(data, self.ctx, self.src, self.req_grad)
 
-    def cast_other(self, x: Tensor | Scalar) -> Tensor:
+    def cast_to_self_dtype(self, x: Tensor | Scalar) -> Tensor:
         """Casts the input's data type to match self.
 
         Args:
@@ -681,7 +681,7 @@ class Tensor:
             return x.as_type(self.dtype)
         return Tensor(self.device.xp.asarray(x, dtype=self.dtype))
 
-    def numpy(self) -> numpy.ndarray:
+    def as_numpy(self) -> numpy.ndarray:
         """Returns the tensor data as a NumPy array.
 
         Returns:
@@ -740,8 +740,12 @@ def _undo_broadcast(grad: Array, target_shape: ShapeLike) -> Array:
     return grad.reshape(target_shape)
 
 
-def dfs(
-    root_node: Tensor, nodes: list[Tensor], visited: set, *, include_leaf_nodes: bool = False
+def depth_first_search(
+    root_node: Tensor,
+    nodes: list[Tensor],
+    visited: set[Tensor],
+    *,
+    include_leaf_nodes: bool = False,
 ) -> None:
     """Traverses the computational graph using depth-first-search and fills the list of nodes."""
     if root_node in visited:
@@ -752,7 +756,7 @@ def dfs(
     )
     for src_node in root_node.src:
         if src_node is not None:
-            dfs(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
+            depth_first_search(src_node, nodes, visited, include_leaf_nodes=include_leaf_nodes)
     if include_leaf_nodes or len(root_node.src) > 0:
         nodes.append(root_node)
 
@@ -809,7 +813,7 @@ def no_autograd_tracking() -> Generator:
 # -------------------------------------------------------------------------------------
 
 
-def _parse_key(key: Any) -> Any:
+def parse_key(key: Any) -> Any:
     """Ensures the key is processable by the backend."""
     if isinstance(key, tuple):
         return tuple(k.data if isinstance(k, Tensor) else k for k in key)
