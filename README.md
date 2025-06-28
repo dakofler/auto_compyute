@@ -31,7 +31,7 @@ The `Op` object represents a differentiable operation applied to tensors. Each o
 
 ### How the Engine Works
 
-1. **Computation Graph Construction**: When an operation (e.g., `Tensor.add`) is called, an `Op` instance is created. It performs the forward computation while also caching intermediate values that are required for the backward pass. The resulting output tensor maintains references to the `Op` and parent tensors, forming a computational graph.
+1. **Computation Graph Construction**: When an operation (e.g., `Tensor.add`) is called, an `Op` instance is created. It performs the forward computation while also temporarily saving intermediate values that are required for the backward pass. The resulting output tensor maintains references to the `Op` and parent tensors, forming a computational graph.
 
 2. **Backpropagation**: Calling `backward()` on the final tensor (e.g. a loss value) initiates gradient computation. The gradients propagate in reverse through the computational graph by calling `backward()` on each `Op`, which distributes gradients to parent tensors.
 
